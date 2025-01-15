@@ -26,11 +26,11 @@ export class BotCardComponent {
     this.download.emit();
   }
 
-  navigateToPdfToQcm() {
+  navigateToPdfToTxt() {
     try {
-      this.router.navigate(['/pdf-to-qcm']);
+      this.router.navigate(['/pdf-to-txt']);
     } catch (error) {
-      console.error('Errore durante la navigazione verso la pagina PDF to QCM:', error);
+      console.error('Errore durante la navigazione verso la pagina PDF to Txt:', error);
     }
   }
 }

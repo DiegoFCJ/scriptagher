@@ -1,13 +1,11 @@
-<header [class.pdf-page]="isPdfToQcmPage">
+<header [class.pdf-page]="isPdfToTxtPage">
     <div class="header-content">
-        <!-- Header PDF to QCM -->
-        <div *ngIf="isPdfToQcmPage; else normalHeader" class="pdf-header">
+        <!-- Header PDF to Txt -->
+        <div *ngIf="isPdfToTxtPage; else normalHeader" class="pdf-header">
             <span class="app-name">Scriptagher</span>
-            <span class="current-page">PDF to QCM</span>
+            <span class="current-page">PDF to Txt</span>
             <div class="home-button" (click)="navigateHome()">
-                <div class="home-button" (click)="navigateHome()">
-                    <img src="/icons/icons8-home-64.png"/>
-                  </div>                  
+                <img src="/icons/icons8-home-64.png"/>    
             </div>
         </div>
 
@@ -16,6 +14,9 @@
             <div class="normal-header">
                 <h1>Welcome to the Bot List</h1>
                 <p>Here is a list of available bots, organized by language.</p>
+                <button class="home-button" (click)="navigateConverterPage()">
+                    Navigate to Pdf to Txt Quiz Converter
+                </button>
             </div>
         </ng-template>
     </div>

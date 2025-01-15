@@ -20,10 +20,11 @@ header {
         position: relative;
         width: 100%;
         display: flex;
+        flex-direction: column;
         justify-content: space-between;
         gap: 0.5rem;
 
-        /* Header PDF to QCM dinamico */
+        /* Header PDF to Txt dinamico */
         .pdf-header {
             position: absolute;
             left: 0;

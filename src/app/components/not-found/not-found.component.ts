@@ -1,4 +1,5 @@
 import { Component } from '@angular/core';
+import { Router, NavigationEnd } from '@angular/router';
 
 @Component({
   selector: 'app-not-found',
@@ -9,4 +10,9 @@ import { Component } from '@angular/core';
 })
 export class NotFoundComponent {
 
+  constructor(private router: Router) {
+  }
+  navigateHome() {
+    this.router.navigate(['/']);
+  }
 }

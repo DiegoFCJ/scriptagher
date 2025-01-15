@@ -11,18 +11,22 @@ import { filter } from 'rxjs/operators';
   styleUrls: ['./header.component.scss']
 })
 export class HeaderComponent {
-  isPdfToQcmPage: boolean = false;
+  isPdfToTxtPage: boolean = false;
 
   constructor(private router: Router) {
-    // Ascolta il router per sapere se siamo nella pagina PDF to QCM
+    // Ascolta il router per sapere se siamo nella pagina PDF to Txt
     this.router.events
       .pipe(filter(event => event instanceof NavigationEnd))
       .subscribe((event: NavigationEnd) => {
-        this.isPdfToQcmPage = event.url === '/pdf-to-qcm';
+        this.isPdfToTxtPage = event.url === '/pdf-to-txt';
       });
   }
 
   navigateHome() {
     this.router.navigate(['/']);
+  }
+
+  navigateConverterPage() {
+    this.router.navigate(['pdf-to-txt']);
   }
 }

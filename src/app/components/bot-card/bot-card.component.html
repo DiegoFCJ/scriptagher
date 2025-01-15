@@ -3,9 +3,9 @@
     <p>Description: {{ bot.description || 'No description available' }}</p>
     <p>Start Command <br>{{ bot.startCommand || 'No start commands provided' }}</p>
 
-    <!-- Bottone "Vai al PDF to QCM" solo se il nome del bot è pdfToQCM -->
-    <button *ngIf="bot.botName === 'pdf-to-qcm'" class="nav-link-button" (click)="navigateToPdfToQcm()">
-        Vai al Converter PDF to QCM
+    <!-- Bottone "Vai al PDF to Txt" solo se il nome del bot è pdfToTxt -->
+    <button *ngIf="bot.botName === 'pdf-to-txt'" class="nav-link-button" (click)="navigateToPdfToTxt()">
+        Vai al Converter PDF to Txt
     </button>
 
 
@@ -15,4 +15,4 @@
     <button (click)="downloadBot()">Download</button>
 </div>
 
-<!-- pdfToQcm -->
+<!-- pdfToTxt -->

@@ -1,6 +1,6 @@
 import { Routes } from '@angular/router';
 import { BotListComponent } from './components/bot-list/bot-list.component';
-import { PdfToQcmComponent } from './components/pdf-to-qcm/pdf-to-qcm.component';
+import { PdfToTxtComponent } from './components/pdf-to-txt-quiz/pdf-to-txt-quiz.component';
 
 export const routes: Routes = [
   {
@@ -8,8 +8,8 @@ export const routes: Routes = [
     component: BotListComponent
   },
   {
-    path: 'pdf-to-qcm',
-    component: PdfToQcmComponent
+    path: 'pdf-to-txt',
+    component: PdfToTxtComponent
   },
   {
     path: '**', // Rotta per errori 404

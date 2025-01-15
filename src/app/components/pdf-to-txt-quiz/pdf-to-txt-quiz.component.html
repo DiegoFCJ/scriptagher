@@ -1,8 +1,8 @@
 <app-header></app-header>
 <div class="container">
     <div class="hero-section">
-        <h1>PDF to QCM Converter</h1>
-        <p>Carica un file PDF per convertirlo in un formato QCM innovativo.</p>
+        <h1>PDF to txt quiz Converter</h1>
+        <p>Carica un file PDF contentente quiz a risposta multipla per convertirlo in un formato txt adatto all'app quizmaker</p>
     </div>
 
     <div class="upload-section">
@@ -11,10 +11,10 @@
         <p *ngIf="uploadedFile">{{ uploadedFile.name }}</p>
     </div>
 
-    <div *ngIf="qcmContent" class="output-section">
+    <div *ngIf="txtContent" class="output-section">
         <div class="output-card">
             <h3>Risultato Conversione:</h3>
-            <p>{{ qcmContent }}</p>
+            <p>{{ txtContent }}</p>
         </div>
     </div>
 </div>
