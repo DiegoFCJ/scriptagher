@@ -1,3 +1,84 @@
-/target
-/DB
-/LOGS
+# Flutter/Dart/Pub related
+.dart_tool/
+.flutter-plugins
+.flutter-plugins-dependencies
+.packages
+.pub-cache/
+.pub/
+build/
+
+# iOS related
+ios/Flutter/.generated/
+ios/Pods/
+ios/.symlinks/
+ios/Runner.xcworkspace/
+ios/Runner.xcodeproj/
+ios/.dart_tool/
+
+# Android related
+android/.gradle/
+android/build/
+android/app/build/
+android/.idea/
+android/local.properties
+android/gradle-wrapper.properties
+android/gradle-wrapper.jar
+*.iml
+
+# macOS related
+macos/Flutter/ephemeral/
+macos/.dart_tool/
+
+# Linux related
+linux/Flutter/ephemeral/
+linux/.dart_tool/
+
+# Windows related
+windows/Flutter/ephemeral/
+windows/.dart_tool/
+
+# Web related
+webdev/
+
+# Generated files from various tools
+*.log
+*.lock
+*.dill
+*.so
+*.a
+*.h
+*.cc
+*.cpp
+*.o
+*.pdb
+
+# Generated files for platform-specific builds
+android/
+ios/
+windows/
+linux/
+macos/
+web/
+
+# VSCode specific
+.vscode/
+
+# IntelliJ specific
+.idea/
+
+# Build artifacts
+build/
+
+# Others
+*.swp
+*.swo
+*.DS_Store
+.metadata
+analysis_options
+
+# Avoid tracking the generated Flutter plugin registrants
+flutter/.plugin/
+
+# Additional Dart-related artifacts
+.dart_tool/
+*.dart_tool/

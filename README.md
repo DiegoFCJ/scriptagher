@@ -1,186 +1,186 @@
-<div align="left" style="display: flex; align-items: center;">
-    <img src="app-icon.png" alt="Self Project Icon" width="30" height="30" style="margin-right: 10px;">
-    <h1 style="margin: 0; display: inline; vertical-align: middle;"> SELF - DFCJ Project</h1>
-</div>
+# Progetto Flutter
 
+## Descrizione
+Questo progetto è una semplice applicazione mobile/desktop/web sviluppata con Flutter. Flutter è un framework open-source che permette di creare app per dispositivi mobili, desktop e web da una singola base di codice. Questo README include informazioni su come eseguire, configurare, testare e distribuire l'app su diverse piattaforme (Android, iOS, Linux, Windows e altre).
 
-Welcome to the **Self Project**, a personal management tool built using Java, Spring Boot, and various popular frameworks and libraries. This project is designed for self-management tasks, including time management automation through bots. 
+## Struttura del Progetto
+La struttura di base di un'app Flutter è la seguente:
 
-## 🧭 Table of Contents
-
-- [Project Overview](#project-overview)
-- [Features](#features)
-- [Project Structure](#project-structure)
-- [Technologies](#technologies)
-- [Installation and Setup](#installation-and-setup)
-- [Usage](#usage)
-- [Contributing](#contributing)
-- [License](#license)
-
----
-
-## 🔍 Project Overview
-
-This project is focused on **self-management** using automation and bot-driven interactions. The system is primarily built around time management and logging activities using a bot interface.
-
-The core of the application consists of a **TimeManagerBot** which helps in tracking activities, generating logs, and handling user interactions.
-
-### Key Information:
-- **Version**: 0.1
-- **Group ID**: `com.dfcj`
-- **Artifact ID**: `self_project`
-- **Parent**: Spring Boot Starter Parent (`2.7.18`)
-
----
-
-## 🚀 Features
-
-- **Time Management Automation** using a custom-built bot
-- **Logging**: Tracks all interactions with detailed timestamped logs
-- **UI Integration** with JavaFX for a smooth user experience
-- **Highly Customizable**: Includes constants, factories, and utilities for easy customization
-- **Stylized UI**: Custom stylesheets for buttons, headers, and menus
-
----
-
-## 🛠️ Project Structure
-
-```bash
-.
-├── DB
-│   └── menu.json
-├── LOGS
-│   └── YYYY-MM-DD
-│       └── BASE-APP
-│           ├── BACK
-│           │   └── self-manager-backend_YYYY-MM-DD_HH-MM-SS.log
-│           ├── DB
-│           │   └── self-manager-database_YYYY-MM-DD_HH-MM-SS.log
-│           ├── DRIVER
-│           │   └── self-manager-driver_YYYY-MM-DD_HH-MM-SS.log
-│           ├── FRONT
-│           │   └── self-manager-frontend_YYYY-MM-DD_HH-MM-SS.log
-│           └── GENERAL
-│               └── self-manager-general_YYYY-MM-DD_HH-MM-SS.log
-├── mvnw
-├── pom.xml
-├── src
-│   ├── main
-│   │   ├── java
-│   │   │   └── com
-│   │   │       └── self
-│   │   │           └── self_project
-│   │   │               ├── bots
-│   │   │               ├── constants
-│   │   │               ├── factories
-│   │   │               ├── ui
-│   │   │               └── utils
-│   ├── plugins
-│   └── resources
-│       ├── icons
-│       ├── styles
-│   └── test
-└── target
+```sh
+/ScriptAgher
+├── android/ # Configurazione e codice per Android 
+├── ios/ # Configurazione e codice per iOS 
+├── lib/ # Codice Dart (logica dell'app) 
+│ ├── main.dart # Punto di ingresso dell'app 
+├── test/ # Test dell'app 
+├── web/ # Configurazione e codice per il Web 
+├── linux/ # Codice specifico per Linux 
+├── windows/ # Codice specifico per Windows 
+├── macos/ # Codice specifico per macOS 
+└── pubspec.yaml # File di configurazione di Flutter
 ```
 
-### Key Components:
 
-1. **Main Application**: `MainApp.java`
-2. **Bot Logic**: `TimeManagerBot.java`
-3. **Constants & Utilities**: For handling paths, regex, logging, etc.
-4. **Custom UI**: Built with JavaFX for a rich user interface
+### Dipendenze
+1. **Flutter SDK**: Assicurati di avere l'ultima versione stabile di Flutter installata sul tuo sistema. Puoi scaricarla e configurarla dal sito ufficiale di Flutter: https://flutter.dev.
+   
+2. **Editor**: Puoi usare qualsiasi editor di testo, ma ti consigliamo di usare [VS Code](https://code.visualstudio.com/) o [Android Studio](https://developer.android.com/studio) per ottenere un supporto completo per Flutter.
 
----
+## Come Eseguire il Progetto
 
-## 🔧 Versions Used
+### 1. **Installare le dipendenze**
+Dopo aver clonato il progetto, esegui il comando seguente per installare tutte le dipendenze necessarie:
+```sh
+flutter pub get
+```
 
-- **Java**: `11`
-- **JavaFX**: `11.0.2`
-- **Maven**: `3.8.7`
-- **Maven Clean**: `3.1.0`
-- **Maven Exec**: `3.0.0`
-- **Selenium**: `4.11.0`
-- **Log4j**: `2.20.0`
-- **SLF4J**: `1.7.36`
-- **JUnit**: `5.8.2`
-- **Mockito**: `4.8.1`
-- **AssertJ**: `3.21.0`
-- **Jsoup**: `1.16.1`
-- **Apache Commons**: `4.5.13`
+### 2. **Eseguire l'app**
+Per avviare l'app su un emulatore o dispositivo fisico:
 
-## 🚀 Technologies Used
+- Su Android:
+```sh
+flutter run
+```
 
-- **Java 11** for the core language
-- **JavaFX 11.0.2** for GUI
-- **Maven 3.8.7** for dependency management
-- **Selenium 4.11.0** for browser automation (Brave Browser)
-- **JUnit 5.8.2** for unit testing
-- **Log4j 2.20.0** and **SLF4J 1.7.36** for logging
-- **Jsoup 1.16.1** for parsing HTML
+- Su iOS (richiede un ambiente macOS con Xcode):
+```sh
+flutter run
+```
 
+- Su Windows/Linux/macOS:
+```sh
+flutter run -d <windows|linux|macos>
+```
 
----
+### 3. **Eseguire i Test**
+Per eseguire i test automatizzati dell'app:
+```sh
+flutter test
+```
 
-## 📦 Installation and Setup
+## Configurazione
 
-### Prerequisites
+### 1. **Configurazione per Android**
+Assicurati che la tua macchina abbia l'ambiente di sviluppo Android configurato, con Android Studio e il relativo emulatore o un dispositivo fisico collegato.
 
-- **Java 11+**
-- **Maven 3.8.7+**
-- **Linux** (Tested on Linux)
-- **Brave Browser** for bot automation
+- Per costruire un APK per Android:
+```sh
+flutter build apk --release
+```
 
-### Steps:
+- Per costruire un AAB (Android App Bundle):
+```sh
+flutter build appbundle --release
+```
 
-1. Clone the repository:
-   ```bash
-   git clone https://github.com/DiegoFCJ/self_project.git
-   cd self_project
-   ```
+### 2. **Configurazione per iOS**
+Su macOS, per configurare l'ambiente iOS, è necessario Xcode.
 
-2. Build the project:
-   ```bash
-   ./mvnw clean install
-   ```
+- Per costruire l'app per iOS:
+```sh
+flutter build ios --release
+```
 
-3. Run the application:
-   ```bash
-   ./mvnw spring-boot:run
-   ```
+### 3. **Configurazione per Linux**
+Assicurati di avere le dipendenze necessarie per compilare applicazioni Flutter su Linux, come GTK3.
 
-   The application will start and open a GUI window.
+- Per costruire l'app per Linux:
+```sh
+flutter build linux
+```
 
-## 📖 Usage
+### 4. **Configurazione per Windows**
+Flutter supporta lo sviluppo di app Windows su Windows 10 o versioni successive.
 
-### Running the TimeManagerBot:
+- Per costruire l'app per Windows:
+```sh
+flutter build windows
+```
 
-After the application starts, the **TimeManagerBot** automatically tracks activities and logs them under the `LOGS/` directory. Each log entry is timestamped for reference.
+### 5. **Configurazione per macOS**
+Per distribuire su macOS, assicurati di avere Xcode installato.
 
-You can view logs here:
+- Per costruire l'app per macOS:
+```sh
+flutter build macos
+```
 
-### Customization:
+## Distribuzione
 
-To modify bot behavior, UI elements, or logging:
-- **Edit constants** in `src/main/java/com/self/self_project/constants/`
-- **Customize styles** in `src/main/resources/styles/`
+### 1. **Distribuire su Android**
+Per distribuire su Android, puoi generare un file APK o un Android App Bundle (AAB).
 
----
+#### Creare un APK:
+```sh
+flutter build apk --release
+```
 
-## 🤝 Contributing
+Distribuisci l'APK manualmente o caricalo su Google Play Store.
 
-If you'd like to contribute to this project:
+#### Creare un AAB:
+```sh
+flutter build appbundle --release
+```
 
-1. Fork the repository
-2. Create a new branch for your feature (`git checkout -b feature/my-feature`)
-3. Commit your changes (`git commit -m 'Add new feature'`)
-4. Push to the branch (`git push origin feature/my-feature`)
-5. Create a Pull Request
+Carica il file AAB su Google Play Store tramite la console di Google Play Developer.
 
----
-## 🗂️ Project overview
-![alt text](self.png)
+### 2. **Distribuire su iOS**
+Per distribuire su iOS, dovrai usare Xcode per creare un file `.ipa` e pubblicarlo su App Store o TestFlight.
 
----
-## 📄 License
+#### Creare un file IPA:
+1. Apri il progetto iOS in Xcode (`ios/Runner.xcworkspace`).
+2. Seleziona il dispositivo di destinazione.
+3. Vai su **Product > Archive** per creare il pacchetto.
+4. Carica l'IPA su App Store Connect per la distribuzione.
 
-This project is licensed under the **MIT License**. See [LICENSE](LICENSE) for more details.
+### 3. **Distribuire su Linux**
+Per creare un pacchetto `.deb` o `.AppImage` su Linux:
+
+1. Costruisci il progetto:
+```sh
+flutter build linux
+```
+
+2. Crea un pacchetto `.deb`:
+```sh
+dpkg-deb --build build/linux/x64/release/bundle
+```
+
+3. Crea un pacchetto `.AppImage` utilizzando uno strumento come `AppImageKit`.
+
+Distribuisci il file `.deb` tramite un repository di pacchetti o il file `.AppImage` su un server.
+
+### 4. **Distribuire su Windows**
+Per distribuire l'app su Windows, puoi creare un file `.exe` e un installer personalizzato.
+
+1. Costruisci il progetto per Windows:
+```sh
+flutter build windows
+```
+
+2. Crea un installer personalizzato con **Inno Setup** o **NSIS**.
+- Scarica e configura Inno Setup: https://jrsoftware.org/isinfo.php.
+- Scrivi uno script `.iss` per includere l'eseguibile e altre dipendenze, quindi compila l'installer.
+
+### 5. **Distribuire su macOS**
+Per distribuire su macOS, puoi creare un pacchetto `.dmg` o `.pkg`.
+
+1. Costruisci il progetto per macOS:
+```sh
+flutter build macos
+```
+
+2. Usa strumenti come **create-dmg** per creare un file `.dmg`.
+
+### 6. **Distribuire su Web**
+Per distribuire l'app sul web, esegui il comando:
+```sh
+flutter build web
+```
+
+Carica i file generati nella cartella `build/web` su un server web per renderli accessibili tramite un browser.
+
+## Considerazioni Finali
+- Ogni piattaforma (Android, iOS, Linux, Windows, macOS) ha il suo proprio flusso di lavoro e requisiti di distribuzione.
+- Flutter rende possibile la creazione di un'app con un'unica base di codice per più piattaforme, ma la configurazione specifica di ciascuna piattaforma richiede attenzione ai dettagli.
+- Per la distribuzione su Android e iOS, la pubblicazione tramite Google Play Store e App Store è il metodo standard.
