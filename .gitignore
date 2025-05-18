@@ -82,3 +82,4 @@ flutter/.plugin/
 # Additional Dart-related artifacts
 .dart_tool/
 *.dart_tool/
+node_modules

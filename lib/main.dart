@@ -1,6 +1,5 @@
 import 'dart:async';
 import 'package:flutter/material.dart';
-import 'package:scriptagher/frontend/widgets/home_view.dart';
 import 'shared/custom_logger.dart';
 import 'backend/server/server.dart';
 import 'package:sqflite_common_ffi/sqflite_ffi.dart';
@@ -8,6 +7,13 @@ import 'package:scriptagher/shared/constants/LOGS.dart';
 import 'backend/server/db/bot_database.dart';
 import 'package:bitsdojo_window/bitsdojo_window.dart';
 import 'package:scriptagher/frontend/widgets/components/window_title_bar.dart';
+import 'package:scriptagher/frontend/widgets/pages/home_page_view.dart';
+import 'package:scriptagher/frontend/widgets/pages/portfolio_view.dart';
+import 'package:scriptagher/frontend/widgets/pages/bot_list_view.dart';
+import 'package:scriptagher/frontend/widgets/pages/test1.dart';
+import 'package:scriptagher/frontend/widgets/pages/test2.dart';
+import 'package:scriptagher/frontend/widgets/pages/test3.dart';
+
 
 // La tua vista principale di Flutter
 Future<void> main() async {
@@ -70,6 +76,16 @@ class MyApp extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return MaterialApp(
+
+      routes: {
+        '/home':     (_) => HomePage(),       // la tua HomePage con il carosello
+        '/portfolio':(_) => Portfolio(),  // la pagina Portfolio
+        '/bots':     (_) => BotList(),   // la pagina Bots List
+        '/test1':     (_) => test1(),   // la pagina Bots List
+        '/test2':     (_) => test2(),   // la pagina test1 List
+        '/test3':     (_) => test3(),   // la pagina test1 List
+      },
+
       debugShowCheckedModeBanner: false,
       theme: ThemeData(primarySwatch: Colors.blue),
       home: WindowBorder(
@@ -87,7 +103,7 @@ class HomeScreen extends StatelessWidget {
       children: [
         WindowTitleBar(),
         Expanded(
-          child: HomeView(),
+          child: HomePage(),
         ),
       ],
     );

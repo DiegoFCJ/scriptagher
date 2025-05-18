@@ -7,7 +7,8 @@ class GitHubApi {
 
   // URL base delle API di GitHub
   static const String baseUrl =
-      'https://raw.githubusercontent.com/diegofcj/scriptagher/bot-list/bots/';
+      'https://raw.githubusercontent.com/diegofcj/scriptagher/gh-pages/bots/';
+     //https://raw.githubusercontent.com/diegofcj/scriptagher/gh-pages/bots
 
   // Funzione per ottenere la lista di bot
   Future<Map<String, dynamic>> fetchBotsList() async {

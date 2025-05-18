@@ -1,15 +1,15 @@
 import 'package:flutter/material.dart';
-import '../models/bot.dart';
-import '../services/bot_get_service.dart';
-import 'components/bot_card_component.dart';
-import 'pages/bot_detail_view.dart';
+import '../../models/bot.dart';
+import '../../services/bot_get_service.dart';
+import '../components/bot_card_component.dart';
+import 'bot_detail_view.dart';
 
-class HomeView extends StatefulWidget {
+class BotList extends StatefulWidget {
   @override
-  _HomeViewState createState() => _HomeViewState();
+  _BotListState createState() => _BotListState();
 }
 
-class _HomeViewState extends State<HomeView> {
+class _BotListState extends State<BotList> {
   late Future<Map<String, List<Bot>>> _remoteBots;
 
   @override
