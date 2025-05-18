@@ -23,7 +23,7 @@ class BotUtils {
 
   // Checks if a bot is available locally by looking for required files
   static Future<bool> isBotAvailableLocally(String language, String botName) async {
-    String botPath = '/path/to/bots/$language/$botName';
+    String botPath = '.scriptagher/localbots/$language/$botName';
     Directory botDir = Directory(botPath);
     if (await botDir.exists()) {
       File botJson = File('${botDir.path}/bot.json');

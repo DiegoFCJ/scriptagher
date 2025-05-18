@@ -27,7 +27,7 @@ class CustomLogger {
   // Scrive il log su file
   Future<void> _writeToFile(String logMessage, String level) async {
     final directory = await getApplicationDocumentsDirectory();
-    final logDirectory = Directory('${directory.path}/logs/$todayDate');
+    final logDirectory = Directory('${directory.path}/.scriptagher/logs/$todayDate');
     
     // Crea la cartella se non esiste
     if (!await logDirectory.exists()) {

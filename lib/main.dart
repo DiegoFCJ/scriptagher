@@ -21,6 +21,16 @@ Future<void> main() async {
   // Avvio del backend
   await startBackend(logger);
 
+// Configura la finestra prima dell'avvio dell'app
+  doWhenWindowReady(() {
+    final win = appWindow;
+    win.minSize = const Size(800, 600); // Imposta una dimensione minima
+    win.size = const Size(1024, 768); // Imposta una dimensione iniziale
+    win.alignment = Alignment.center;
+    win.title = "Scriptagher"; // Titolo della finestra
+    win.show(); // Mostra la finestra
+  });
+  
   // Avvio del frontend
   runApp(MyApp());
 }
