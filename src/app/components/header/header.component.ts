@@ -14,19 +14,9 @@ export class HeaderComponent {
   isPdfToTxtPage: boolean = false;
 
   constructor(private router: Router) {
-    // Ascolta il router per sapere se siamo nella pagina PDF to Txt
-    this.router.events
-      .pipe(filter(event => event instanceof NavigationEnd))
-      .subscribe((event: NavigationEnd) => {
-        this.isPdfToTxtPage = event.url === '/pdf-to-txt';
-      });
   }
 
   navigateHome() {
     this.router.navigate(['/']);
-  }
-
-  navigateConverterPage() {
-    this.router.navigate(['pdf-to-txt']);
   }
 }
