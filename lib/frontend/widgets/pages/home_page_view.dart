@@ -8,7 +8,8 @@ class HomePage extends StatefulWidget {
 }
 
 class _HomePageState extends State<HomePage> {
-  final CarouselSliderController _carouselController = CarouselSliderController();
+  final CarouselSliderController _carouselController =
+      CarouselSliderController();
 
   final sections = [
     _Section(
@@ -93,10 +94,10 @@ class _HomePageState extends State<HomePage> {
                       carouselController: _carouselController,
                       itemCount: sections.length,
                       itemBuilder: (context, index, realIdx) {
-                        return _SectionCard(section: sections[index]);
+                        return SectionCard(section: sections[index]);
                       },
                       options: CarouselOptions(
-                        height: 220,
+                        height: 300,
                         enlargeCenterPage: true,
                         enableInfiniteScroll: true,
                         viewportFraction: 0.33,
@@ -128,29 +129,48 @@ class _Section {
   });
 }
 
-class _SectionCard extends StatelessWidget {
+class SectionCard extends StatefulWidget {
   final _Section section;
 
-  const _SectionCard({Key? key, required this.section}) : super(key: key);
+  const SectionCard({Key? key, required this.section}) : super(key: key);
 
+  @override
+  _SectionCardState createState() => _SectionCardState();
+}
+
+class _SectionCardState extends State<SectionCard> {
+  bool _hovering = false;
   @override
   Widget build(BuildContext context) {
     return GestureDetector(
-      onTap: () => Navigator.pushNamed(context, section.routeName),
-      child: Card(
-        elevation: 6,
-        shape: RoundedRectangleBorder(
-          borderRadius: BorderRadius.circular(16),
-        ),
-        child: Container(
+      onTap: () => Navigator.pushNamed(context, widget.section.routeName),
+      child: MouseRegion(
+        cursor: SystemMouseCursors.click,
+        onEnter: (_) => setState(() => _hovering = true),
+        onExit: (_) => setState(() => _hovering = false),
+        child: AnimatedContainer(
+          duration: Duration(milliseconds: 200),
+          curve: Curves.easeInOut,
           width: 240,
           padding: const EdgeInsets.all(20),
+          decoration: BoxDecoration(
+            color: _hovering ? Colors.blue.shade50 : Colors.white,
+            borderRadius: BorderRadius.circular(16),
+            boxShadow: [
+              BoxShadow(
+                color: Colors.black26,
+                blurRadius: _hovering ? 12 : 6,
+                spreadRadius: _hovering ? 3 : 1,
+                offset: Offset(0, _hovering ? 6 : 3),
+              ),
+            ],
+          ),
           child: Column(
             mainAxisAlignment: MainAxisAlignment.center,
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               Text(
-                section.title,
+                widget.section.title,
                 style: TextStyle(
                   fontSize: 22,
                   fontWeight: FontWeight.bold,
@@ -158,10 +178,10 @@ class _SectionCard extends StatelessWidget {
               ),
               SizedBox(height: 12),
               Text(
-                section.description,
+                widget.section.description,
                 style: TextStyle(
                   fontSize: 16,
-                  color: Colors.grey[700],
+                  color: Colors.grey[500],
                 ),
               ),
             ],

@@ -83,3 +83,4 @@ flutter/.plugin/
 .dart_tool/
 *.dart_tool/
 node_modules
+/localbots
