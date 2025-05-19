@@ -2,6 +2,8 @@ import 'package:scriptagher/shared/custom_logger.dart';
 import 'package:scriptagher/backend/server/api_integration/github_api.dart';
 import '../models/bot.dart';
 import '../db/bot_database.dart';
+import 'dart:io';
+import 'package:path/path.dart' as p;
 
 class BotGetService {
   final CustomLogger logger = CustomLogger();
@@ -72,5 +74,75 @@ class BotGetService {
           'BotService', 'Error fetching details for ${bot.botName}: $e');
       return bot; // Fallisce solo parzialmente, ritorna comunque il bot senza aggiornamenti
     }
+  }
+
+
+
+  // --------------------------------------- LOCAL BOTS --------------------------------------- \\
+  // Funzione per caricare bot locali da DB e cartella filesystem
+  Future<List<Bot>> fetchLocalBotsFromDbAndFs() async {
+    List<Bot> localBots = [];
+
+    final hasLocal = await botDatabase.hasLocalBots();
+    if (hasLocal) {
+      localBots = await botDatabase.getLocalBots();
+    }
+
+    // Legge bot da filesystem
+    final localBotsFromFs = await _loadBotsFromLocalFolder();
+
+    // Unisci e aggiorna DB (per semplicità sovrascrivi)
+    await botDatabase.clearLocalBots();
+    await botDatabase.insertLocalBots(localBotsFromFs);
+
+    // Ritorna lista unificata (evitando duplicati per nome+language)
+    Map<String, Bot> uniqueBots = {};
+    for (var b in localBots) {
+      uniqueBots['${b.language}_${b.botName}'] = b;
+    }
+    for (var b in localBotsFromFs) {
+      uniqueBots['${b.language}_${b.botName}'] = b;
+    }
+
+    return uniqueBots.values.toList();
+  }
+
+  // Funzione helper che legge la struttura localbots dal filesystem
+  Future<List<Bot>> _loadBotsFromLocalFolder() async {
+    final List<Bot> bots = [];
+    final rootDir = Directory('localbots');
+
+    if (!await rootDir.exists()) return bots;
+
+    final languageDirs = await rootDir.list().toList();
+    for (var langDir in languageDirs.whereType<Directory>()) {
+      final language = p.basename(langDir.path);
+      final botDirs = await langDir.list().toList();
+
+      for (var botDir in botDirs.whereType<Directory>()) {
+        final botName = p.basename(botDir.path);
+
+        // Cerca file sorgente nel botDir (esempio: il primo file con estensione)
+        final filesList = await botDir.list().toList();
+        final files = filesList.whereType<File>().toList();
+
+        if (files.isEmpty) continue;
+
+        final sourceFile = files.first;
+        final startCommand = ''; // qui potresti decidere come dedurlo, oppure lascialo vuoto
+
+        final bot = Bot(
+          botName: botName,
+          description: 'Local bot from filesystem',
+          startCommand: startCommand,
+          sourcePath: sourceFile.path,
+          language: language,
+        );
+
+        bots.add(bot);
+      }
+    }
+
+    return bots;
   }
 }

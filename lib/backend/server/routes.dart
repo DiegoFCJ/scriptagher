@@ -15,8 +15,10 @@ class BotRoutes {
         (Request request, String language, String botName) =>
             botController.downloadBot(request, language, botName));
 
-    router.get(
-        '/bots', (Request request) => botController.fetchAvailableBots(request));
+    router.get('/bots',
+        (Request request) => botController.fetchAvailableBots(request));
+
+    router.get('/localbots', botController.fetchLocalBots);
 
     return router;
   }

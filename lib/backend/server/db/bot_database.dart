@@ -37,7 +37,6 @@ class BotDatabase {
     final path = join(await getDatabasesPath(), 'bot_database.db');
     logger.info('BotDatabase', "Database path: $path");
 
-    // Controlla se il file esiste
     final fileExists = await File(path).exists();
     logger.info(
         'BotDatabase',
@@ -52,18 +51,35 @@ class BotDatabase {
         logger.info('BotDatabase', "Creating database structure...");
         try {
           await _createBotsTable(db);
+          await _createLocalBotsTable(db);
           logger.info('BotDatabase', "Database structure created.");
         } catch (e) {
-          logger.error('BotDatabase', 'Error during database table creation: $e');
+          logger.error(
+              'BotDatabase', 'Error during database table creation: $e');
         }
       },
       onUpgrade: (db, oldVersion, newVersion) async {
-        logger.info('BotDatabase', "Upgrading database from $oldVersion to $newVersion...");
-        // Implementa aggiornamenti futuri del database qui
+        logger.info('BotDatabase',
+            "Upgrading database from v$oldVersion to v$newVersion...");
+        try {
+          if (oldVersion < 2) {
+            await _createLocalBotsTable(db);
+            logger.info(
+                'BotDatabase', "local_bots table created during upgrade.");
+          }
+          // Future upgrade logic here
+        } catch (e) {
+          logger.error('BotDatabase', 'Error during database upgrade: $e');
+        }
       },
     ).then((db) async {
-      // Controlla la struttura dopo l'inizializzazione
-      await _checkDatabaseStructure(db);
+      try {
+        // 🛡 Verifica struttura dopo apertura, anche se onCreate/onUpgrade non chiamati
+        await _createLocalBotsTable(db); // Sicuro grazie a IF NOT EXISTS
+        await _checkDatabaseStructure(db);
+      } catch (e) {
+        logger.error('BotDatabase', 'Error during structure verification: $e');
+      }
       return db;
     });
   }
@@ -163,6 +179,15 @@ class BotDatabase {
     } else {
       logger.info('BotDatabase', "Table 'bots' exists.");
     }
+
+    final result2 = await db.rawQuery(
+        "SELECT name FROM sqlite_master WHERE type='table' AND name='local_bots';");
+
+    if (result2.isEmpty) {
+      logger.warn('BotDatabase', "Table 'local_bots' does NOT exist.");
+    } else {
+      logger.info('BotDatabase', "Table 'local_bots' exists.");
+    }
   }
 
   /// Controlla se il bot è già presente
@@ -182,9 +207,65 @@ class BotDatabase {
     final tables = await db.rawQuery(
         "SELECT name FROM sqlite_master WHERE type='table' AND name='bots';");
     if (tables.isEmpty) {
-      logger.error('BotDatabase', "Table 'bots' does NOT exist. Something went wrong.");
+      logger.error(
+          'BotDatabase', "Table 'bots' does NOT exist. Something went wrong.");
     } else {
       logger.info('BotDatabase', "Table 'bots' exists and is ready.");
     }
+  }
+
+  // --------------------------------------- LOCAL BOTS --------------------------------------- \\
+  Future<void> _createLocalBotsTable(Database db) async {
+    try {
+      await db.execute('''
+        CREATE TABLE IF NOT EXISTS local_bots (
+          id INTEGER PRIMARY KEY AUTOINCREMENT,
+          bot_name TEXT NOT NULL,
+          description TEXT,
+          start_command TEXT,
+          source_path TEXT,
+          language TEXT NOT NULL
+        );
+      ''');
+      logger.info('BotDatabase', "local_bots table created successfully.");
+    } catch (e) {
+      logger.error('BotDatabase', "Error creating 'local_bots' table: $e");
+    }
+  }
+
+  // Recupera i bot locali salvati
+  Future<List<Bot>> getLocalBots() async {
+    final db = await database;
+    final List<Map<String, dynamic>> maps = await db.query('local_bots');
+    return List.generate(maps.length, (i) => Bot.fromMap(maps[i]));
+  }
+
+  // Controlla se local_bots ha almeno un bot
+  Future<bool> hasLocalBots() async {
+    final db = await database;
+    final count = Sqflite.firstIntValue(
+      await db.rawQuery('SELECT COUNT(*) FROM local_bots'),
+    );
+    return (count ?? 0) > 0;
+  }
+
+  // Inserisce o aggiorna lista bot in local_bots
+  Future<void> insertLocalBots(List<Bot> bots) async {
+    final db = await database;
+    final batch = db.batch();
+    for (var bot in bots) {
+      batch.insert(
+        'local_bots',
+        bot.toMap(),
+        conflictAlgorithm: ConflictAlgorithm.replace,
+      );
+    }
+    await batch.commit(noResult: true);
+  }
+
+  // Cancella tutti i bot locali (se serve)
+  Future<void> clearLocalBots() async {
+    final db = await database;
+    await db.delete('local_bots');
   }
 }

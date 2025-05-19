@@ -11,59 +11,91 @@ class BotList extends StatefulWidget {
 
 class _BotListState extends State<BotList> {
   late Future<Map<String, List<Bot>>> _remoteBots;
+  late Future<List<Bot>> _localBots;
+
+  final BotGetService _botGetService = BotGetService();
 
   @override
   void initState() {
     super.initState();
-    _remoteBots = BotGetService.fetchBots();
+    _remoteBots = _botGetService.fetchBots();
+    _localBots = _botGetService.fetchLocalBotsFlat();
   }
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(
-        title: Text('Lista dei Bot'),
-      ),
+      appBar: AppBar(title: Text('Lista dei Bot')),
       body: FutureBuilder<Map<String, List<Bot>>>(
         future: _remoteBots,
-        builder: (context, snapshot) {
-          if (snapshot.connectionState == ConnectionState.waiting) {
-            return Center(child: CircularProgressIndicator());
-          } else if (snapshot.hasError) {
-            return Center(child: Text('Errore: ${snapshot.error}'));
-          } else if (!snapshot.hasData || snapshot.data!.isEmpty) {
-            return Center(child: Text('Nessun bot trovato.'));
-          } else {
-            final groupedBots = snapshot.data!;
-            return ListView(
-              children: [
-                ExpansionTile(
-                  title: Text('Remote Bots'),
-                  children: groupedBots.entries.map((entry) {
-                    final language = entry.key;
-                    final bots = entry.value;
+        builder: (context, remoteSnapshot) {
+          return FutureBuilder<List<Bot>>(
+            future: _localBots,
+            builder: (context, localSnapshot) {
+              if (remoteSnapshot.connectionState == ConnectionState.waiting ||
+                  localSnapshot.connectionState == ConnectionState.waiting) {
+                return Center(child: CircularProgressIndicator());
+              }
 
-                    return ExpansionTile(
-                      title: Text(language),
-                      children: bots.map((bot) {
-                        return BotCard(
-                          bot: bot,
-                          onTap: () {
-                            Navigator.push(
-                              context,
-                              MaterialPageRoute(
-                                builder: (context) => BotDetailView(bot: bot),
-                              ),
-                            );
-                          },
-                        );
-                      }).toList(),
-                    );
-                  }).toList(),
-                ),
-              ],
-            );
-          }
+              if (remoteSnapshot.hasError) {
+                return Center(
+                    child: Text('Errore remoto: ${remoteSnapshot.error}'));
+              }
+
+              if (localSnapshot.hasError) {
+                return Center(
+                    child: Text('Errore locale: ${localSnapshot.error}'));
+              }
+
+              final remoteData = remoteSnapshot.data ?? {};
+              final localData = localSnapshot.data ?? [];
+
+              return ListView(
+                children: [
+                  ExpansionTile(
+                    title: Text('Local Bots'),
+                    children: localData.map((bot) {
+                      return BotCard(
+                        bot: bot,
+                        onTap: () {
+                          Navigator.push(
+                            context,
+                            MaterialPageRoute(
+                              builder: (_) => BotDetailView(bot: bot),
+                            ),
+                          );
+                        },
+                      );
+                    }).toList(),
+                  ),
+                  ExpansionTile(
+                    title: Text('Remote Bots'),
+                    children: remoteData.entries.map((entry) {
+                      final language = entry.key;
+                      final bots = entry.value;
+
+                      return ExpansionTile(
+                        title: Text(language),
+                        children: bots.map((bot) {
+                          return BotCard(
+                            bot: bot,
+                            onTap: () {
+                              Navigator.push(
+                                context,
+                                MaterialPageRoute(
+                                  builder: (_) => BotDetailView(bot: bot),
+                                ),
+                              );
+                            },
+                          );
+                        }).toList(),
+                      );
+                    }).toList(),
+                  ),
+                ],
+              );
+            },
+          );
         },
       ),
     );

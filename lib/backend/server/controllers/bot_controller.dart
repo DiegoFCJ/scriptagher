@@ -13,7 +13,7 @@ class BotController {
 
   BotController(this.botDownloadService, this.botGetService);
 
-  // Endpoint per ottenere la lista dei bot disponibili
+  // Endpoint per ottenere la lista dei bot disponibili remoti
   Future<Response> fetchAvailableBots(Request request) async {
     try {
       logger.info(LOGS.BOT_SERVICE, 'Fetching list of available bots...');
@@ -64,6 +64,29 @@ class BotController {
             'message': e.toString(),
           }),
           headers: {'Content-Type': 'application/json'});
+    }
+  }
+
+  // Endpoint per ottenere la lista dei bot locali
+  Future<Response> fetchLocalBots(Request request) async {
+    try {
+      logger.info(LOGS.BOT_SERVICE, 'Fetching list of local bots...');
+      final List<Bot> localBots = await botGetService.fetchLocalBotsFromDbAndFs();
+
+      logger.info(LOGS.BOT_SERVICE, 'Fetched ${localBots.length} local bots.');
+      return Response.ok(
+        json.encode(localBots.map((bot) => bot.toMap()).toList()),
+        headers: {'Content-Type': 'application/json'},
+      );
+    } catch (e) {
+      logger.error(LOGS.BOT_SERVICE, 'Error fetching local bots: $e');
+      return Response.internalServerError(
+        body: json.encode({
+          'error': 'Error fetching local bots',
+          'message': e.toString(),
+        }),
+        headers: {'Content-Type': 'application/json'},
+      );
     }
   }
 }
