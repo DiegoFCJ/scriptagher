@@ -1,6 +1,28 @@
-footer {
-    text-align: center;
-    padding: 1rem;
-    background-color: var(--bg-footer, #111);
-    color: var(--text-footer, #ccc);
+.site-footer {
+  margin-top: auto;
+  padding: clamp(2rem, 4vw, 2.75rem) clamp(1.5rem, 5vw, 4rem) clamp(2.5rem, 6vw, 3.5rem);
+  background: transparent;
+  display: flex;
+  justify-content: center;
+}
+
+.site-footer__content {
+  width: min(1100px, 100%);
+  border-top: 1px solid rgba(255, 255, 255, 0.08);
+  padding-top: 1.5rem;
+  color: var(--color-text-secondary);
+  display: flex;
+  flex-direction: column;
+  gap: 0.35rem;
+}
+
+.site-footer__title {
+  margin: 0;
+  font-weight: 600;
+  color: var(--color-text-primary);
+}
+
+.site-footer__caption {
+  margin: 0;
+  font-size: 0.9rem;
 }

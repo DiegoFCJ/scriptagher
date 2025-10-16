@@ -1,9 +1,19 @@
-<app-header></app-header>
-<main *ngIf="botSections.length; else errorTemplate">
-  <app-bot-section *ngFor="let section of botSections" [language]="section.language"
-    [bots]="section.botDetails"></app-bot-section>
-</main>
-<ng-template #errorTemplate>
-  <p>{{ errorMessage || 'No bots available.' }}</p>
-</ng-template>
-<app-footer></app-footer>
+<div class="page-shell">
+  <app-header></app-header>
+
+  <main class="bot-list" *ngIf="botSections.length; else errorTemplate">
+    <section class="bot-list__grid" id="bot-collection">
+      <app-bot-section *ngFor="let section of botSections" [language]="section.language"
+        [bots]="section.botDetails"></app-bot-section>
+    </section>
+  </main>
+
+  <ng-template #errorTemplate>
+    <div class="empty-state">
+      <h2>Ops, nessun bot disponibile</h2>
+      <p>{{ errorMessage || 'Controlla più tardi per nuove integrazioni.' }}</p>
+    </div>
+  </ng-template>
+
+  <app-footer></app-footer>
+</div>

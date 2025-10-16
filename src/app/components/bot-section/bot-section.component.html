@@ -1,7 +1,13 @@
-<section>
-    <h2>{{ capitalize(language) }} Bots</h2>
-    <div class="bot-container">
-        <app-bot-card *ngFor="let bot of bots" [bot]="bot" [language]="language"
-            (download)="downloadBot(bot)"></app-bot-card>
-    </div>
+<section class="bot-section">
+  <header class="bot-section__header">
+    <span class="bot-section__eyebrow">Linguaggio</span>
+    <h2 class="bot-section__title">{{ capitalize(language) }} Bots</h2>
+    <p class="bot-section__subtitle">
+      Automazioni affidabili e documentate per progetti {{ capitalize(language) }}.
+    </p>
+  </header>
+  <div class="bot-container">
+    <app-bot-card *ngFor="let bot of bots" [bot]="bot" [language]="language"
+      (download)="downloadBot(bot)"></app-bot-card>
+  </div>
 </section>

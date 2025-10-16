@@ -1,20 +1,33 @@
 <header [class.pdf-page]="isPdfToTxtPage">
-    <div class="header-content">
-        <!-- Header PDF to Txt -->
-        <div *ngIf="isPdfToTxtPage; else normalHeader" class="pdf-header">
-            <span class="app-name">Scriptagher</span>
-            <span class="current-page">PDF to Txt</span>
-            <div class="home-button" (click)="navigateHome()">
-                <img src="/icons/icons8-home-64.png"/>    
-            </div>
-        </div>
-
-        <!-- Header normale -->
-        <ng-template #normalHeader>
-            <div class="normal-header">
-                <h1>Welcome to the Bot List</h1>
-                <p>Here is a list of available bots, organized by language.</p>
-            </div>
-        </ng-template>
+  <div class="header-content" [class.header-content--pdf]="isPdfToTxtPage">
+    <div *ngIf="isPdfToTxtPage; else normalHeader" class="pdf-header">
+      <div class="pdf-header__brand">
+        <span class="app-name">Scriptagher</span>
+        <span class="current-page">PDF to Txt</span>
+      </div>
+      <button class="ghost-button" (click)="navigateHome()">
+        <span class="ghost-button__icon">⌂</span>
+        Torna alla raccolta
+      </button>
     </div>
+
+    <ng-template #normalHeader>
+      <div class="hero">
+        <div class="hero__meta">
+          <span class="hero__badge">Automations Portfolio</span>
+          <span class="hero__tagline">Workflow più smart, creati da Scriptagher</span>
+        </div>
+        <h1 class="hero__title">Esplora i bot che alimentano i miei progetti</h1>
+        <p class="hero__description">
+          Un catalogo curato di automazioni pronte all'uso, suddivise per linguaggio e
+          ottimizzate per integrarsi con il tuo stack. Ogni bot è parte del mio percorso
+          professionale e riflette l'attenzione ai dettagli del portfolio.
+        </p>
+        <div class="hero__actions">
+          <button class="ghost-button" (click)="navigateHome()">Scopri la selezione completa</button>
+          <a class="hero__cta" href="#bot-collection">Sfoglia le categorie</a>
+        </div>
+      </div>
+    </ng-template>
+  </div>
 </header>
