@@ -1,4 +1,5 @@
 import { TestBed } from '@angular/core/testing';
+import { By } from '@angular/platform-browser';
 import { AppComponent } from './app.component';
 
 describe('AppComponent', () => {
@@ -20,10 +21,10 @@ describe('AppComponent', () => {
     expect(app.title).toEqual('bot-list');
   });
 
-  it('should render title', () => {
+  it('should render the router outlet', () => {
     const fixture = TestBed.createComponent(AppComponent);
     fixture.detectChanges();
-    const compiled = fixture.nativeElement as HTMLElement;
-    expect(compiled.querySelector('h1')?.textContent).toContain('Hello, bot-list');
+    const routerOutlet = fixture.debugElement.query(By.css('router-outlet'));
+    expect(routerOutlet).not.toBeNull();
   });
 });
