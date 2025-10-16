@@ -1,56 +1,107 @@
-name: Preview Deploy
+name: Deploy Preview to GitHub Pages
 
 on:
-  pull_request:
-    branches:
-      - main
-  workflow_dispatch:
+  pull_request_target:
+    types:
+      - opened
+      - reopened
+      - synchronize
+      - closed
 
 permissions:
-  contents: read
-  pages: write
-  id-token: write
+  contents: write
+  pull-requests: read
 
 concurrency:
-  group: preview-${{ github.ref }}
+  group: deploy-preview-${{ github.event.number }}
   cancel-in-progress: true
 
 jobs:
-  build:
+  build-and-deploy:
+    if: github.event.action != 'closed'
     runs-on: ubuntu-latest
+    environment:
+      name: preview/pr-${{ github.event.number }}
+      url: https://${{ github.repository_owner }}.github.io/${{ github.event.repository.name }}/previews/pr-${{ github.event.number }}/
+
+    env:
+      PREVIEW_FOLDER: previews/pr-${{ github.event.number }}
+      PREVIEW_BASE_HREF: /${{ github.event.repository.name }}/previews/pr-${{ github.event.number }}/
+      PREVIEW_URL: https://${{ github.repository_owner }}.github.io/${{ github.event.repository.name }}/previews/pr-${{ github.event.number }}/
+      CI: true
+
     steps:
       - name: Checkout repository
         uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event.pull_request.head.sha }}
 
       - name: Setup Node.js
         uses: actions/setup-node@v4
         with:
-          node-version: 20
-          cache: npm
+          node-version: '20'
+          cache: 'npm'
 
       - name: Install dependencies
         run: npm ci
 
-      - name: Build project
-        run: npm run build
+      - name: Run unit tests
+        run: npm test -- --watch=false --browsers=ChromeHeadless
 
-      - name: Configure GitHub Pages
-        uses: actions/configure-pages@v5
+      - name: Build preview
+        run: npm run build -- --output-path=dist/${{ github.event.repository.name }} --base-href="$PREVIEW_BASE_HREF"
 
-      - name: Upload artifact
-        uses: actions/upload-pages-artifact@v3
+      - name: Verify preview output
+        run: ls dist/${{ github.event.repository.name }}
+
+      - name: Publish preview to GitHub Pages
+        uses: JamesIves/github-pages-deploy-action@v4
         with:
-          path: dist
+          token: ${{ secrets.GITHUB_TOKEN }}
+          branch: gh-pages
+          folder: dist/${{ github.event.repository.name }}
+          target-folder: ${{ env.PREVIEW_FOLDER }}
+          clean: false
 
-  deploy:
-    environment:
-      name: github-pages
-      url: ${{ steps.deployment.outputs.page_url }}
-    needs: build
+      - name: Post preview link to job summary
+        run: |
+          echo "### Preview ready" >> "$GITHUB_STEP_SUMMARY"
+          echo "$PREVIEW_URL" >> "$GITHUB_STEP_SUMMARY"
+
+  cleanup-preview:
+    if: github.event.action == 'closed'
     runs-on: ubuntu-latest
+
     steps:
-      - name: Deploy to GitHub Pages
-        id: deployment
-        uses: actions/deploy-pages@v4
+      - name: Checkout gh-pages branch
+        uses: actions/checkout@v4
         with:
-          preview: true
+          ref: gh-pages
+
+      - name: Remove preview folder
+        id: cleanup
+        run: |
+          set -euo pipefail
+          PREVIEW_FOLDER="previews/pr-${{ github.event.number }}"
+          if [ -d "$PREVIEW_FOLDER" ]; then
+            git rm -rf "$PREVIEW_FOLDER"
+            echo "removed=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "removed=false" >> "$GITHUB_OUTPUT"
+          fi
+
+      - name: Commit and push changes
+        if: steps.cleanup.outputs.removed == 'true'
+        run: |
+          set -euo pipefail
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git commit -m "Remove preview for PR #${{ github.event.number }}"
+          git push origin HEAD:gh-pages
+
+      - name: Summarize cleanup result
+        run: |
+          if [ "${{ steps.cleanup.outputs.removed }}" = "true" ]; then
+            echo "Removed preview folder previews/pr-${{ github.event.number }}." >> "$GITHUB_STEP_SUMMARY"
+          else
+            echo "No preview folder to remove for PR #${{ github.event.number }}." >> "$GITHUB_STEP_SUMMARY"
