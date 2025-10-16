@@ -18,6 +18,9 @@ concurrency:
 jobs:
   build:
     runs-on: ubuntu-latest
+    outputs:
+      pr_number: ${{ steps.preview-vars.outputs.pr_number }}
+      preview_path: ${{ steps.preview-vars.outputs.preview_path }}
     steps:
       - name: Checkout repository
         uses: actions/checkout@v4
@@ -31,8 +34,53 @@ jobs:
       - name: Install dependencies
         run: npm ci
 
+      - name: Capture preview metadata
+        id: preview-vars
+        run: |
+          if [ "${{ github.event_name }}" = "pull_request" ]; then
+            echo "pr_number=${{ github.event.pull_request.number }}" >> "$GITHUB_OUTPUT"
+            echo "preview_path=previews/pr-${{ github.event.pull_request.number }}" >> "$GITHUB_OUTPUT"
+          else
+            echo "pr_number=" >> "$GITHUB_OUTPUT"
+            echo "preview_path=" >> "$GITHUB_OUTPUT"
+          fi
+
       - name: Build project
-        run: npm run build
+        run: |
+          rm -rf dist
+          if [ -n "${{ steps.preview-vars.outputs.pr_number }}" ]; then
+            PR_NUMBER="${{ steps.preview-vars.outputs.pr_number }}"
+            PREVIEW_PATH="${{ steps.preview-vars.outputs.preview_path }}"
+            npm run build -- --base-href "/scriptagher/${PREVIEW_PATH}/" --output-path "dist/${PREVIEW_PATH}"
+            cat <<EOF > dist/index.html
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <title>Redirecting…</title>
+    <meta http-equiv="refresh" content="0; url=./${PREVIEW_PATH}/" />
+  </head>
+  <body>
+    <p>Preview for PR #${PR_NUMBER} is available at <a href="./${PREVIEW_PATH}/">./${PREVIEW_PATH}/</a>.</p>
+  </body>
+</html>
+EOF
+            cat <<EOF > dist/404.html
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <title>Redirecting…</title>
+    <meta http-equiv="refresh" content="0; url=./${PREVIEW_PATH}/" />
+  </head>
+  <body>
+    <p>Preview for PR #${PR_NUMBER} is available at <a href="./${PREVIEW_PATH}/">./${PREVIEW_PATH}/</a>.</p>
+  </body>
+</html>
+EOF
+          else
+            npm run build
+          fi
 
       - name: Configure GitHub Pages
         uses: actions/configure-pages@v5
@@ -54,3 +102,19 @@ jobs:
         uses: actions/deploy-pages@v4
         with:
           preview: true
+
+      - name: Publish preview link
+        if: ${{ needs.build.outputs.pr_number != '' }}
+        env:
+          PAGE_URL: ${{ steps.deployment.outputs.page_url }}
+          PREVIEW_PATH: ${{ needs.build.outputs.preview_path }}
+          PR_NUMBER: ${{ needs.build.outputs.pr_number }}
+        run: |
+          BASE_URL="${PAGE_URL%/}"
+          PREVIEW_URL="${BASE_URL}/${PREVIEW_PATH}/"
+          {
+            echo "### Preview ready"
+            echo
+            echo "* **PR**: #${PR_NUMBER}"
+            echo "* **URL**: ${PREVIEW_URL}"
+          } >> "$GITHUB_STEP_SUMMARY"
