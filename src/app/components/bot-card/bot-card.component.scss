@@ -1,16 +1,82 @@
 .bot {
-    background-color: var(--bg-card, #333);
-    color: var(--text-card, #eee);
-    padding: 1rem;
-    border-radius: 8px;
-    margin: 1rem 0;
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  gap: 1.25rem;
+  padding: 1.8rem;
+  border-radius: 24px;
+  background: rgba(8, 15, 31, 0.92);
+  border: 1px solid rgba(148, 163, 184, 0.18);
+  box-shadow: 0 20px 45px rgba(15, 23, 42, 0.45);
+  transition: transform 0.25s ease, box-shadow 0.25s ease;
+  backdrop-filter: blur(18px);
 
-    .nav-link-button {
-        background-color: var(--button-bg, #5cb85c);
-        cursor: pointer;
+  &::after {
+    content: '';
+    position: absolute;
+    inset: 0;
+    border-radius: inherit;
+    background: linear-gradient(135deg, rgba(56, 189, 248, 0.18), rgba(124, 58, 237, 0.12));
+    opacity: 0;
+    transition: opacity 0.25s ease;
+    pointer-events: none;
+  }
 
-        &:hover {
-            background-color: var(--button-hover, #4cae4c);
-        }
+  &:hover {
+    transform: translateY(-6px);
+    box-shadow: 0 28px 55px rgba(15, 23, 42, 0.5);
+
+    &::after {
+      opacity: 1;
     }
+  }
+
+  .bot-header {
+    display: flex;
+    align-items: baseline;
+    justify-content: space-between;
+    gap: 1rem;
+
+    h3 {
+      margin: 0;
+      font-size: 1.4rem;
+      text-transform: capitalize;
+    }
+
+    .bot-language {
+      font-size: 0.75rem;
+      letter-spacing: 0.2em;
+      text-transform: uppercase;
+      color: var(--accent);
+      background: rgba(56, 189, 248, 0.1);
+      border-radius: 999px;
+      padding: 0.35rem 0.8rem;
+      border: 1px solid rgba(56, 189, 248, 0.25);
+    }
+  }
+
+  .bot-description {
+    margin: 0;
+    color: var(--text-muted);
+    line-height: 1.6;
+  }
+
+  .bot-command {
+    display: flex;
+    flex-direction: column;
+    gap: 0.55rem;
+
+    span {
+      font-size: 0.85rem;
+      letter-spacing: 0.08em;
+      text-transform: uppercase;
+      color: rgba(226, 232, 240, 0.65);
+    }
+  }
+
+  .bot-actions {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.75rem;
+  }
 }

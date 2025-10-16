@@ -1,9 +1,12 @@
 <app-header></app-header>
-<main *ngIf="botSections.length; else errorTemplate">
+<main class="bot-list" id="bots" *ngIf="botSections.length; else errorTemplate">
   <app-bot-section *ngFor="let section of botSections" [language]="section.language"
     [bots]="section.botDetails"></app-bot-section>
 </main>
 <ng-template #errorTemplate>
-  <p>{{ errorMessage || 'No bots available.' }}</p>
+  <div class="error-state">
+    <h2>Ops, qualcosa è andato storto.</h2>
+    <p>{{ errorMessage || 'No bots available.' }}</p>
+  </div>
 </ng-template>
 <app-footer></app-footer>

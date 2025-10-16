@@ -1,75 +1,121 @@
-/* Stile principale per l'header */
 header {
+  position: relative;
+  padding: clamp(3rem, 8vw, 5.5rem) 0 clamp(2rem, 6vw, 3.5rem);
+  color: var(--text-primary);
+  overflow: hidden;
+
+  &::before,
+  &::after {
+    content: '';
+    position: absolute;
+    width: 420px;
+    height: 420px;
+    border-radius: 50%;
+    filter: blur(120px);
+    opacity: 0.45;
+    pointer-events: none;
+  }
+
+  &::before {
+    background: rgba(56, 189, 248, 0.65);
+    top: -220px;
+    left: -180px;
+  }
+
+  &::after {
+    background: rgba(13, 148, 136, 0.55);
+    top: -150px;
+    right: -200px;
+  }
+
+  &.pdf-page {
+    padding: 1.5rem min(3rem, 6vw);
+    background: rgba(15, 23, 42, 0.75);
+    border-bottom: 1px solid var(--border-subtle);
+    box-shadow: var(--shadow-soft);
+
+    &::before,
+    &::after {
+      display: none;
+    }
+  }
+
+  .header-content {
+    position: relative;
+    z-index: 1;
+    width: min(1100px, 100% - 3rem);
+    margin: 0 auto;
+  }
+
+  .pdf-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 1.5rem;
+
+    .pdf-copy {
+      display: flex;
+      flex-direction: column;
+      gap: 0.35rem;
+
+      .app-name {
+        font-weight: 600;
+        font-size: 1.35rem;
+      }
+
+      .current-page {
+        font-size: 0.95rem;
+        color: var(--text-muted);
+      }
+    }
+  }
+
+  .normal-header {
+    display: flex;
+    flex-direction: column;
+    gap: 1.5rem;
+    align-items: center;
     text-align: center;
-    padding: 1rem;
-    background: var(--header-bg, #222);
-    color: white;
-    transition: background-color 0.3s ease;
 
-    &.pdf-page {
-        height: 5cap;
-        background: var(--pdf-header-bg, #333);
-        position: relative;
-        display: flex;
-        align-items: center;
-        justify-content: space-between;
-        padding: 0 1rem;
+    .subtitle {
+      text-transform: uppercase;
+      font-size: 0.85rem;
+      letter-spacing: 0.35em;
+      color: var(--text-muted);
+      margin: 0;
     }
 
-    .header-content {
-        position: relative;
-        width: 100%;
-        display: flex;
-        flex-direction: column;
-        justify-content: space-between;
-        gap: 0.5rem;
-
-        /* Header PDF to Txt dinamico */
-        .pdf-header {
-            position: absolute;
-            left: 0;
-            right: 0;
-            top: -20px;
-            display: flex;
-            align-items: center;
-            justify-content: space-between;
-            gap: 1rem;
-
-            .app-name {
-                font-size: 2rem;
-                color: white;
-            }
-
-            .current-page {
-                color: #ddd;
-                font-size: 2rem;
-            }
-
-            .home-button {
-                img {
-                    cursor: pointer;
-                    width: 35px;
-                    height: 35px;
-                    transition: transform 0.2s ease;
-
-                    &:hover {
-                        transform: scale(1.1);
-                        filter: invert(60%);
-                    }
-                }
-            }
-        }
-
-        /* Header normale */
-        .normal-header {
-            h1 {
-                font-size: 2rem;
-            }
-
-            p {
-                font-size: 1rem;
-                opacity: 0.7;
-            }
-        }
+    .headline {
+      margin: 0;
+      font-size: clamp(2.4rem, 5vw, 3.6rem);
+      background: linear-gradient(120deg, #38bdf8 0%, #818cf8 50%, #c084fc 100%);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
     }
+
+    .description {
+      margin: 0;
+      max-width: 640px;
+      color: var(--text-muted);
+      line-height: 1.7;
+    }
+
+    .header-actions {
+      display: flex;
+      flex-wrap: wrap;
+      justify-content: center;
+      gap: 1rem;
+    }
+  }
+}
+
+@media (max-width: 768px) {
+  header {
+    padding-top: 3.5rem;
+
+    .pdf-header {
+      align-items: flex-start;
+      flex-direction: column;
+    }
+  }
 }
