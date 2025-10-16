@@ -7,9 +7,7 @@ on:
   workflow_dispatch:
 
 permissions:
-  contents: read
-  pages: write
-  id-token: write
+  contents: write
 
 concurrency:
   group: preview-${{ github.ref }}
@@ -52,65 +50,65 @@ jobs:
             PR_NUMBER="${{ steps.preview-vars.outputs.pr_number }}"
             PREVIEW_PATH="${{ steps.preview-vars.outputs.preview_path }}"
             npm run build -- --base-href "/scriptagher/${PREVIEW_PATH}/" --output-path "dist/${PREVIEW_PATH}"
-            cat <<EOF > dist/index.html
-<!doctype html>
-<html lang="en">
-  <head>
-    <meta charset="utf-8" />
-    <title>Redirecting…</title>
-    <meta http-equiv="refresh" content="0; url=./${PREVIEW_PATH}/" />
-  </head>
-  <body>
-    <p>Preview for PR #${PR_NUMBER} is available at <a href="./${PREVIEW_PATH}/">./${PREVIEW_PATH}/</a>.</p>
-  </body>
-</html>
-EOF
-            cat <<EOF > dist/404.html
-<!doctype html>
-<html lang="en">
-  <head>
-    <meta charset="utf-8" />
-    <title>Redirecting…</title>
-    <meta http-equiv="refresh" content="0; url=./${PREVIEW_PATH}/" />
-  </head>
-  <body>
-    <p>Preview for PR #${PR_NUMBER} is available at <a href="./${PREVIEW_PATH}/">./${PREVIEW_PATH}/</a>.</p>
-  </body>
-</html>
-EOF
           else
             npm run build
           fi
 
-      - name: Configure GitHub Pages
-        uses: actions/configure-pages@v5
-
-      - name: Upload artifact
-        uses: actions/upload-pages-artifact@v3
+      - name: Upload preview artifact
+        if: ${{ steps.preview-vars.outputs.pr_number != '' }}
+        uses: actions/upload-artifact@v4
         with:
-          path: dist
+          name: preview-dist
+          path: dist/${{ steps.preview-vars.outputs.preview_path }}
+          if-no-files-found: error
 
-  deploy:
-    environment:
-      name: github-pages
-      url: ${{ steps.deployment.outputs.page_url }}
+  deploy-preview:
+    if: ${{ needs.build.outputs.pr_number != '' }}
     needs: build
     runs-on: ubuntu-latest
     steps:
-      - name: Deploy to GitHub Pages
-        id: deployment
-        uses: actions/deploy-pages@v4
+      - name: Checkout repository
+        uses: actions/checkout@v4
         with:
-          preview: true
+          ref: gh-pages
+          fetch-depth: 0
+
+      - name: Download preview artifact
+        uses: actions/download-artifact@v4
+        with:
+          name: preview-dist
+          path: preview-artifact
+
+      - name: Prepare preview content
+        env:
+          PREVIEW_PATH: ${{ needs.build.outputs.preview_path }}
+        run: |
+          mkdir -p "$(dirname "${PREVIEW_PATH}")"
+          rm -rf "${PREVIEW_PATH}"
+          rsync -a --delete "preview-artifact/dist/${PREVIEW_PATH}/" "${PREVIEW_PATH}/"
+
+      - name: Commit preview update
+        env:
+          PR_NUMBER: ${{ needs.build.outputs.pr_number }}
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          if git status --short "${{ needs.build.outputs.preview_path }}" | grep .; then
+            git add "${{ needs.build.outputs.preview_path }}"
+            git commit -m "chore: update preview for PR #${PR_NUMBER}"
+          else
+            echo "No changes to commit"
+          fi
+
+      - name: Push preview changes
+        run: git push origin gh-pages
 
       - name: Publish preview link
-        if: ${{ needs.build.outputs.pr_number != '' }}
         env:
-          PAGE_URL: ${{ steps.deployment.outputs.page_url }}
           PREVIEW_PATH: ${{ needs.build.outputs.preview_path }}
           PR_NUMBER: ${{ needs.build.outputs.pr_number }}
         run: |
-          BASE_URL="${PAGE_URL%/}"
+          BASE_URL="https://$GITHUB_REPOSITORY_OWNER.github.io/${GITHUB_REPOSITORY##*/}"
           PREVIEW_URL="${BASE_URL}/${PREVIEW_PATH}/"
           {
             echo "### Preview ready"
