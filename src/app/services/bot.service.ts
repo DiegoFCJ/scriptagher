@@ -26,7 +26,7 @@ export class BotService {
    * @param bot - The bot's name.
    */
   getBotDetails(bot: any): Observable<any> {
-    let botJsonPath = `${this.BASE_SOURCE}/${bot.language}/${bot.botName}/Bot.json`
+    const botJsonPath = `${this.BASE_PATH}/${bot.language}/${bot.botName}/Bot.json`;
     return this.http.get(botJsonPath);
   }
 
