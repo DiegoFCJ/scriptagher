@@ -2,18 +2,30 @@
     <div class="header-content">
         <!-- Header PDF to Txt -->
         <div *ngIf="isPdfToTxtPage; else normalHeader" class="pdf-header">
-            <span class="app-name">Scriptagher</span>
-            <span class="current-page">PDF to Txt</span>
-            <div class="home-button" (click)="navigateHome()">
-                <img src="/icons/icons8-home-64.png"/>    
+            <div class="pdf-copy">
+                <span class="app-name">Scriptagher</span>
+                <span class="current-page">PDF to Txt</span>
             </div>
+            <button class="ghost-button" (click)="navigateHome()">
+                <span>Home</span>
+            </button>
         </div>
 
         <!-- Header normale -->
         <ng-template #normalHeader>
             <div class="normal-header">
-                <h1>Welcome to the Bot List</h1>
-                <p>Here is a list of available bots, organized by language.</p>
+                <p class="subtitle">Un arsenale di automazioni creative</p>
+                <h1 class="headline">Scriptagher Bot Library</h1>
+                <p class="description">
+                    Esplora una raccolta curata di bot multi-lingua, con design e interazioni ispirate allo stile del
+                    portfolio personale.
+                </p>
+                <div class="header-actions">
+                    <a class="ghost-button" href="#bots">Esplora i bot</a>
+                    <a class="ghost-button" href="https://diegofcj.github.io/portfolio/" target="_blank" rel="noreferrer">
+                        Visita il portfolio
+                    </a>
+                </div>
             </div>
         </ng-template>
     </div>

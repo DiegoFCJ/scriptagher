@@ -1,18 +1,19 @@
 <div class="bot">
-    <h3>{{ bot.botName }}</h3>
-    <p>Description: {{ bot.description || 'No description available' }}</p>
-    <p>Start Command <br>{{ bot.startCommand || 'No start commands provided' }}</p>
+    <div class="bot-header">
+        <h3>{{ bot.botName }}</h3>
+        <span class="bot-language">{{ language | uppercase }}</span>
+    </div>
+    <p class="bot-description">{{ bot.description || 'No description available' }}</p>
+    <div class="bot-command">
+        <span>Start command</span>
+        <code>{{ bot.startCommand || 'No start commands provided' }}</code>
+    </div>
 
-    <!-- Bottone "Vai al PDF to Txt" solo se il nome del bot è pdfToTxt -->
-    <button *ngIf="bot.botName === 'pdf-to-txt'" class="nav-link-button" (click)="navigateToPdfToTxt()">
-        Vai al Converter PDF to Txt
-    </button>
-
-
-
-    <!-- Altri pulsanti dinamici esistenti -->
-    <button (click)="openBot()">View Source</button>
-    <button (click)="downloadBot()">Download</button>
+    <div class="bot-actions">
+        <button *ngIf="bot.botName === 'pdf-to-txt'" class="ghost-button" (click)="navigateToPdfToTxt()">
+            Vai al converter PDF to Txt
+        </button>
+        <button class="ghost-button" (click)="openBot()">View source</button>
+        <button (click)="downloadBot()">Download</button>
+    </div>
 </div>
-
-<!-- pdfToTxt -->
