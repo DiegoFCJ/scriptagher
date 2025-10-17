@@ -22,6 +22,11 @@ class BotRoutes {
 
     router.get('/bots/downloaded', botController.fetchDownloadedBots);
 
+    router.post(
+        '/bots/<language>/<botName>/start',
+        (Request request, String language, String botName) =>
+            botController.startBot(request, language, botName));
+
     return router;
   }
 }

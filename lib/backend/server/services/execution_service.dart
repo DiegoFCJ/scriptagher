@@ -16,20 +16,105 @@ class ExecutionService {
   final BotDatabase _botDatabase;
   final ExecutionLogManager _logManager;
   final CustomLogger _logger = CustomLogger();
+  final Map<int, _PendingProcess> _pendingProcesses = {};
 
-  Future<Response> streamExecution(
+  Future<Response> startBot(
       Request request, String language, String botName) async {
     final Bot? bot = await _botDatabase.findBotByName(language, botName);
 
-    if (bot == null || bot.startCommand.trim().isEmpty) {
+    if (bot == null) {
       final errorMessage =
-          'Bot $language/$botName not found or missing start command.';
+          'Bot $language/$botName not found. Unable to start execution.';
       _logger.error(LOGS.EXECUTION_SERVICE, errorMessage,
           metadata: {'language': language, 'botName': botName});
       return Response.notFound(jsonEncode({'error': errorMessage}));
     }
 
+    final runner = _resolveRunnerCommand(bot);
+    if (runner == null) {
+      final message =
+          'Bot ${bot.language}/${bot.botName} missing start command or unsupported language.';
+      _logger.error(LOGS.EXECUTION_SERVICE, message,
+          metadata: {'language': language, 'botName': botName});
+      return Response.internalServerError(
+        body: jsonEncode({'error': message}),
+        headers: {'Content-Type': 'application/json'},
+      );
+    }
+
+    try {
+      final process = await _startProcess(bot, runner);
+      final pending = _PendingProcess(bot: bot, process: process);
+      _pendingProcesses[process.pid] = pending;
+      process.exitCode.then((_) {
+        _pendingProcesses.remove(process.pid);
+      });
+
+      _logger.info(
+        LOGS.EXECUTION_SERVICE,
+        'Started process ${process.pid} for ${bot.language}/${bot.botName}.',
+        metadata: {'language': language, 'botName': botName, 'pid': process.pid},
+      );
+
+      return Response.ok(
+        jsonEncode({
+          'pid': process.pid,
+          'status': 'started',
+        }),
+        headers: {'Content-Type': 'application/json'},
+      );
+    } catch (e) {
+      final message =
+          'Failed to start ${bot.language}/${bot.botName}: ${e.toString()}';
+      _logger.error(LOGS.EXECUTION_SERVICE, message,
+          metadata: {'language': language, 'botName': botName});
+      return Response.internalServerError(
+        body: jsonEncode({'error': message}),
+        headers: {'Content-Type': 'application/json'},
+      );
+    }
+  }
+
+  Future<Response> streamExecution(
+      Request request, String language, String botName) async {
+    final Bot? botFromDb = await _botDatabase.findBotByName(language, botName);
+
+    if (botFromDb == null) {
+      final errorMessage = 'Bot $language/$botName not found.';
+      _logger.error(LOGS.EXECUTION_SERVICE, errorMessage,
+          metadata: {'language': language, 'botName': botName});
+      return Response.notFound(jsonEncode({'error': errorMessage}));
+    }
+
+    Bot bot = botFromDb;
+
     final controller = StreamController<List<int>>();
+    Process? process;
+    final pidParam = request.requestedUri.queryParameters['pid'];
+    if (pidParam != null) {
+      final pid = int.tryParse(pidParam);
+      if (pid != null) {
+        final pending = _pendingProcesses.remove(pid);
+        if (pending != null) {
+          process = pending.process;
+          bot = pending.bot;
+        }
+      }
+    }
+
+    final runner = _resolveRunnerCommand(bot);
+    if (runner == null) {
+      final message =
+          'Bot ${bot.language}/${bot.botName} missing start command or unsupported language.';
+      _logger.error(LOGS.EXECUTION_SERVICE, message,
+          metadata: {'language': language, 'botName': botName});
+      await controller.close();
+      return Response.internalServerError(
+        body: jsonEncode({'error': message}),
+        headers: {'Content-Type': 'application/json'},
+      );
+    }
+
     late final ExecutionLogSession session;
     try {
       session = await _logManager.startSession(bot);
@@ -46,7 +131,6 @@ class ExecutionService {
         headers: {'Content-Type': 'application/json'},
       );
     }
-    Process? process;
     var closed = false;
     var finalized = false;
     StreamSubscription<String>? stdoutSub;
@@ -98,12 +182,7 @@ class ExecutionService {
           metadata: session.metadata.toLogMetadata(),
         );
 
-        process = await Process.start(
-          '/bin/sh',
-          ['-c', bot.startCommand],
-          workingDirectory: _resolveWorkingDirectory(bot),
-          runInShell: false,
-        );
+        process ??= await _startProcess(bot, runner);
 
         stdoutSub = process!.stdout
             .transform(utf8.decoder)
@@ -238,6 +317,105 @@ class ExecutionService {
     }
   }
 
+  Future<Process> _startProcess(Bot bot, _RunnerCommand runner) async {
+    final workingDirectory = _resolveWorkingDirectory(bot);
+    ProcessException? lastError;
+    for (final executable in runner.executables) {
+      try {
+        return await Process.start(
+          executable,
+          runner.arguments,
+          workingDirectory: workingDirectory,
+          runInShell: false,
+        );
+      } on ProcessException catch (error) {
+        lastError = error;
+        continue;
+      }
+    }
+    if (lastError != null) {
+      throw lastError;
+    }
+    throw ProcessException(
+      runner.executables.first,
+      runner.arguments,
+      'Unable to start runner for ${bot.language}/${bot.botName}',
+    );
+  }
+
+  _RunnerCommand? _resolveRunnerCommand(Bot bot) {
+    final language = bot.language.toLowerCase().trim();
+    final command = bot.startCommand.trim();
+    if (command.isEmpty) {
+      return null;
+    }
+
+    final args = _splitArguments(command);
+    if (language.contains('python')) {
+      if (args.isEmpty) {
+        return null;
+      }
+      if (args.isNotEmpty &&
+          (args.first.toLowerCase() == 'python' ||
+              args.first.toLowerCase() == 'python3')) {
+        args.removeAt(0);
+      }
+      if (args.isEmpty) {
+        return null;
+      }
+      return _RunnerCommand(['python3', 'python'], args);
+    }
+
+    if (language.contains('node') || language.contains('javascript')) {
+      if (args.isEmpty) {
+        return null;
+      }
+      if (args.isNotEmpty && args.first.toLowerCase() == 'node') {
+        args.removeAt(0);
+      }
+      if (args.isEmpty) {
+        return null;
+      }
+      return _RunnerCommand(['node'], args);
+    }
+
+    if (language.contains('bash') ||
+        language.contains('shell') ||
+        language.contains('sh')) {
+      if (args.isNotEmpty &&
+          (args.first.toLowerCase() == 'bash' ||
+              args.first.toLowerCase() == 'sh')) {
+        args.removeAt(0);
+      }
+      if (args.isEmpty) {
+        return null;
+      }
+      return _RunnerCommand(['bash', 'sh'], args);
+    }
+
+    return _RunnerCommand(['/bin/sh'], ['-c', command]);
+  }
+
+  List<String> _splitArguments(String command) {
+    final matches = RegExp(r'''(?:[^\s'"]+|'[^']*'|"[^"]*")''')
+        .allMatches(command)
+        .map((match) => match.group(0)!)
+        .map(_stripEnclosingQuotes)
+        .where((element) => element.isNotEmpty)
+        .toList();
+    return matches;
+  }
+
+  String _stripEnclosingQuotes(String value) {
+    if (value.length >= 2) {
+      if ((value.startsWith('"') && value.endsWith('"')) ||
+          (value.startsWith("'") && value.endsWith("'"))) {
+        return value.substring(1, value.length - 1);
+      }
+    }
+    return value;
+  }
+
   void _handleLine(ExecutionLogSession session, String line,
       {required bool isError,
       required void Function(Map<String, dynamic> event) emitter}) {
@@ -272,4 +450,19 @@ class ExecutionService {
     }
     return null;
   }
+}
+
+class _RunnerCommand {
+  _RunnerCommand(this.executables, List<String> args)
+      : arguments = List<String>.from(args);
+
+  final List<String> executables;
+  final List<String> arguments;
+}
+
+class _PendingProcess {
+  _PendingProcess({required this.bot, required this.process});
+
+  final Bot bot;
+  final Process process;
 }

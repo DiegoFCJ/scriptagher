@@ -32,6 +32,7 @@ class _BotDetailViewState extends State<BotDetailView> {
   bool _isLoadingLogs = false;
   String _buffer = '';
   String? _error;
+  String? _startStatus;
 
   void _openTutorial() {
     Navigator.pushNamed(context, '/tutorial');
@@ -91,14 +92,73 @@ class _BotDetailViewState extends State<BotDetailView> {
     setState(() {
       _entries.clear();
       _error = null;
+      _startStatus = 'Avvio del bot in corso...';
       _isRunning = true;
     });
 
+    final startUri = Uri.parse(
+        '${widget.baseUrl}/bots/${Uri.encodeComponent(widget.bot.language)}/${Uri.encodeComponent(widget.bot.botName)}/start');
+
+    try {
+      final startResponse = await http.post(startUri);
+      if (startResponse.statusCode != 200) {
+        if (!mounted) return;
+        setState(() {
+          _error =
+              'Impossibile avviare il bot. Codice risposta: ${startResponse.statusCode}';
+          _startStatus = 'Avvio fallito';
+          _isRunning = false;
+        });
+        _stopExecution();
+        return;
+      }
+
+      final dynamic decoded = jsonDecode(startResponse.body);
+      if (decoded is! Map<String, dynamic>) {
+        throw const FormatException('Risposta non valida dal server');
+      }
+
+      final dynamic pidValue = decoded['pid'];
+      final int? pid = pidValue is int
+          ? pidValue
+          : (pidValue is String ? int.tryParse(pidValue) : null);
+
+      if (pid == null) {
+        throw const FormatException('PID non fornito nella risposta');
+      }
+
+      if (!mounted) return;
+      setState(() {
+        _startStatus = 'Processo avviato (PID: $pid)';
+      });
+
+      await _openExecutionStream(pid);
+    } catch (e) {
+      if (!mounted) return;
+      setState(() {
+        _error = 'Errore durante l\'avvio: $e';
+        _startStatus = 'Avvio fallito';
+        _isRunning = false;
+      });
+      _stopExecution();
+    }
+  }
+
+  void _stopExecution({bool closeClient = true}) {
+    _subscription?.cancel();
+    _subscription = null;
+    if (closeClient) {
+      _client?.close();
+      _client = null;
+    }
+  }
+
+  Future<void> _openExecutionStream(int pid) async {
     final client = http.Client();
     _client = client;
 
     final uri = Uri.parse(
-        '${widget.baseUrl}/bots/${Uri.encodeComponent(widget.bot.language)}/${Uri.encodeComponent(widget.bot.botName)}/stream');
+        '${widget.baseUrl}/bots/${Uri.encodeComponent(widget.bot.language)}/${Uri.encodeComponent(widget.bot.botName)}/stream?pid=$pid');
 
     try {
       final request = http.Request('GET', uri)
@@ -106,9 +166,11 @@ class _BotDetailViewState extends State<BotDetailView> {
       final response = await client.send(request);
 
       if (response.statusCode != 200) {
+        if (!mounted) return;
         setState(() {
           _error =
-              'Impossibile avviare il bot. Codice risposta: ${response.statusCode}';
+              'Impossibile connettersi allo stream. Codice risposta: ${response.statusCode}';
+          _startStatus = 'Connessione log fallita';
           _isRunning = false;
         });
         _stopExecution();
@@ -121,6 +183,7 @@ class _BotDetailViewState extends State<BotDetailView> {
         if (!mounted) return;
         setState(() {
           _error = 'Errore di connessione: $error';
+          _startStatus = 'Connessione log fallita';
           _isRunning = false;
         });
         _stopExecution();
@@ -135,19 +198,11 @@ class _BotDetailViewState extends State<BotDetailView> {
     } catch (e) {
       if (!mounted) return;
       setState(() {
-        _error = 'Errore durante l\'avvio: $e';
+        _error = 'Errore durante la connessione allo stream: $e';
+        _startStatus = 'Connessione log fallita';
         _isRunning = false;
       });
       _stopExecution();
-    }
-  }
-
-  void _stopExecution({bool closeClient = true}) {
-    _subscription?.cancel();
-    _subscription = null;
-    if (closeClient) {
-      _client?.close();
-      _client = null;
     }
   }
 
@@ -191,6 +246,9 @@ class _BotDetailViewState extends State<BotDetailView> {
         if (message == 'finished') {
           setState(() {
             _isRunning = false;
+            _startStatus =
+                code != null ? 'Esecuzione completata (codice: $code)' :
+                    'Esecuzione completata';
           });
           _loadLogs();
         }
@@ -226,6 +284,7 @@ class _BotDetailViewState extends State<BotDetailView> {
     setState(() {
       _entries.clear();
       _error = null;
+      _startStatus = null;
     });
   }
 
@@ -355,6 +414,13 @@ class _BotDetailViewState extends State<BotDetailView> {
               Text(
                 _error!,
                 style: TextStyle(color: Theme.of(context).colorScheme.error),
+              ),
+            ],
+            if (_startStatus != null) ...[
+              const SizedBox(height: 8),
+              Text(
+                _startStatus!,
+                style: Theme.of(context).textTheme.bodyMedium,
               ),
             ],
             const SizedBox(height: 20),

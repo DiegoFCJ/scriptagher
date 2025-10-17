@@ -4,14 +4,17 @@ import 'package:scriptagher/shared/custom_logger.dart';
 import 'package:scriptagher/shared/constants/LOGS.dart';
 import '../services/bot_get_service.dart';
 import '../services/bot_download_service.dart';
+import '../services/execution_service.dart';
 import '../models/bot.dart';
 
 class BotController {
   final CustomLogger logger = CustomLogger();
   final BotDownloadService botDownloadService;
   final BotGetService botGetService;
+  final ExecutionService executionService;
 
-  BotController(this.botDownloadService, this.botGetService);
+  BotController(
+      this.botDownloadService, this.botGetService, this.executionService);
 
   // Endpoint per ottenere la lista dei bot disponibili remoti
   Future<Response> fetchAvailableBots(Request request) async {
@@ -114,5 +117,10 @@ class BotController {
         headers: {'Content-Type': 'application/json'},
       );
     }
+  }
+
+  Future<Response> startBot(
+      Request request, String language, String botName) async {
+    return executionService.startBot(request, language, botName);
   }
 }
