@@ -49,7 +49,7 @@ class BotDatabase {
 
     return openDatabase(
       path,
-      version: 5,
+      version: 6,
       onCreate: (db, version) async {
         logger.info('BotDatabase', "Creating database structure...");
         try {
@@ -90,6 +90,14 @@ class BotDatabase {
             logger.info(
                 'BotDatabase', "metadata table created during upgrade.");
           }
+          if (oldVersion < 6) {
+            await _addMetadataColumns(db, 'bots');
+            await _addMetadataColumns(db, 'local_bots');
+            logger.info(
+              'BotDatabase',
+              "author, version and platforms_json columns added to bots and local_bots tables.",
+            );
+          }
       } catch (e) {
         logger.error('BotDatabase', 'Error during database upgrade: $e');
       }
@@ -114,12 +122,15 @@ class BotDatabase {
         CREATE TABLE IF NOT EXISTS bots (
           id INTEGER PRIMARY KEY AUTOINCREMENT,
           bot_name TEXT NOT NULL,
+          author TEXT,
+          version TEXT,
           description TEXT,
           start_command TEXT,
           source_path TEXT,
           language TEXT NOT NULL,
           compat_json TEXT,
           permissions_json TEXT,
+          platforms_json TEXT,
           archive_sha256 TEXT
         );
       ''');
@@ -290,6 +301,30 @@ class BotDatabase {
     }
   }
 
+  Future<void> _addMetadataColumns(Database db, String tableName) async {
+    await _addColumnIfMissing(db, tableName, 'author', 'TEXT');
+    await _addColumnIfMissing(db, tableName, 'version', 'TEXT');
+    await _addColumnIfMissing(db, tableName, 'platforms_json', 'TEXT');
+  }
+
+  Future<void> _addColumnIfMissing(
+      Database db, String tableName, String columnName, String columnType) async {
+    final columns = await db.rawQuery('PRAGMA table_info($tableName);');
+    final hasColumn = columns.any((column) => column['name'] == columnName);
+    if (hasColumn) {
+      return;
+    }
+    try {
+      await db
+          .execute('ALTER TABLE $tableName ADD COLUMN $columnName $columnType;');
+      logger.info('BotDatabase',
+          "$columnName column added to table '$tableName'.");
+    } catch (e) {
+      logger.error('BotDatabase',
+          "Error adding $columnName column to $tableName: $e");
+    }
+  }
+
   // --------------------------------------- LOCAL BOTS --------------------------------------- \\
   Future<void> _createLocalBotsTable(Database db) async {
     try {
@@ -297,12 +332,15 @@ class BotDatabase {
         CREATE TABLE IF NOT EXISTS local_bots (
           id INTEGER PRIMARY KEY AUTOINCREMENT,
           bot_name TEXT NOT NULL,
+          author TEXT,
+          version TEXT,
           description TEXT,
           start_command TEXT,
           source_path TEXT,
           language TEXT NOT NULL,
           compat_json TEXT,
           permissions_json TEXT,
+          platforms_json TEXT,
           archive_sha256 TEXT
         );
       ''');

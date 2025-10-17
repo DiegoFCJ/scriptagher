@@ -66,6 +66,9 @@ class BotDownloadService {
           const <String>[];
       final botNameValue = botDetails['botName']?.toString() ?? botName;
       final descriptionValue = botDetails['description']?.toString() ?? '';
+      final authorValue = botDetails['author']?.toString() ?? 'Sconosciuto';
+      final versionValue = botDetails['version']?.toString() ?? '0.0.0';
+      final platforms = _derivePlatformCompatibility(compat);
 
       final bot = Bot(
         botName: botNameValue,
@@ -75,6 +78,9 @@ class BotDownloadService {
         language: language,
         compat: compat,
         permissions: permissions,
+        author: authorValue,
+        version: versionValue,
+        platformCompatibility: platforms,
         archiveSha256: botDetails['archiveSha256']?.toString(),
       );
       await botDatabase.insertBot(bot);
@@ -207,6 +213,17 @@ class BotDownloadService {
           'Failed to read manifest for $language/$botName: $e');
       throw DownloadException('Unable to validate manifest: $e');
     }
+  }
+
+  List<String> _derivePlatformCompatibility(BotCompat compat) {
+    final platforms = <String>{};
+    if (compat.desktopRuntimes.isNotEmpty) {
+      platforms.add('desktop');
+    }
+    if (compat.browserSupported == true) {
+      platforms.add('browser');
+    }
+    return platforms.toList(growable: false);
   }
 }
 

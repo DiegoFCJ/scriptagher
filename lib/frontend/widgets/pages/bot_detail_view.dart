@@ -6,11 +6,13 @@ import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:http/http.dart' as http;
 import 'package:path_provider/path_provider.dart';
+import 'package:url_launcher/url_launcher.dart';
 
 import '../../models/bot.dart';
 import '../../models/execution_log.dart';
 import '../../services/browser_runner/browser_bot_runner.dart';
 import '../../services/browser_runner/browser_runner_models.dart';
+import '../../services/bot_get_service.dart';
 
 class BotDetailView extends StatefulWidget {
   const BotDetailView(
@@ -27,6 +29,9 @@ class _BotDetailViewState extends State<BotDetailView> {
   final ScrollController _scrollController = ScrollController();
   final List<_ConsoleEntry> _entries = [];
   final List<ExecutionLog> _logHistory = [];
+  late final BotGetService _botGetService;
+  Bot? _downloadedBot;
+  Bot? _remoteBot;
 
   http.Client? _client;
   StreamSubscription<String>? _subscription;
@@ -36,6 +41,10 @@ class _BotDetailViewState extends State<BotDetailView> {
   bool _autoScroll = true;
   bool _isRunning = false;
   bool _isLoadingLogs = false;
+  bool _isDownloading = false;
+  bool _isCheckingDownload = false;
+  bool _isFetchingRemote = false;
+  late final bool _widgetRepresentsLocal;
   String _buffer = '';
   String? _error;
   String? _startStatus;
@@ -47,7 +56,16 @@ class _BotDetailViewState extends State<BotDetailView> {
   @override
   void initState() {
     super.initState();
+    _botGetService = BotGetService(baseUrl: widget.baseUrl);
+    _widgetRepresentsLocal = _detectLocalBot(widget.bot);
+    if (_widgetRepresentsLocal) {
+      _downloadedBot = widget.bot;
+      _loadRemoteMetadata();
+    } else {
+      _remoteBot = widget.bot;
+    }
     _loadLogs();
+    _loadDownloadState();
   }
 
   @override
@@ -56,6 +74,240 @@ class _BotDetailViewState extends State<BotDetailView> {
     _scrollController.dispose();
     _browserRunner?.dispose();
     super.dispose();
+  }
+
+  bool _detectLocalBot(Bot bot) {
+    if (kIsWeb) {
+      return false;
+    }
+    if (bot.sourcePath.isEmpty) {
+      return false;
+    }
+    try {
+      final manifestFile = File(bot.sourcePath);
+      if (manifestFile.existsSync()) {
+        return true;
+      }
+      final directory = Directory(bot.sourcePath);
+      return directory.existsSync();
+    } catch (_) {
+      return false;
+    }
+  }
+
+  Bot? get _effectiveRemoteBot {
+    if (_remoteBot != null) {
+      return _remoteBot;
+    }
+    if (!_widgetRepresentsLocal) {
+      return widget.bot;
+    }
+    return null;
+  }
+
+  Bot get _primaryBot {
+    if (_widgetRepresentsLocal && _downloadedBot != null) {
+      return _downloadedBot!;
+    }
+    return _effectiveRemoteBot ?? _downloadedBot ?? widget.bot;
+  }
+
+  bool get _isDownloaded => _downloadedBot != null;
+
+  bool get _hasUpdate {
+    final remote = _effectiveRemoteBot;
+    final local = _downloadedBot;
+    if (remote == null || local == null) {
+      return false;
+    }
+    final remoteHash = remote.archiveSha256;
+    final localHash = local.archiveSha256;
+    if (remoteHash != null &&
+        remoteHash.isNotEmpty &&
+        localHash != null &&
+        localHash.isNotEmpty &&
+        remoteHash != localHash) {
+      return true;
+    }
+    return remote.version != local.version;
+  }
+
+  bool get _canDownloadAction {
+    if (_isDownloading) {
+      return false;
+    }
+    final remote = _effectiveRemoteBot;
+    if (remote == null) {
+      return !_isDownloaded;
+    }
+    if (!_isDownloaded) {
+      return true;
+    }
+    return _hasUpdate;
+  }
+
+  String get _downloadButtonLabel {
+    if (_isDownloading) {
+      return 'Download in corso...';
+    }
+    if (_hasUpdate) {
+      return 'Aggiorna';
+    }
+    if (!_isDownloaded) {
+      return 'Scarica';
+    }
+    return 'Scaricato';
+  }
+
+  String? get _localFolderPath {
+    if (kIsWeb) {
+      return null;
+    }
+    final candidate = _downloadedBot?.sourcePath ??
+        (_widgetRepresentsLocal ? widget.bot.sourcePath : null);
+    if (candidate == null || candidate.isEmpty) {
+      return null;
+    }
+    try {
+      final manifestFile = File(candidate);
+      if (manifestFile.existsSync()) {
+        return manifestFile.parent.path;
+      }
+      final directory = Directory(candidate);
+      if (directory.existsSync()) {
+        return directory.path;
+      }
+    } catch (_) {
+      return null;
+    }
+    return null;
+  }
+
+  Future<void> _loadDownloadState() async {
+    setState(() {
+      _isCheckingDownload = true;
+    });
+
+    try {
+      final bots = await _botGetService.fetchDownloadedBotsFlat();
+      Bot? match;
+      for (final bot in bots) {
+        if (bot.language == widget.bot.language &&
+            bot.botName == widget.bot.botName) {
+          match = bot;
+          break;
+        }
+      }
+      if (!mounted) return;
+      final fallback = _widgetRepresentsLocal
+          ? (_downloadedBot ?? widget.bot)
+          : _downloadedBot;
+      setState(() {
+        _downloadedBot = match ?? fallback;
+      });
+    } catch (e) {
+      if (!mounted) return;
+      _showSnackBar('Errore durante il controllo download: $e', isError: true);
+    } finally {
+      if (!mounted) return;
+      setState(() {
+        _isCheckingDownload = false;
+      });
+    }
+  }
+
+  Future<void> _loadRemoteMetadata() async {
+    setState(() {
+      _isFetchingRemote = true;
+    });
+
+    try {
+      final grouped = await _botGetService.fetchOnlineBots();
+      final bots = grouped[widget.bot.language] ?? const <Bot>[];
+      Bot? match;
+      for (final bot in bots) {
+        if (bot.botName == widget.bot.botName) {
+          match = bot;
+          break;
+        }
+      }
+      if (!mounted) return;
+      setState(() {
+        _remoteBot = match;
+      });
+    } catch (e) {
+      if (!mounted) return;
+      _showSnackBar(
+          'Impossibile recuperare i metadati online: $e',
+          isError: true);
+    } finally {
+      if (!mounted) return;
+      setState(() {
+        _isFetchingRemote = false;
+      });
+    }
+  }
+
+  Future<void> _handleDownloadAction() async {
+    if (!_canDownloadAction) {
+      return;
+    }
+
+    setState(() {
+      _isDownloading = true;
+    });
+
+    final uri = Uri.parse(
+        '${widget.baseUrl}/bots/${Uri.encodeComponent(widget.bot.language)}/${Uri.encodeComponent(widget.bot.botName)}');
+
+    try {
+      final response = await http.get(uri);
+      if (response.statusCode == 200) {
+        final data = jsonDecode(response.body) as Map<String, dynamic>;
+        final bot = Bot.fromJson(data);
+        if (!mounted) return;
+        setState(() {
+          _downloadedBot = bot;
+        });
+        _showSnackBar('Bot scaricato con successo.');
+      } else {
+        String message = 'codice ${response.statusCode}';
+        if (response.body.isNotEmpty) {
+          try {
+            final decoded = jsonDecode(response.body);
+            if (decoded is Map<String, dynamic>) {
+              final reason = decoded['message'] ?? decoded['error'];
+              if (reason is String && reason.isNotEmpty) {
+                message = reason;
+              }
+            }
+          } catch (_) {}
+        }
+        _showSnackBar('Download fallito: $message', isError: true);
+      }
+    } catch (e) {
+      _showSnackBar('Errore durante il download: $e', isError: true);
+    } finally {
+      if (!mounted) return;
+      setState(() {
+        _isDownloading = false;
+      });
+      await _loadDownloadState();
+    }
+  }
+
+  Future<void> _openFolder() async {
+    final path = _localFolderPath;
+    if (path == null) {
+      _showSnackBar('Cartella locale non disponibile.', isError: true);
+      return;
+    }
+
+    final uri = Uri.file(path, windows: Platform.isWindows);
+    final launched = await launchUrl(uri, mode: LaunchMode.externalApplication);
+    if (!launched) {
+      _showSnackBar('Impossibile aprire la cartella.', isError: true);
+    }
   }
 
   Future<void> _loadLogs() async {
@@ -579,18 +831,23 @@ class _BotDetailViewState extends State<BotDetailView> {
     }
   }
 
-  void _showSnackBar(String message) {
+  void _showSnackBar(String message, {bool isError = false}) {
     if (!mounted) return;
     ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(content: Text(message)),
+      SnackBar(
+        content: Text(message),
+        backgroundColor:
+            isError ? Theme.of(context).colorScheme.error : null,
+      ),
     );
   }
 
   @override
   Widget build(BuildContext context) {
+    final bot = _primaryBot;
     return Scaffold(
       appBar: AppBar(
-        title: Text(widget.bot.botName),
+        title: Text(bot.botName),
         actions: [
           IconButton(
             tooltip: 'Guida: crea il tuo bot',
@@ -605,47 +862,34 @@ class _BotDetailViewState extends State<BotDetailView> {
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             Text(
-              'Nome: ${widget.bot.botName}',
+              bot.botName,
               style: Theme.of(context).textTheme.headlineMedium,
             ),
-            const SizedBox(height: 10),
+            const SizedBox(height: 6),
             Text(
-              'Descrizione: ${widget.bot.description}',
+              bot.description.isNotEmpty
+                  ? bot.description
+                  : 'Nessuna descrizione disponibile.',
               style: Theme.of(context).textTheme.bodyLarge,
             ),
-            const SizedBox(height: 12),
-            _buildPermissionsSection(context),
-            if (widget.bot.permissions.isNotEmpty) const SizedBox(height: 12),
-            _buildCompatBadges(context),
+            const SizedBox(height: 16),
+            _buildMetadataSection(context, bot),
+            _buildPermissionsSection(context, bot),
+            if (bot.permissions.isNotEmpty) const SizedBox(height: 12),
+            _buildCompatBadges(context, bot),
+            if (_hasUpdate)
+              Padding(
+                padding: const EdgeInsets.only(top: 8.0),
+                child: Text(
+                  'Aggiornamento disponibile: scarica per ottenere le ultime modifiche.',
+                  style: Theme.of(context)
+                      .textTheme
+                      .bodyMedium
+                      ?.copyWith(color: Colors.orange.shade700),
+                ),
+              ),
             const SizedBox(height: 20),
-            Row(
-              children: [
-                ElevatedButton(
-                  onPressed:
-                      _isRunning ? null : () => _requestExecution(),
-                  child: Text(_isRunning ? 'Esecuzione in corso...' : 'Esegui Bot'),
-                ),
-                const SizedBox(width: 16),
-                OutlinedButton(
-                  onPressed: _entries.isEmpty && _error == null ? null : _clearLog,
-                  child: const Text('Pulisci log'),
-                ),
-                const Spacer(),
-                Row(
-                  children: [
-                    const Text('Auto-scroll'),
-                    Switch(
-                      value: _autoScroll,
-                      onChanged: (value) {
-                        setState(() {
-                          _autoScroll = value;
-                        });
-                      },
-                    ),
-                  ],
-                ),
-              ],
-            ),
+            _buildActionButtons(context),
             if (_error != null) ...[
               const SizedBox(height: 12),
               Text(
@@ -752,11 +996,276 @@ class _BotDetailViewState extends State<BotDetailView> {
     );
   }
 
-  Widget _buildPermissionsSection(BuildContext context) {
-    final permissions = widget.bot.permissions;
-    if (permissions.isEmpty) {
-      return const SizedBox.shrink();
+  Widget _buildMetadataSection(BuildContext context, Bot bot) {
+    final theme = Theme.of(context);
+    final remoteVersion = _effectiveRemoteBot?.version;
+    final localVersion = _downloadedBot?.version;
+
+    final downloadIcon = _hasUpdate
+        ? Icons.update
+        : (_isDownloaded
+            ? Icons.download_done_outlined
+            : Icons.cloud_download_outlined);
+    final downloadColor = _hasUpdate
+        ? Colors.orange.shade700
+        : (_isDownloaded
+            ? Colors.green.shade600
+            : theme.colorScheme.outline);
+    final downloadText = _hasUpdate
+        ? 'Aggiornamento disponibile'
+        : (_isDownloaded ? 'Bot scaricato localmente' : 'Bot non scaricato');
+
+    final showRemoteVersion = remoteVersion != null &&
+        remoteVersion.isNotEmpty &&
+        remoteVersion != bot.version;
+    final showLocalVersion = localVersion != null &&
+        localVersion.isNotEmpty &&
+        localVersion != bot.version;
+
+    final hasPlatforms = bot.platformCompatibility.isNotEmpty;
+
+    return Card(
+      margin: const EdgeInsets.only(bottom: 16),
+      elevation: 1,
+      child: Padding(
+        padding: const EdgeInsets.all(16.0),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Wrap(
+              spacing: 24,
+              runSpacing: 12,
+              children: [
+                _metadataEntry(
+                  context,
+                  icon: Icons.person_outline,
+                  label: 'Autore',
+                  value: bot.author,
+                ),
+                _metadataEntry(
+                  context,
+                  icon: Icons.tag,
+                  label: 'Versione',
+                  value: bot.version,
+                ),
+                if (showLocalVersion)
+                  _metadataEntry(
+                    context,
+                    icon: Icons.save_alt_outlined,
+                    label: 'Versione locale',
+                    value: localVersion!,
+                  ),
+                if (showRemoteVersion)
+                  _metadataEntry(
+                    context,
+                    icon: Icons.cloud_outlined,
+                    label: 'Versione remota',
+                    value: remoteVersion!,
+                  ),
+              ],
+            ),
+            const SizedBox(height: 16),
+            Text(
+              'Compatibilità piattaforme',
+              style: theme.textTheme.titleMedium,
+            ),
+            const SizedBox(height: 8),
+            hasPlatforms
+                ? Wrap(
+                    spacing: 8,
+                    runSpacing: 8,
+                    children: bot.platformCompatibility
+                        .map((platform) => _platformChip(context, platform))
+                        .toList(),
+                  )
+                : Text(
+                    'Nessuna informazione disponibile.',
+                    style: theme.textTheme.bodyMedium,
+                  ),
+            const SizedBox(height: 16),
+            Row(
+              children: [
+                Icon(downloadIcon, color: downloadColor, size: 20),
+                const SizedBox(width: 8),
+                Expanded(
+                  child: Text(
+                    downloadText,
+                    style: theme.textTheme.bodyMedium?.copyWith(
+                      color: _hasUpdate
+                          ? downloadColor
+                          : (_isDownloaded
+                              ? theme.colorScheme.primary
+                              : theme.colorScheme.onSurfaceVariant),
+                      fontWeight: FontWeight.w600,
+                    ),
+                  ),
+                ),
+                if (_isCheckingDownload || _isFetchingRemote)
+                  const SizedBox(
+                    width: 16,
+                    height: 16,
+                    child: CircularProgressIndicator(strokeWidth: 2),
+                  ),
+              ],
+            ),
+            if (_hasUpdate && remoteVersion != null && remoteVersion.isNotEmpty)
+              Padding(
+                padding: const EdgeInsets.only(top: 6.0),
+                child: Text(
+                  'Versione disponibile: $remoteVersion',
+                  style: theme.textTheme.bodyMedium?.copyWith(
+                    color: downloadColor,
+                  ),
+                ),
+              )
+            else if (_isDownloaded && localVersion != null && localVersion.isNotEmpty)
+              Padding(
+                padding: const EdgeInsets.only(top: 6.0),
+                child: Text(
+                  'Versione installata: $localVersion',
+                  style: theme.textTheme.bodyMedium,
+                ),
+              ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _metadataEntry(BuildContext context,
+      {required IconData icon,
+      required String label,
+      required String value}) {
+    final theme = Theme.of(context);
+    return ConstrainedBox(
+      constraints: const BoxConstraints(minWidth: 180, maxWidth: 240),
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Icon(icon, size: 20, color: theme.colorScheme.primary),
+          const SizedBox(width: 8),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  label,
+                  style: theme.textTheme.labelSmall,
+                ),
+                Text(
+                  value.isNotEmpty ? value : 'n/d',
+                  style: theme.textTheme.bodyMedium?.copyWith(
+                    fontWeight: FontWeight.w600,
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _platformChip(BuildContext context, String platform) {
+    final theme = Theme.of(context);
+    final normalized = platform.toLowerCase();
+    IconData icon;
+    String label;
+    switch (normalized) {
+      case 'desktop':
+        icon = Icons.computer;
+        label = 'Desktop';
+        break;
+      case 'browser':
+        icon = Icons.public;
+        label = 'Browser';
+        break;
+      default:
+        icon = Icons.devices_other;
+        label = platform;
+        break;
     }
+    final color = theme.colorScheme.primary;
+    return Chip(
+      avatar: Icon(icon, size: 18, color: color),
+      label: Text(label),
+      backgroundColor: color.withOpacity(0.12),
+      labelStyle: theme.textTheme.labelMedium
+          ?.copyWith(color: color, fontWeight: FontWeight.w600),
+      side: BorderSide(color: color.withOpacity(0.4)),
+      visualDensity: VisualDensity.compact,
+    );
+  }
+
+  Widget _buildActionButtons(BuildContext context) {
+    final canOpenFolder = _localFolderPath != null;
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Wrap(
+          spacing: 12,
+          runSpacing: 12,
+          children: [
+            ElevatedButton.icon(
+              onPressed: _isRunning ? null : () => _requestExecution(),
+              icon: Icon(
+                _isRunning ? Icons.hourglass_top : Icons.play_arrow,
+              ),
+              label: Text(
+                  _isRunning ? 'Esecuzione in corso...' : 'Esegui bot'),
+            ),
+            OutlinedButton.icon(
+              onPressed: _canDownloadAction ? _handleDownloadAction : null,
+              icon: AnimatedSwitcher(
+                duration: const Duration(milliseconds: 200),
+                child: _isDownloading
+                    ? const SizedBox(
+                        key: ValueKey('progress'),
+                        width: 16,
+                        height: 16,
+                        child: CircularProgressIndicator(strokeWidth: 2),
+                      )
+                    : const Icon(Icons.download_outlined, key: ValueKey('icon')),
+              ),
+              label: Text(_downloadButtonLabel),
+            ),
+            OutlinedButton.icon(
+              onPressed: canOpenFolder ? _openFolder : null,
+              icon: const Icon(Icons.folder_open),
+              label: const Text('Apri cartella'),
+            ),
+            OutlinedButton.icon(
+              onPressed:
+                  _entries.isEmpty && _error == null ? null : _clearLog,
+              icon: const Icon(Icons.clear_all),
+              label: const Text('Pulisci log'),
+            ),
+          ],
+        ),
+        const SizedBox(height: 12),
+        Align(
+          alignment: Alignment.centerRight,
+          child: Row(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              const Text('Auto-scroll'),
+              Switch(
+                value: _autoScroll,
+                onChanged: (value) {
+                  setState(() {
+                    _autoScroll = value;
+                  });
+                },
+              ),
+            ],
+          ),
+        ),
+      ],
+    );
+  }
+
+  Widget _buildPermissionsSection(BuildContext context, Bot bot) {
+    final permissions = bot.permissions;
 
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
@@ -766,24 +1275,30 @@ class _BotDetailViewState extends State<BotDetailView> {
           style: Theme.of(context).textTheme.titleMedium,
         ),
         const SizedBox(height: 8),
-        Wrap(
-          spacing: 8,
-          runSpacing: 8,
-          children: permissions
-              .map(
-                (perm) => Chip(
-                  avatar: const Icon(Icons.shield_outlined, size: 18),
-                  label: Text(perm),
-                ),
-              )
-              .toList(),
-        ),
+        if (permissions.isEmpty)
+          Text(
+            'Nessun permesso dichiarato nel manifest.',
+            style: Theme.of(context).textTheme.bodyMedium,
+          )
+        else
+          Wrap(
+            spacing: 8,
+            runSpacing: 8,
+            children: permissions
+                .map(
+                  (perm) => Chip(
+                    avatar: const Icon(Icons.shield_outlined, size: 18),
+                    label: Text(perm),
+                  ),
+                )
+                .toList(),
+          ),
       ],
     );
   }
 
-  Widget _buildCompatBadges(BuildContext context) {
-    final compat = widget.bot.compat;
+  Widget _buildCompatBadges(BuildContext context, Bot bot) {
+    final compat = bot.compat;
     final List<Widget> chips = [];
 
     if (compat.desktopStatus == 'compatible') {

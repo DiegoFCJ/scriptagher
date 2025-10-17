@@ -44,6 +44,9 @@ class BotUtils {
         'Manifest must include a non-empty version');
     normalized['version'] = version;
 
+    final author = _optionalStringField(normalized, const ['author']);
+    normalized['author'] = author ?? 'Sconosciuto';
+
     final dynamic shaCandidate =
         normalized['archiveSha256'] ?? normalized['sha256'];
     if (shaCandidate is! String || shaCandidate.trim().isEmpty) {
@@ -86,6 +89,20 @@ class BotUtils {
     normalized['permissions'] = permissions;
 
     return normalized;
+  }
+
+  static String? _optionalStringField(
+      Map<String, dynamic> manifest, List<String> candidateKeys) {
+    for (final key in candidateKeys) {
+      final value = manifest[key];
+      if (value is String) {
+        final trimmed = value.trim();
+        if (trimmed.isNotEmpty) {
+          return trimmed;
+        }
+      }
+    }
+    return null;
   }
 
   static String _requireNonEmptyStringField(Map<String, dynamic> manifest,

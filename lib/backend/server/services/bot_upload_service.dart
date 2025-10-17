@@ -121,7 +121,25 @@ class BotUploadService {
       sourcePath: destinationManifestPath,
       language: language,
       compat: compat,
+      permissions:
+          (manifest['permissions'] as List?)?.whereType<String>().toList() ??
+              const <String>[],
+      archiveSha256: manifest['archiveSha256']?.toString(),
+      author: (manifest['author'] as String?)?.trim() ?? 'Sconosciuto',
+      version: (manifest['version'] as String?)?.trim() ?? '0.0.0',
+      platformCompatibility: _derivePlatformCompatibility(compat),
     );
+  }
+
+  List<String> _derivePlatformCompatibility(BotCompat compat) {
+    final platforms = <String>{};
+    if (compat.desktopRuntimes.isNotEmpty) {
+      platforms.add('desktop');
+    }
+    if (compat.browserSupported == true) {
+      platforms.add('browser');
+    }
+    return platforms.toList(growable: false);
   }
 
   Future<void> _persistBotFiles(Directory sourceDir, Bot bot) async {

@@ -58,6 +58,8 @@ class BotGetService {
             startCommand: 'No start command',
             sourcePath: path,
             language: language,
+            author: 'Sconosciuto',
+            version: '0.0.0',
           );
 
           // Aggiorna ulteriormente con informazioni più precise
@@ -131,12 +133,18 @@ class BotGetService {
               .toList() ??
           const <String>[];
       final archiveSha256 = botDetailsMap['archiveSha256'] as String?;
+      final author = (botDetailsMap['author'] as String?)?.trim();
+      final version = (botDetailsMap['version'] as String?)?.trim();
+      final platforms = _derivePlatformCompatibility(compatWithStatus);
 
       bot = bot.copyWith(
+        author: author ?? bot.author,
+        version: version ?? bot.version,
         description: description,
         startCommand: startCommand,
         compat: compatWithStatus,
         permissions: permissions,
+        platformCompatibility: platforms,
         archiveSha256: archiveSha256,
       );
       return bot;
@@ -222,6 +230,14 @@ class BotGetService {
                           as String? ??
                       '';
               final compat = BotCompat.fromManifest(manifest['compat']);
+              final permissions = (manifest['permissions'] as List?)
+                      ?.whereType<String>()
+                      .toList() ??
+                  const <String>[];
+              final archiveSha = manifest['archiveSha256']?.toString();
+              final author = (manifest['author'] as String?)?.trim();
+              final version = (manifest['version'] as String?)?.trim();
+              final platforms = _derivePlatformCompatibility(compat);
 
               bot = Bot(
                 botName: botName,
@@ -232,6 +248,11 @@ class BotGetService {
                     ? manifestLanguage!
                     : language,
                 compat: compat,
+                permissions: permissions,
+                archiveSha256: archiveSha,
+                author: author ?? 'Sconosciuto',
+                version: version ?? '0.0.0',
+                platformCompatibility: platforms,
               );
             } catch (e) {
               logger.warn('BotService',
@@ -245,6 +266,8 @@ class BotGetService {
             startCommand: '',
             sourcePath: botDir.path,
             language: language,
+            author: 'Sconosciuto',
+            version: '0.0.0',
           );
 
           bots['${bot.language}_${bot.botName}'] = bot;
@@ -253,5 +276,16 @@ class BotGetService {
     }
 
     return bots.values.toList();
+  }
+
+  List<String> _derivePlatformCompatibility(BotCompat compat) {
+    final platforms = <String>{};
+    if (compat.desktopRuntimes.isNotEmpty) {
+      platforms.add('desktop');
+    }
+    if (compat.browserSupported == true) {
+      platforms.add('browser');
+    }
+    return platforms.toList(growable: false);
   }
 }

@@ -8,8 +8,11 @@ class Bot {
   final String startCommand;
   final String sourcePath;
   final String language;
+  final String author;
+  final String version;
   final BotCompat compat;
   final List<String> permissions;
+  final List<String> platformCompatibility;
   final String? archiveSha256;
 
   Bot({
@@ -19,28 +22,38 @@ class Bot {
     required this.startCommand,
     required this.sourcePath,
     required this.language,
+    this.author = 'Sconosciuto',
+    this.version = '0.0.0',
     this.compat = const BotCompat(),
     this.permissions = const [],
+    this.platformCompatibility = const [],
     this.archiveSha256,
   });
 
   // Metodo factory per creare una nuova versione di Bot con dettagli aggiornati
   Bot copyWith({
+    String? author,
+    String? version,
     String? description,
     String? startCommand,
     BotCompat? compat,
     List<String>? permissions,
+    List<String>? platformCompatibility,
     String? archiveSha256,
   }) {
     return Bot(
       id: id,
       botName: botName,
+      author: author ?? this.author,
+      version: version ?? this.version,
       description: description ?? this.description,
       startCommand: startCommand ?? this.startCommand,
       sourcePath: sourcePath,
       language: language,
       compat: compat ?? this.compat,
       permissions: permissions ?? this.permissions,
+      platformCompatibility:
+          platformCompatibility ?? this.platformCompatibility,
       archiveSha256: archiveSha256 ?? this.archiveSha256,
     );
   }
@@ -49,12 +62,15 @@ class Bot {
     return {
       'id': id,
       'bot_name': botName,
+      'author': author,
+      'version': version,
       'description': description,
       'start_command': startCommand,
       'source_path': sourcePath,
       'language': language,
       'compat': compat.toJson(),
       'permissions': permissions,
+      'platform_compatibility': platformCompatibility,
       'archive_sha256': archiveSha256,
     };
   }
@@ -63,6 +79,8 @@ class Bot {
     return Bot(
       id: map['id'],
       botName: map['bot_name'],
+      author: map['author']?.toString() ?? 'Sconosciuto',
+      version: map['version']?.toString() ?? '0.0.0',
       description: map['description'] ?? '',
       startCommand: map['start_command'] ?? '',
       sourcePath: map['source_path'],
@@ -70,13 +88,20 @@ class Bot {
       compat: BotCompat.fromJson(map['compat']),
       permissions:
           (map['permissions'] as List?)?.whereType<String>().toList() ?? const [],
+      platformCompatibility: (map['platform_compatibility'] as List?)
+              ?.whereType<String>()
+              .toList() ??
+          const [],
       archiveSha256: map['archive_sha256'] as String?,
     );
   }
 
   factory Bot.fromJson(Map<String, dynamic> json) {
     return Bot(
+      id: json['id'] as int?,
       botName: json['bot_name'] ?? '',
+      author: json['author']?.toString() ?? 'Sconosciuto',
+      version: json['version']?.toString() ?? '0.0.0',
       description: json['description'] ?? '',
       startCommand: json['start_command'] ?? '',
       sourcePath: json['source_path'] ?? '',
@@ -84,6 +109,9 @@ class Bot {
       compat: BotCompat.fromJson(json['compat']),
       permissions:
           (json['permissions'] as List?)?.whereType<String>().toList() ?? const [],
+      platformCompatibility:
+          (json['platform_compatibility'] as List?)?.whereType<String>().toList() ??
+              const [],
       archiveSha256: json['archive_sha256'] as String?,
     );
   }
