@@ -44,6 +44,11 @@ class BotUtils {
         'Manifest must include a non-empty version');
     normalized['version'] = version;
 
+    final languageValue = normalized['language'];
+    if (languageValue is String) {
+      normalized['language'] = languageValue.trim();
+    }
+
     final dynamic shaCandidate =
         normalized['archiveSha256'] ?? normalized['sha256'];
     if (shaCandidate is! String || shaCandidate.trim().isEmpty) {
@@ -84,6 +89,37 @@ class BotUtils {
     }
 
     normalized['permissions'] = permissions;
+
+    final authorValue = normalized['author'];
+    if (authorValue is String) {
+      final trimmed = authorValue.trim();
+      if (trimmed.isEmpty) {
+        normalized.remove('author');
+      } else {
+        normalized['author'] = trimmed;
+      }
+    } else if (authorValue != null) {
+      final trimmed = authorValue.toString().trim();
+      if (trimmed.isEmpty) {
+        normalized.remove('author');
+      } else {
+        normalized['author'] = trimmed;
+      }
+    } else {
+      normalized.remove('author');
+    }
+
+    final tagsValue = normalized['tags'];
+    if (tagsValue is List) {
+      final tags = tagsValue
+          .whereType<String>()
+          .map((tag) => tag.trim())
+          .where((tag) => tag.isNotEmpty)
+          .toList();
+      normalized['tags'] = tags;
+    } else {
+      normalized['tags'] = const <String>[];
+    }
 
     return normalized;
   }

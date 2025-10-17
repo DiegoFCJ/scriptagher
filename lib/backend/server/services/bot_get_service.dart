@@ -47,17 +47,34 @@ class BotGetService {
       List<Bot> allBots = [];
 
       for (var language in rawData.keys) {
-        for (var botData in rawData[language]) {
+        final botsForLanguage = rawData[language] ?? const <Map<String, dynamic>>[];
+        for (var botData in botsForLanguage) {
           final botName = botData['botName'];
           final path = botData['path'];
 
           // Crea un bot con valori di fallback
+          final version = botData['version']?.toString() ?? '';
+          final author = (botData['author'] is String &&
+                  (botData['author'] as String).trim().isNotEmpty)
+              ? (botData['author'] as String).trim()
+              : null;
+          final tags = (botData['tags'] is List)
+              ? (botData['tags'] as List)
+                  .whereType<String>()
+                  .map((tag) => tag.trim())
+                  .where((tag) => tag.isNotEmpty)
+                  .toList()
+              : const <String>[];
+
           Bot bot = Bot(
             botName: botName,
             description: 'No description available',
             startCommand: 'No start command',
             sourcePath: path,
             language: language,
+            version: version,
+            author: author,
+            tags: tags,
           );
 
           // Aggiorna ulteriormente con informazioni più precise
@@ -131,6 +148,14 @@ class BotGetService {
               .toList() ??
           const <String>[];
       final archiveSha256 = botDetailsMap['archiveSha256'] as String?;
+      final versionValue = botDetailsMap['version']?.toString();
+      final authorValue = botDetailsMap['author']?.toString();
+      final tagsValue = (botDetailsMap['tags'] as List?)
+              ?.whereType<String>()
+              .map((tag) => tag.trim())
+              .where((tag) => tag.isNotEmpty)
+              .toList() ??
+          bot.tags;
 
       bot = bot.copyWith(
         description: description,
@@ -138,6 +163,9 @@ class BotGetService {
         compat: compatWithStatus,
         permissions: permissions,
         archiveSha256: archiveSha256,
+        version: versionValue?.isNotEmpty == true ? versionValue : bot.version,
+        author: authorValue?.isNotEmpty == true ? authorValue : bot.author,
+        tags: tagsValue,
       );
       return bot;
     } catch (e) {
@@ -222,6 +250,15 @@ class BotGetService {
                           as String? ??
                       '';
               final compat = BotCompat.fromManifest(manifest['compat']);
+              final version =
+                  (manifest['version'] as String?)?.trim() ?? bot?.version ?? '';
+              final author = (manifest['author'] as String?)?.trim();
+              final tags = (manifest['tags'] as List?)
+                      ?.whereType<String>()
+                      .map((tag) => tag.trim())
+                      .where((tag) => tag.isNotEmpty)
+                      .toList() ??
+                  const <String>[];
 
               bot = Bot(
                 botName: botName,
@@ -232,6 +269,9 @@ class BotGetService {
                     ? manifestLanguage!
                     : language,
                 compat: compat,
+                version: version,
+                author: author?.isNotEmpty == true ? author : null,
+                tags: tags,
               );
             } catch (e) {
               logger.warn('BotService',
@@ -245,6 +285,8 @@ class BotGetService {
             startCommand: '',
             sourcePath: botDir.path,
             language: language,
+            version: '',
+            tags: const [],
           );
 
           bots['${bot.language}_${bot.botName}'] = bot;

@@ -61,6 +61,32 @@ class BotCard extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final chips = _buildStatusChips(context);
+    final List<Widget> metadataChips = [];
+
+    if (bot.version.isNotEmpty) {
+      metadataChips.add(
+        Chip(
+          avatar: const Icon(Icons.tag, size: 16),
+          label: Text('v${bot.version}'),
+          visualDensity: VisualDensity.compact,
+        ),
+      );
+    }
+
+    if (bot.author != null && bot.author!.isNotEmpty) {
+      metadataChips.add(
+        Chip(
+          avatar: const Icon(Icons.person, size: 16),
+          label: Text(bot.author!),
+          visualDensity: VisualDensity.compact,
+        ),
+      );
+    }
+
+    metadataChips.addAll(bot.tags.map((tag) => Chip(
+          label: Text('#$tag'),
+          visualDensity: VisualDensity.compact,
+        )));
 
     return Card(
       margin: const EdgeInsets.symmetric(vertical: 8, horizontal: 16),
@@ -71,6 +97,14 @@ class BotCard extends StatelessWidget {
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             Text(bot.description),
+            if (metadataChips.isNotEmpty) ...[
+              const SizedBox(height: 8),
+              Wrap(
+                spacing: 8,
+                runSpacing: 4,
+                children: metadataChips,
+              ),
+            ],
             if (chips.isNotEmpty) ...[
               const SizedBox(height: 8),
               Wrap(
