@@ -82,3 +82,8 @@ flutter/.plugin/
 # Additional Dart-related artifacts
 .dart_tool/
 *.dart_tool/
+
+# Ignore angular build artifacts
+.angular/
+dist/
+node_modules/
