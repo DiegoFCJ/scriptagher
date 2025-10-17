@@ -3,6 +3,8 @@ import 'package:logging/logging.dart';
 import 'package:path_provider/path_provider.dart';
 import 'package:intl/intl.dart';
 
+import 'logging/log_metadata.dart';
+
 class CustomLogger {
   final Logger _logger = Logger('CustomLogger'); // Non statico
   
@@ -18,21 +20,52 @@ class CustomLogger {
   // Metodo per inizializzare il logger
   CustomLogger() {
     _logger.onRecord.listen((LogRecord rec) async {
-      String logMessage = _formatLogMessage(
-        rec.level.name, rec.loggerName, rec.time, rec.message);
+      final logMessage = _formatLogMessage(
+        rec.level.name,
+        rec.loggerName,
+        rec.time,
+        rec.message,
+      );
       await _writeToFile(logMessage, rec.level.name);
     });
   }
 
+  static Future<Directory> _ensureDirectory(Directory directory) async {
+    if (!await directory.exists()) {
+      await directory.create(recursive: true);
+    }
+    return directory;
+  }
+
+  /// Returns the root directory that contains every log created by the
+  /// application.
+  static Future<Directory> getLogRootDirectory() async {
+    final directory = await getApplicationDocumentsDirectory();
+    final logRoot = Directory('${directory.path}/.scriptagher/logs');
+    return _ensureDirectory(logRoot);
+  }
+
+  /// Returns (and optionally creates) the directory used to store the run logs
+  /// for a particular bot.
+  static Future<Directory> getRunLogsDirectory(String botIdentifier) async {
+    final sanitized = LogMetadata.sanitizeIdentifier(botIdentifier);
+    final logRoot = await getLogRootDirectory();
+    final runDirectory = Directory('${logRoot.path}/runs/$sanitized');
+    return _ensureDirectory(runDirectory);
+  }
+
+  /// Creates a run specific log file and writes the metadata header to it.
+  Future<File> createRunLogFile(LogMetadata metadata) async {
+    final runDirectory = await getRunLogsDirectory(metadata.botId);
+    final logFile = File('${runDirectory.path}/${metadata.fileName}');
+    await logFile.writeAsString(metadata.buildHeader(), mode: FileMode.write);
+    return logFile;
+  }
+
   // Scrive il log su file
   Future<void> _writeToFile(String logMessage, String level) async {
-    final directory = await getApplicationDocumentsDirectory();
-    final logDirectory = Directory('${directory.path}/.scriptagher/logs/$todayDate');
-    
-    // Crea la cartella se non esiste
-    if (!await logDirectory.exists()) {
-      await logDirectory.create(recursive: true);
-    }
+    final logRoot = await getLogRootDirectory();
+    final logDirectory = await _ensureDirectory(Directory('${logRoot.path}/$todayDate'));
 
     // Determina il componente in base al livello o al tipo di operazione
     String component = _getComponent(level);
@@ -83,28 +116,31 @@ class CustomLogger {
   }
 
   // Metodo di debug
-  void debug(String operationType, String description) {
-    _log(DEBUG_LEVEL, operationType, description);
+  void debug(String operationType, String description, {LogMetadata? metadata}) {
+    _log(DEBUG_LEVEL, operationType, description, metadata: metadata);
   }
 
   // Metodo di info
-  void info(String operationType, String description) {
-    _log(INFO_LEVEL, operationType, description);
+  void info(String operationType, String description, {LogMetadata? metadata}) {
+    _log(INFO_LEVEL, operationType, description, metadata: metadata);
   }
 
   // Metodo di warning
-  void warn(String operationType, String description) {
-    _log(WARN_LEVEL, operationType, description);
+  void warn(String operationType, String description, {LogMetadata? metadata}) {
+    _log(WARN_LEVEL, operationType, description, metadata: metadata);
   }
 
   // Metodo di errore
-  void error(String operationType, String description) {
-    _log(ERROR_LEVEL, operationType, description);
+  void error(String operationType, String description, {LogMetadata? metadata}) {
+    _log(ERROR_LEVEL, operationType, description, metadata: metadata);
   }
 
   // Metodo centrale per il logging
-  void _log(String level, String operationType, String description) {
+  void _log(String level, String operationType, String description,
+      {LogMetadata? metadata}) {
     final formattedMessage = '[$operationType] - $description';
+    final messageWithMetadata =
+        metadata != null ? '$formattedMessage ${metadata.describe()}' : formattedMessage;
     Level logLevel;
 
     // Assegna il valore numerico in base al livello di log
@@ -127,6 +163,6 @@ class CustomLogger {
     }
 
     // Logga il messaggio con il livello corretto
-    _logger.log(logLevel, formattedMessage);
+    _logger.log(logLevel, messageWithMetadata);
   }
 }
