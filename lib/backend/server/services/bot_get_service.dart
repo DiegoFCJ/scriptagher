@@ -1,9 +1,11 @@
-import 'package:scriptagher/shared/custom_logger.dart';
-import 'package:scriptagher/backend/server/api_integration/github_api.dart';
-import '../models/bot.dart';
-import '../db/bot_database.dart';
 import 'dart:io';
 import 'package:path/path.dart' as p;
+import 'package:scriptagher/backend/server/api_integration/github_api.dart';
+import 'package:scriptagher/shared/constants/APIS.dart';
+import 'package:scriptagher/shared/custom_logger.dart';
+import 'package:scriptagher/shared/utils/BotUtils.dart';
+import '../db/bot_database.dart';
+import '../models/bot.dart';
 import 'system_runtime_service.dart';
 
 class BotGetService {
@@ -150,40 +152,72 @@ class BotGetService {
 
   // Funzione helper che legge la struttura localbots dal filesystem
   Future<List<Bot>> _loadBotsFromLocalFolder() async {
-    final List<Bot> bots = [];
-    final rootDir = Directory('localbots');
+    final Map<String, Bot> bots = {};
+    final rootCandidates = <Directory>[
+      Directory(APIS.BOT_DIR_DATA_LOCAL),
+      Directory('localbots'),
+    ];
 
-    if (!await rootDir.exists()) return bots;
+    for (final root in rootCandidates) {
+      if (!await root.exists()) continue;
 
-    final languageDirs = await rootDir.list().toList();
-    for (var langDir in languageDirs.whereType<Directory>()) {
-      final language = p.basename(langDir.path);
-      final botDirs = await langDir.list().toList();
+      final languageDirs = await root.list().toList();
+      for (var langDir in languageDirs.whereType<Directory>()) {
+        final language = p.basename(langDir.path);
+        final botDirs = await langDir.list().toList();
 
-      for (var botDir in botDirs.whereType<Directory>()) {
-        final botName = p.basename(botDir.path);
+        for (var botDir in botDirs.whereType<Directory>()) {
+          final manifestFile =
+              File(p.join(botDir.path, APIS.BOT_FILE_CONFIG));
+          Bot? bot;
 
-        // Cerca file sorgente nel botDir (esempio: il primo file con estensione)
-        final filesList = await botDir.list().toList();
-        final files = filesList.whereType<File>().toList();
+          if (await manifestFile.exists()) {
+            try {
+              final manifest =
+                  await BotUtils.fetchBotDetails(manifestFile.path);
+              final manifestLanguage =
+                  (manifest['language'] as String?)?.trim();
+              final botName =
+                  (manifest['botName'] as String?)?.trim() ??
+                      p.basename(botDir.path);
+              final description =
+                  (manifest['description'] as String?)?.trim() ??
+                      'Local bot from filesystem';
+              final startCommand =
+                  (manifest['startCommand'] ?? manifest['entrypoint'])
+                          as String? ??
+                      '';
+              final compat = BotCompat.fromManifest(manifest['compat']);
 
-        if (files.isEmpty) continue;
+              bot = Bot(
+                botName: botName,
+                description: description,
+                startCommand: startCommand,
+                sourcePath: manifestFile.path,
+                language: manifestLanguage?.isNotEmpty == true
+                    ? manifestLanguage!
+                    : language,
+                compat: compat,
+              );
+            } catch (e) {
+              logger.warn('BotService',
+                  'Failed to parse manifest ${manifestFile.path}: $e');
+            }
+          }
 
-        final sourceFile = files.first;
-        final startCommand = ''; // qui potresti decidere come dedurlo, oppure lascialo vuoto
+          bot ??= Bot(
+            botName: p.basename(botDir.path),
+            description: 'Local bot from filesystem',
+            startCommand: '',
+            sourcePath: botDir.path,
+            language: language,
+          );
 
-        final bot = Bot(
-          botName: botName,
-          description: 'Local bot from filesystem',
-          startCommand: startCommand,
-          sourcePath: sourceFile.path,
-          language: language,
-        );
-
-        bots.add(bot);
+          bots['${bot.language}_${bot.botName}'] = bot;
+        }
       }
     }
 
-    return bots;
+    return bots.values.toList();
   }
 }

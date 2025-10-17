@@ -7,6 +7,7 @@ import 'package:shelf_router/shelf_router.dart';
 import 'controllers/bot_controller.dart';
 import 'services/bot_get_service.dart';
 import 'services/bot_download_service.dart';
+import 'services/bot_upload_service.dart';
 import 'services/execution_service.dart';
 import 'services/execution_log_service.dart';
 import 'db/bot_database.dart';
@@ -25,9 +26,11 @@ Future<void> startServer() async {
   final botGetService =
       BotGetService(botDatabase, gitHubApi, systemRuntimeService);
   final botDownloadService = BotDownloadService();
+  final botUploadService = BotUploadService(botDatabase);
   final executionLogManager = ExecutionLogManager();
   final executionService = ExecutionService(botDatabase, executionLogManager);
-  final botController = BotController(botDownloadService, botGetService);
+  final botController =
+      BotController(botDownloadService, botGetService, botUploadService);
 
   // Ottieni il router con le rotte definite
   final botRoutes = BotRoutes(botController);
