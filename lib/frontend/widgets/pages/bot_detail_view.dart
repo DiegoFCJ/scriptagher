@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import '../../models/bot.dart';
+import '../components/compatibility_badges.dart';
 
 class BotDetailView extends StatelessWidget {
   final Bot bot;
@@ -26,6 +27,8 @@ class BotDetailView extends StatelessWidget {
               'Descrizione: ${bot.description}',
               style: Theme.of(context).textTheme.bodyLarge,  // Cambiato bodyText1 in bodyLarge
             ),
+            SizedBox(height: 16),
+            CompatibilityBadges(bot: bot, showHeading: true),
             SizedBox(height: 20),
             ElevatedButton(
               onPressed: () {

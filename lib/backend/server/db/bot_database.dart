@@ -46,7 +46,7 @@ class BotDatabase {
 
     return openDatabase(
       path,
-      version: 2,
+      version: 3,
       onCreate: (db, version) async {
         logger.info('BotDatabase', "Creating database structure...");
         try {
@@ -67,7 +67,10 @@ class BotDatabase {
             logger.info(
                 'BotDatabase', "local_bots table created during upgrade.");
           }
-          // Future upgrade logic here
+          if (oldVersion < 3) {
+            await _addCompatColumn(db, 'bots');
+            await _addCompatColumn(db, 'local_bots');
+          }
         } catch (e) {
           logger.error('BotDatabase', 'Error during database upgrade: $e');
         }
@@ -94,12 +97,25 @@ class BotDatabase {
           description TEXT,
           start_command TEXT,
           source_path TEXT,
-          language TEXT NOT NULL
+          language TEXT NOT NULL,
+          compat TEXT
         );
       ''');
       logger.info('BotDatabase', "Bots table created successfully.");
     } catch (e) {
       logger.error('BotDatabase', "Error creating 'bots' table: $e");
+    }
+  }
+
+  Future<void> _addCompatColumn(Database db, String tableName) async {
+    try {
+      await db.execute("ALTER TABLE $tableName ADD COLUMN compat TEXT");
+      logger.info('BotDatabase',
+          "Column 'compat' added to table $tableName during upgrade.");
+    } catch (e) {
+      // Il comando ALTER TABLE fallisce se la colonna esiste già: ignora in sicurezza
+      logger.warn('BotDatabase',
+          "Could not add 'compat' column to $tableName: ${e.toString()}");
     }
   }
 
@@ -113,7 +129,7 @@ class BotDatabase {
       final db = await database;
       await db.insert(
         'bots',
-        bot.toMap(),
+        bot.toDbMap(),
         conflictAlgorithm: ConflictAlgorithm.replace,
       );
       logger.info('BotDatabase', 'Bot ${bot.botName} inserted into DB.');
@@ -150,7 +166,7 @@ class BotDatabase {
     try {
       await db.update(
         'bots',
-        bot.toMap(),
+        bot.toDbMap(),
         where: 'bot_name = ? AND language = ?',
         whereArgs: [bot.botName, bot.language],
       );
@@ -224,7 +240,8 @@ class BotDatabase {
           description TEXT,
           start_command TEXT,
           source_path TEXT,
-          language TEXT NOT NULL
+          language TEXT NOT NULL,
+          compat TEXT
         );
       ''');
       logger.info('BotDatabase', "local_bots table created successfully.");
@@ -256,7 +273,7 @@ class BotDatabase {
     for (var bot in bots) {
       batch.insert(
         'local_bots',
-        bot.toMap(),
+        bot.toDbMap(),
         conflictAlgorithm: ConflictAlgorithm.replace,
       );
     }

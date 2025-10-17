@@ -4,13 +4,16 @@ import '../models/bot.dart';
 import '../db/bot_database.dart';
 import 'dart:io';
 import 'package:path/path.dart' as p;
+import 'system_compatibility_service.dart';
 
 class BotGetService {
   final CustomLogger logger = CustomLogger();
   final BotDatabase botDatabase;
   final GitHubApi gitHubApi;
+  final SystemCompatibilityService systemCompatibilityService;
 
-  BotGetService(this.botDatabase, this.gitHubApi);
+  BotGetService(
+      this.botDatabase, this.gitHubApi, this.systemCompatibilityService);
 
   /// Fetches the list of all available bots from the server.
   Future<List<Bot>> fetchAvailableBots() async {
@@ -64,9 +67,28 @@ class BotGetService {
       final botDetailsMap =
           await gitHubApi.fetchBotDetails(language, bot.botName);
 
+      final compat = BotCompatibility.fromDynamic(botDetailsMap['compat']);
+      DesktopCompatibility? desktopCompat = compat?.desktop;
+
+      if (desktopCompat?.runner != null) {
+        final runner = desktopCompat!.runner!;
+        final result = await systemCompatibilityService.checkRunner(
+          runner,
+          args: desktopCompat.runnerArgs,
+        );
+        desktopCompat = desktopCompat.copyWith(
+          runnerAvailable: result.isAvailable,
+          runnerVersion: result.version,
+          runnerError: result.error,
+        );
+      }
+
+      final updatedCompat = compat?.copyWith(desktop: desktopCompat);
+
       bot = bot.copyWith(
         description: botDetailsMap['description'],
         startCommand: botDetailsMap['startCommand'],
+        compat: updatedCompat,
       );
       return bot;
     } catch (e) {

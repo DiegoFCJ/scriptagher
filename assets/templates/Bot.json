@@ -1,0 +1,17 @@
+{
+  "botName": "ExampleBot",
+  "description": "Esempio di bot con compatibilità esplicita",
+  "startCommand": "python main.py",
+  "language": "python",
+  "compat": {
+    "desktop": {
+      "supported": true,
+      "runner": "python",
+      "runnerArgs": ["--version"]
+    },
+    "browser": {
+      "supported": false,
+      "reason": "Richiede l'esecuzione di processi locali"
+    }
+  }
+}

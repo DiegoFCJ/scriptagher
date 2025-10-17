@@ -8,10 +8,13 @@ import '../models/bot.dart';
 import 'package:scriptagher/shared/constants/APIS.dart';
 import 'package:scriptagher/shared/constants/LOGS.dart';
 import '../exceptions/download_exceptions.dart';
+import 'system_compatibility_service.dart';
 
 class BotDownloadService {
   final CustomLogger logger = CustomLogger();
   final BotDatabase botDatabase = BotDatabase();
+  final SystemCompatibilityService systemCompatibilityService =
+      SystemCompatibilityService();
 
   Future<Bot> downloadBot(String language, String botName) async {
     logger.info(LOGS.BOT_SERVICE, LOGS.downloadStart(language, botName));
@@ -34,12 +37,31 @@ class BotDownloadService {
     final botJsonPath = '${botDir.path}/${APIS.BOT_FILE_CONFIG}';
     final botDetails = await BotUtils.fetchBotDetails(botJsonPath);
 
+    final compat = BotCompatibility.fromDynamic(botDetails['compat']);
+    DesktopCompatibility? desktopCompat = compat?.desktop;
+
+    if (desktopCompat?.runner != null) {
+      final runner = desktopCompat!.runner!;
+      final result = await systemCompatibilityService.checkRunner(
+        runner,
+        args: desktopCompat.runnerArgs,
+      );
+      desktopCompat = desktopCompat.copyWith(
+        runnerAvailable: result.isAvailable,
+        runnerVersion: result.version,
+        runnerError: result.error,
+      );
+    }
+
+    final updatedCompat = compat?.copyWith(desktop: desktopCompat);
+
     final bot = Bot(
       botName: botDetails['botName'],
       description: botDetails['description'],
       startCommand: botDetails['startCommand'],
       sourcePath: botJsonPath,
       language: language,
+      compat: updatedCompat,
     );
     await botDatabase.insertBot(bot);
     await botZip.delete();
