@@ -1,19 +1,31 @@
 import 'dart:io';
-import 'package:scriptagher/shared/custom_logger.dart';
+
 import 'package:http/http.dart' as http;
-import 'package:scriptagher/shared/utils/BotUtils.dart';
-import 'package:scriptagher/shared/utils/ZipUtils.dart';
-import '../db/bot_database.dart';
-import '../models/bot.dart';
 import 'package:scriptagher/shared/constants/APIS.dart';
 import 'package:scriptagher/shared/constants/LOGS.dart';
-import '../exceptions/download_exceptions.dart';
+import 'package:scriptagher/shared/custom_logger.dart';
+import 'package:scriptagher/shared/models/compat.dart';
 import 'package:scriptagher/shared/services/telemetry_service.dart';
+import 'package:scriptagher/shared/utils/BotUtils.dart';
+import 'package:scriptagher/shared/utils/ZipUtils.dart';
+
+import '../db/bot_database.dart';
+import '../exceptions/download_exceptions.dart';
+import '../models/bot.dart';
+import '../utils/compat_extensions.dart';
+import 'system_runtime_service.dart';
 
 class BotDownloadService {
   final CustomLogger logger = CustomLogger();
-  final BotDatabase botDatabase = BotDatabase();
-  final TelemetryService telemetryService = TelemetryService();
+  final BotDatabase botDatabase;
+  final TelemetryService telemetryService;
+  final SystemRuntimeService runtimeService;
+
+  BotDownloadService({
+    required this.botDatabase,
+    required this.runtimeService,
+    TelemetryService? telemetryService,
+  }) : telemetryService = telemetryService ?? TelemetryService();
 
   Future<Bot> downloadBot(String language, String botName) async {
     logger.info(LOGS.BOT_SERVICE, LOGS.downloadStart(language, botName));
@@ -43,12 +55,18 @@ class BotDownloadService {
       final botJsonPath = '${botDir.path}/${APIS.BOT_FILE_CONFIG}';
       final botDetails = await BotUtils.fetchBotDetails(botJsonPath);
 
+      final compat = CompatInfo.fromManifest(botDetails['compat']);
+      final evaluatedCompat = await compat.evaluateWith(runtimeService);
+
       final bot = Bot(
-        botName: botDetails['botName'],
-        description: botDetails['description'],
-        startCommand: botDetails['startCommand'],
+        botName: (botDetails['botName'] ?? botName).toString(),
+        description: botDetails['description']?.toString() ?? '',
+        startCommand:
+            (botDetails['startCommand'] ?? botDetails['entrypoint'] ?? '')
+                .toString(),
         sourcePath: botJsonPath,
         language: language,
+        compat: evaluatedCompat,
       );
       await botDatabase.insertBot(bot);
       await botZip.delete();

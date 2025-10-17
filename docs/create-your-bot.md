@@ -43,7 +43,17 @@ my-awesome-bot/
   "permissions": [
     "network",
     "filesystem:read"
-  ]
+  ],
+  "compat": {
+    "desktop": {
+      "runners": ["python"],
+      "notes": "Richiede Python 3.10+"
+    },
+    "browser": {
+      "supported": false,
+      "reason": "Il bot necessita di accesso al filesystem locale"
+    }
+  }
 }
 ```
 
@@ -58,6 +68,9 @@ Campi principali:
 * **environment** – variabili d'ambiente aggiuntive.
 * **postInstall** – comandi eseguiti dopo il download per preparare il bot.
 * **permissions** – elenco dichiarativo delle risorse richieste.
+* **compat** – specifica le piattaforme supportate e i runner richiesti:
+  * `desktop.runners` elenca i comandi che devono essere disponibili sul sistema (es. `python`, `node`). Il backend verifica a runtime la presenza di questi runner e segnala eventuali mancanze.
+  * `browser.supported` indica se il bot può essere eseguito direttamente nel browser; se `false`, fornisci un `reason` esplicativo.
 
 ## Flusso di download ed esecuzione
 

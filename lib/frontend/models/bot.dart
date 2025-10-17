@@ -1,3 +1,5 @@
+import 'package:scriptagher/shared/models/compat.dart';
+
 class Bot {
   final int? id;
   final String botName;
@@ -5,6 +7,7 @@ class Bot {
   final String startCommand;
   final String sourcePath;
   final String language;
+  final CompatInfo compat;
 
   Bot({
     this.id,
@@ -13,12 +16,14 @@ class Bot {
     required this.startCommand,
     required this.sourcePath,
     required this.language,
-  });
+    CompatInfo? compat,
+  }) : compat = compat ?? CompatInfo.empty();
 
   // Metodo factory per creare una nuova versione di Bot con dettagli aggiornati
   Bot copyWith({
     String? description,
     String? startCommand,
+    CompatInfo? compat,
   }) {
     return Bot(
       id: id,
@@ -27,6 +32,7 @@ class Bot {
       startCommand: startCommand ?? this.startCommand,
       sourcePath: sourcePath,
       language: language,
+      compat: compat ?? this.compat,
     );
   }
 
@@ -38,6 +44,7 @@ class Bot {
       'start_command': startCommand,
       'source_path': sourcePath,
       'language': language,
+      'compat': compat.toJson(),
     };
   }
 
@@ -49,16 +56,19 @@ class Bot {
       startCommand: map['start_command'] ?? '',
       sourcePath: map['source_path'],
       language: map['language'],
+      compat: CompatInfo.fromJson(map['compat']),
     );
   }
 
   factory Bot.fromJson(Map<String, dynamic> json) {
     return Bot(
-      botName: json['bot_name'] ?? '',
-      description: json['description'] ?? '',
-      startCommand: json['start_command'] ?? '',
-      sourcePath: json['source_path'] ?? '',
-      language: json['language'] ?? '',
+      id: json['id'],
+      botName: json['bot_name'] ?? json['botName'] ?? '',
+      description: json['description']?.toString() ?? '',
+      startCommand: json['start_command']?.toString() ?? '',
+      sourcePath: json['source_path']?.toString() ?? '',
+      language: json['language']?.toString() ?? '',
+      compat: CompatInfo.fromJson(json['compat']),
     );
   }
 }

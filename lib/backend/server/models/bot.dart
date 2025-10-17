@@ -1,3 +1,5 @@
+import 'package:scriptagher/shared/models/compat.dart';
+
 class Bot {
   final int? id;
   final String botName;
@@ -5,6 +7,7 @@ class Bot {
   final String startCommand;
   final String sourcePath;
   final String language;
+  final CompatInfo compat;
 
   Bot({
     this.id,
@@ -13,12 +16,14 @@ class Bot {
     required this.startCommand,
     required this.sourcePath,
     required this.language,
-  });
+    CompatInfo? compat,
+  }) : compat = compat ?? CompatInfo.empty();
 
   // Metodo factory per creare una nuova versione di Bot con dettagli aggiornati
   Bot copyWith({
     String? description,
     String? startCommand,
+    CompatInfo? compat,
   }) {
     return Bot(
       id: id,
@@ -27,10 +32,11 @@ class Bot {
       startCommand: startCommand ?? this.startCommand,
       sourcePath: sourcePath,
       language: language,
+      compat: compat ?? this.compat,
     );
   }
 
-  Map<String, dynamic> toMap() {
+  Map<String, dynamic> toDbMap() {
     return {
       'id': id,
       'bot_name': botName,
@@ -38,6 +44,19 @@ class Bot {
       'start_command': startCommand,
       'source_path': sourcePath,
       'language': language,
+      'compat': compat.toJsonString(),
+    };
+  }
+
+  Map<String, dynamic> toJson() {
+    return {
+      'id': id,
+      'bot_name': botName,
+      'description': description,
+      'start_command': startCommand,
+      'source_path': sourcePath,
+      'language': language,
+      'compat': compat.toJson(),
     };
   }
 
@@ -49,6 +68,19 @@ class Bot {
       startCommand: map['start_command'] ?? '',
       sourcePath: map['source_path'],
       language: map['language'],
+      compat: CompatInfo.fromJson(map['compat']),
+    );
+  }
+
+  factory Bot.fromJson(Map<String, dynamic> json) {
+    return Bot(
+      id: json['id'],
+      botName: json['bot_name'] ?? json['botName'] ?? '',
+      description: json['description']?.toString() ?? '',
+      startCommand: json['start_command']?.toString() ?? '',
+      sourcePath: json['source_path']?.toString() ?? '',
+      language: json['language']?.toString() ?? '',
+      compat: CompatInfo.fromJson(json['compat']),
     );
   }
 }

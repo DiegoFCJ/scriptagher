@@ -8,6 +8,7 @@ import 'controllers/bot_controller.dart';
 import 'services/bot_get_service.dart';
 import 'services/bot_download_service.dart';
 import 'services/execution_service.dart';
+import 'services/system_runtime_service.dart';
 import 'db/bot_database.dart';
 import 'routes.dart';
 import 'package:scriptagher/backend/server/api_integration/github_api.dart';
@@ -18,9 +19,13 @@ Future<void> startServer() async {
 
   final botDatabase = BotDatabase();
   final GitHubApi gitHubApi = GitHubApi();
+  final systemRuntimeService = SystemRuntimeService();
   // Istanzia il BotService e BotController
-  final botGetService = BotGetService(botDatabase, gitHubApi);
-  final botDownloadService = BotDownloadService();
+  final botGetService = BotGetService(botDatabase, gitHubApi, systemRuntimeService);
+  final botDownloadService = BotDownloadService(
+    botDatabase: botDatabase,
+    runtimeService: systemRuntimeService,
+  );
   final executionService = ExecutionService(botDatabase);
   final botController = BotController(botDownloadService, botGetService);
 

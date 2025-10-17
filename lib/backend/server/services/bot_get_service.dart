@@ -1,16 +1,24 @@
-import 'package:scriptagher/shared/custom_logger.dart';
-import 'package:scriptagher/backend/server/api_integration/github_api.dart';
-import '../models/bot.dart';
-import '../db/bot_database.dart';
 import 'dart:io';
+
 import 'package:path/path.dart' as p;
+import 'package:scriptagher/backend/server/api_integration/github_api.dart';
+import 'package:scriptagher/shared/constants/APIS.dart';
+import 'package:scriptagher/shared/custom_logger.dart';
+import 'package:scriptagher/shared/models/compat.dart';
+import 'package:scriptagher/shared/utils/BotUtils.dart';
+
+import '../db/bot_database.dart';
+import '../models/bot.dart';
+import '../utils/compat_extensions.dart';
+import 'system_runtime_service.dart';
 
 class BotGetService {
   final CustomLogger logger = CustomLogger();
   final BotDatabase botDatabase;
   final GitHubApi gitHubApi;
+  final SystemRuntimeService runtimeService;
 
-  BotGetService(this.botDatabase, this.gitHubApi);
+  BotGetService(this.botDatabase, this.gitHubApi, this.runtimeService);
 
   /// Fetches the list of all available bots from the remote API.
   Future<List<Bot>> fetchAvailableBots() async {
@@ -75,9 +83,15 @@ class BotGetService {
       final botDetailsMap =
           await gitHubApi.fetchBotDetails(language, bot.botName);
 
+      final compat = CompatInfo.fromManifest(botDetailsMap['compat']);
+      final evaluatedCompat = await compat.evaluateWith(runtimeService);
+
       bot = bot.copyWith(
-        description: botDetailsMap['description'],
-        startCommand: botDetailsMap['startCommand'],
+        description: botDetailsMap['description']?.toString(),
+        startCommand:
+            (botDetailsMap['startCommand'] ?? botDetailsMap['entrypoint'] ?? '')
+                .toString(),
+        compat: evaluatedCompat,
       );
       return bot;
     } catch (e) {
@@ -139,21 +153,25 @@ class BotGetService {
       for (var botDir in botDirs.whereType<Directory>()) {
         final botName = p.basename(botDir.path);
 
-        // Cerca file sorgente nel botDir (esempio: il primo file con estensione)
-        final filesList = await botDir.list().toList();
-        final files = filesList.whereType<File>().toList();
+        final botJsonPath = p.join(botDir.path, APIS.BOT_FILE_CONFIG);
+        if (!await File(botJsonPath).exists()) {
+          continue;
+        }
 
-        if (files.isEmpty) continue;
-
-        final sourceFile = files.first;
-        final startCommand = ''; // qui potresti decidere come dedurlo, oppure lascialo vuoto
+        final botDetails = await BotUtils.fetchBotDetails(botJsonPath);
+        final compat = CompatInfo.fromManifest(botDetails['compat']);
+        final evaluatedCompat = await compat.evaluateWith(runtimeService);
 
         final bot = Bot(
-          botName: botName,
-          description: 'Local bot from filesystem',
-          startCommand: startCommand,
-          sourcePath: sourceFile.path,
+          botName: (botDetails['botName'] ?? botName).toString(),
+          description:
+              botDetails['description']?.toString() ?? 'Local bot from filesystem',
+          startCommand:
+              (botDetails['startCommand'] ?? botDetails['entrypoint'] ?? '')
+                  .toString(),
+          sourcePath: botJsonPath,
           language: language,
+          compat: evaluatedCompat,
         );
 
         bots.add(bot);

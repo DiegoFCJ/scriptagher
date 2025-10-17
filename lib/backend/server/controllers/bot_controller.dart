@@ -26,7 +26,7 @@ class BotController {
       // Rispondi con la lista di bot in formato JSON
       return Response.ok(
           json.encode(availableBots
-              .map((bot) => bot.toMap())
+              .map((bot) => bot.toJson())
               .toList()), // Converte ogni bot in una mappa JSON
           headers: {'Content-Type': 'application/json'});
     } catch (e) {
@@ -54,7 +54,7 @@ class BotController {
           LOGS.BOT_SERVICE, 'Downloaded bot ${bot.botName} successfully.');
 
       // Rispondi con i dettagli del bot come JSON
-      return Response.ok(json.encode(bot.toMap()),
+      return Response.ok(json.encode(bot.toJson()),
           headers: {'Content-Type': 'application/json'});
     } catch (e) {
       logger.error(LOGS.BOT_SERVICE, 'Error downloading bot: $e');
@@ -76,7 +76,7 @@ class BotController {
 
       logger.info(LOGS.BOT_SERVICE, 'Fetched ${localBots.length} local bots.');
       return Response.ok(
-        json.encode(localBots.map((bot) => bot.toMap()).toList()),
+        json.encode(localBots.map((bot) => bot.toJson()).toList()),
         headers: {'Content-Type': 'application/json'},
       );
     } catch (e) {
@@ -101,7 +101,7 @@ class BotController {
       logger.info(
           LOGS.BOT_SERVICE, 'Fetched ${downloadedBots.length} downloaded bots.');
       return Response.ok(
-        json.encode(downloadedBots.map((bot) => bot.toMap()).toList()),
+        json.encode(downloadedBots.map((bot) => bot.toJson()).toList()),
         headers: {'Content-Type': 'application/json'},
       );
     } catch (e) {

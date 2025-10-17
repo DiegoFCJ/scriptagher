@@ -179,6 +179,57 @@ class _BotDetailViewState extends State<BotDetailView> {
     });
   }
 
+  Widget _buildCompatBadges(BuildContext context) {
+    final theme = Theme.of(context);
+    final chips = <Widget>[];
+    final compat = widget.bot.compat;
+
+    final desktop = compat.desktop;
+    if (desktop != null) {
+      final missing = desktop.missingRunners;
+      if (missing.isEmpty) {
+        chips.add(Chip(
+          label: const Text('Compatibile'),
+          backgroundColor: theme.colorScheme.primaryContainer,
+          labelStyle: TextStyle(color: theme.colorScheme.onPrimaryContainer),
+        ));
+      } else {
+        chips.add(Chip(
+          label: Text('Runner mancante: ${missing.join(', ')}'),
+          backgroundColor: theme.colorScheme.errorContainer,
+          labelStyle: TextStyle(color: theme.colorScheme.onErrorContainer),
+        ));
+      }
+    }
+
+    final browser = compat.browser;
+    if (browser != null && !browser.supported) {
+      chips.add(Chip(
+        label: const Text('Non supportato nel browser'),
+        backgroundColor: theme.colorScheme.surfaceVariant,
+      ));
+    } else if (browser != null && browser.supported) {
+      chips.add(Chip(
+        label: const Text('Compatibile nel browser'),
+        backgroundColor: theme.colorScheme.secondaryContainer,
+        labelStyle: TextStyle(color: theme.colorScheme.onSecondaryContainer),
+      ));
+    }
+
+    if (chips.isEmpty) {
+      chips.add(Chip(
+        label: const Text('Compatibilità non dichiarata'),
+        backgroundColor: theme.colorScheme.surfaceVariant,
+      ));
+    }
+
+    return Wrap(
+      spacing: 8,
+      runSpacing: 4,
+      children: chips,
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -206,6 +257,8 @@ class _BotDetailViewState extends State<BotDetailView> {
               'Descrizione: ${widget.bot.description}',
               style: Theme.of(context).textTheme.bodyLarge,
             ),
+            const SizedBox(height: 12),
+            _buildCompatBadges(context),
             const SizedBox(height: 20),
             Row(
               children: [
