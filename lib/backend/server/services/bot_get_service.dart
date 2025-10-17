@@ -12,6 +12,21 @@ class BotGetService {
 
   BotGetService(this.botDatabase, this.gitHubApi);
 
+  List<String> _parseTags(dynamic tags) {
+    if (tags == null) return [];
+    if (tags is List) {
+      return tags.map((tag) => tag.toString()).toList();
+    }
+    if (tags is String && tags.isNotEmpty) {
+      return tags
+          .split(',')
+          .map((tag) => tag.trim())
+          .where((tag) => tag.isNotEmpty)
+          .toList();
+    }
+    return [];
+  }
+
   /// Fetches the list of all available bots from the server.
   Future<List<Bot>> fetchAvailableBots() async {
     try {
@@ -25,16 +40,29 @@ class BotGetService {
 
       for (var language in rawData.keys) {
         for (var botData in rawData[language]) {
-          final botName = botData['botName'];
-          final path = botData['path'];
+          final dynamic rawName = botData['botName'] ?? botData['name'];
+          if (rawName == null) {
+            logger.warn('BotService',
+                'Bot entry without a valid name found for language $language');
+            continue;
+          }
+
+          final botName = rawName.toString();
+          final path = botData['path']?.toString() ?? '';
+          final metadata =
+              (botData['metadata'] as Map<String, dynamic>?) ??
+                  const <String, dynamic>{};
 
           // Crea un bot con valori di fallback
           Bot bot = Bot(
             botName: botName,
-            description: 'No description available',
-            startCommand: 'No start command',
+            description: metadata['description'] ?? 'No description available',
+            startCommand: metadata['startCommand'] ?? 'No start command',
             sourcePath: path,
-            language: language,
+            language: botData['language'] ?? language,
+            tags: _parseTags(botData['tags'] ?? metadata['tags']),
+            author: metadata['author']?.toString() ?? '',
+            version: metadata['version']?.toString() ?? '',
           );
 
           // Aggiorna ulteriormente con informazioni più precise
@@ -64,9 +92,16 @@ class BotGetService {
       final botDetailsMap =
           await gitHubApi.fetchBotDetails(language, bot.botName);
 
+      final metadata =
+          (botDetailsMap['metadata'] as Map<String, dynamic>?) ??
+              const <String, dynamic>{};
+
       bot = bot.copyWith(
         description: botDetailsMap['description'],
         startCommand: botDetailsMap['startCommand'],
+        tags: _parseTags(botDetailsMap['tags'] ?? metadata['tags']),
+        author: metadata['author']?.toString() ?? bot.author,
+        version: metadata['version']?.toString() ?? bot.version,
       );
       return bot;
     } catch (e) {
@@ -137,6 +172,9 @@ class BotGetService {
           startCommand: startCommand,
           sourcePath: sourceFile.path,
           language: language,
+          tags: const [],
+          author: 'local',
+          version: '',
         );
 
         bots.add(bot);

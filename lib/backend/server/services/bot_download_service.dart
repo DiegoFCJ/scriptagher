@@ -34,12 +34,19 @@ class BotDownloadService {
     final botJsonPath = '${botDir.path}/${APIS.BOT_FILE_CONFIG}';
     final botDetails = await BotUtils.fetchBotDetails(botJsonPath);
 
+    final metadata =
+        (botDetails['metadata'] as Map<String, dynamic>?) ??
+            const <String, dynamic>{};
+
     final bot = Bot(
       botName: botDetails['botName'],
       description: botDetails['description'],
       startCommand: botDetails['startCommand'],
       sourcePath: botJsonPath,
       language: language,
+      tags: _parseTags(botDetails['tags'] ?? metadata['tags']),
+      author: metadata['author']?.toString() ?? '',
+      version: metadata['version']?.toString() ?? '',
     );
     await botDatabase.insertBot(bot);
     await botZip.delete();
@@ -59,4 +66,19 @@ class BotDownloadService {
       throw DownloadException('Failed to download file. Response code: ${response.statusCode}');
     }
   }
+}
+
+List<String> _parseTags(dynamic tags) {
+  if (tags == null) return [];
+  if (tags is List) {
+    return tags.map((tag) => tag.toString()).toList();
+  }
+  if (tags is String && tags.isNotEmpty) {
+    return tags
+        .split(',')
+        .map((tag) => tag.trim())
+        .where((tag) => tag.isNotEmpty)
+        .toList();
+  }
+  return [];
 }
