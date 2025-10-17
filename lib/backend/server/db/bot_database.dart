@@ -46,7 +46,7 @@ class BotDatabase {
 
     return openDatabase(
       path,
-      version: 2,
+      version: 3,
       onCreate: (db, version) async {
         logger.info('BotDatabase', "Creating database structure...");
         try {
@@ -67,6 +67,9 @@ class BotDatabase {
             logger.info(
                 'BotDatabase', "local_bots table created during upgrade.");
           }
+          if (oldVersion < 3) {
+            await _addSecurityColumns(db);
+          }
           // Future upgrade logic here
         } catch (e) {
           logger.error('BotDatabase', 'Error during database upgrade: $e');
@@ -76,6 +79,7 @@ class BotDatabase {
       try {
         // 🛡 Verifica struttura dopo apertura, anche se onCreate/onUpgrade non chiamati
         await _createLocalBotsTable(db); // Sicuro grazie a IF NOT EXISTS
+        await _addSecurityColumns(db);
         await _checkDatabaseStructure(db);
       } catch (e) {
         logger.error('BotDatabase', 'Error during structure verification: $e');
@@ -94,7 +98,9 @@ class BotDatabase {
           description TEXT,
           start_command TEXT,
           source_path TEXT,
-          language TEXT NOT NULL
+          language TEXT NOT NULL,
+          permissions TEXT DEFAULT '[]',
+          archive_hash TEXT
         );
       ''');
       logger.info('BotDatabase', "Bots table created successfully.");
@@ -113,7 +119,7 @@ class BotDatabase {
       final db = await database;
       await db.insert(
         'bots',
-        bot.toMap(),
+        bot.toDbMap(),
         conflictAlgorithm: ConflictAlgorithm.replace,
       );
       logger.info('BotDatabase', 'Bot ${bot.botName} inserted into DB.');
@@ -150,7 +156,7 @@ class BotDatabase {
     try {
       await db.update(
         'bots',
-        bot.toMap(),
+        bot.toDbMap(),
         where: 'bot_name = ? AND language = ?',
         whereArgs: [bot.botName, bot.language],
       );
@@ -214,6 +220,34 @@ class BotDatabase {
     }
   }
 
+  Future<void> _addSecurityColumns(Database db) async {
+    await _ensureColumn(db, 'bots', 'permissions',
+        "ALTER TABLE bots ADD COLUMN permissions TEXT DEFAULT '[]'");
+    await _ensureColumn(db, 'bots', 'archive_hash',
+        'ALTER TABLE bots ADD COLUMN archive_hash TEXT');
+    await _ensureColumn(db, 'local_bots', 'permissions',
+        "ALTER TABLE local_bots ADD COLUMN permissions TEXT DEFAULT '[]'");
+    await _ensureColumn(db, 'local_bots', 'archive_hash',
+        'ALTER TABLE local_bots ADD COLUMN archive_hash TEXT');
+  }
+
+  Future<void> _ensureColumn(
+      Database db, String table, String column, String alterStatement) async {
+    try {
+      final result = await db.rawQuery('PRAGMA table_info($table);');
+      final exists =
+          result.any((row) => (row['name'] as String?) == column);
+      if (!exists) {
+        await db.execute(alterStatement);
+        logger.info('BotDatabase',
+            "Column '$column' added to table '$table'.");
+      }
+    } catch (e) {
+      logger.error('BotDatabase',
+          "Error ensuring column '$column' on table '$table': $e");
+    }
+  }
+
   // --------------------------------------- LOCAL BOTS --------------------------------------- \\
   Future<void> _createLocalBotsTable(Database db) async {
     try {
@@ -224,7 +258,9 @@ class BotDatabase {
           description TEXT,
           start_command TEXT,
           source_path TEXT,
-          language TEXT NOT NULL
+          language TEXT NOT NULL,
+          permissions TEXT DEFAULT '[]',
+          archive_hash TEXT
         );
       ''');
       logger.info('BotDatabase', "local_bots table created successfully.");
@@ -256,7 +292,7 @@ class BotDatabase {
     for (var bot in bots) {
       batch.insert(
         'local_bots',
-        bot.toMap(),
+        bot.toDbMap(),
         conflictAlgorithm: ConflictAlgorithm.replace,
       );
     }

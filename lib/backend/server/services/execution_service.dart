@@ -26,6 +26,33 @@ class ExecutionService {
       return Response.notFound(jsonEncode({'error': errorMessage}));
     }
 
+    final grantedHeader =
+        request.headers['x-granted-permissions']?.toLowerCase() ?? '';
+    final grantedPermissions = grantedHeader
+        .split(',')
+        .map((permission) => permission.trim())
+        .where((permission) => permission.isNotEmpty)
+        .toSet();
+
+    final missingPermissions = bot.permissions
+        .where((permission) => !grantedPermissions.contains(permission))
+        .toList();
+
+    if (missingPermissions.isNotEmpty) {
+      final errorMessage =
+          'Missing permissions: ${missingPermissions.join(', ')}';
+      _logger.warn(LOGS.EXECUTION_SERVICE,
+          'Denied execution for ${bot.language}/${bot.botName}: $errorMessage');
+      return Response.forbidden(
+        jsonEncode({
+          'error': 'missing_permissions',
+          'details': errorMessage,
+          'missing_permissions': missingPermissions,
+        }),
+        headers: {'Content-Type': 'application/json'},
+      );
+    }
+
     final controller = StreamController<List<int>>();
     final logSink = await _prepareLogSink(bot);
     Process? process;

@@ -4,6 +4,7 @@ import 'dart:convert';
 import 'package:flutter/material.dart';
 import 'package:http/http.dart' as http;
 
+import 'package:scriptagher/shared/constants/permissions.dart';
 import '../../models/bot.dart';
 
 class BotDetailView extends StatefulWidget {
@@ -38,7 +39,14 @@ class _BotDetailViewState extends State<BotDetailView> {
     super.dispose();
   }
 
-  void _startExecution() async {
+  Future<void> _startExecution() async {
+    if (_isRunning) return;
+
+    final grantedPermissions = await _requestPermissions();
+    if (grantedPermissions == null) {
+      return;
+    }
+
     _stopExecution();
     setState(() {
       _entries.clear();
@@ -55,6 +63,10 @@ class _BotDetailViewState extends State<BotDetailView> {
     try {
       final request = http.Request('GET', uri)
         ..headers['Accept'] = 'text/event-stream';
+      if (grantedPermissions.isNotEmpty) {
+        request.headers['X-Granted-Permissions'] =
+            grantedPermissions.join(',');
+      }
       final response = await client.send(request);
 
       if (response.statusCode != 200) {
@@ -179,6 +191,57 @@ class _BotDetailViewState extends State<BotDetailView> {
     });
   }
 
+  Future<List<String>?> _requestPermissions() async {
+    final permissions = widget.bot.permissions;
+    if (permissions.isEmpty) {
+      return <String>[];
+    }
+
+    return showDialog<List<String>>(
+      context: context,
+      builder: (context) {
+        return AlertDialog(
+          title: const Text('Autorizzazioni richieste'),
+          content: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              const Text(
+                  'Per eseguire questo bot è necessario concedere i seguenti permessi:'),
+              const SizedBox(height: 12),
+              ...permissions.map(
+                (permission) => Padding(
+                  padding: const EdgeInsets.symmetric(vertical: 4.0),
+                  child: Row(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      const Icon(Icons.security_outlined, size: 20),
+                      const SizedBox(width: 8),
+                      Expanded(
+                        child: Text(BotPermissions.describe(permission)),
+                      ),
+                    ],
+                  ),
+                ),
+              ),
+            ],
+          ),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.of(context).pop(null),
+              child: const Text('Annulla'),
+            ),
+            FilledButton(
+              onPressed: () => Navigator.of(context)
+                  .pop(List<String>.from(permissions)),
+              child: const Text('Consenti'),
+            ),
+          ],
+        );
+      },
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -206,6 +269,30 @@ class _BotDetailViewState extends State<BotDetailView> {
               'Descrizione: ${widget.bot.description}',
               style: Theme.of(context).textTheme.bodyLarge,
             ),
+            if (widget.bot.permissions.isNotEmpty) ...[
+              const SizedBox(height: 12),
+              Text(
+                'Permessi richiesti',
+                style: Theme.of(context)
+                    .textTheme
+                    .titleMedium
+                    ?.copyWith(fontWeight: FontWeight.bold),
+              ),
+              const SizedBox(height: 8),
+              Wrap(
+                spacing: 8,
+                runSpacing: 4,
+                children: widget.bot.permissions
+                    .map(
+                      (permission) => Chip(
+                        avatar: const Icon(Icons.verified_user_outlined,
+                            size: 18),
+                        label: Text(BotPermissions.describe(permission)),
+                      ),
+                    )
+                    .toList(),
+              ),
+            ],
             const SizedBox(height: 20),
             Row(
               children: [

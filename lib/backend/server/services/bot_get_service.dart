@@ -1,5 +1,6 @@
 import 'package:scriptagher/shared/custom_logger.dart';
 import 'package:scriptagher/backend/server/api_integration/github_api.dart';
+import 'package:scriptagher/shared/utils/BotUtils.dart';
 import '../models/bot.dart';
 import '../db/bot_database.dart';
 import 'dart:io';
@@ -71,13 +72,15 @@ class BotGetService {
   /// Fetches the detailed information of a bot by extracting and reading the Bot.json inside the bot directory.
   Future<Bot> _getBotDetails(String language, Bot bot) async {
     try {
-      // Ottieni i dettagli
-      final botDetailsMap =
+      final rawDetails =
           await gitHubApi.fetchBotDetails(language, bot.botName);
+      final botDetailsMap = BotUtils.validateManifest(rawDetails);
 
       bot = bot.copyWith(
         description: botDetailsMap['description'],
         startCommand: botDetailsMap['startCommand'],
+        permissions: List<String>.from(botDetailsMap['permissions'] as List),
+        archiveHash: botDetailsMap['sha256'] as String,
       );
       return bot;
     } catch (e) {

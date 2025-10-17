@@ -1,6 +1,10 @@
+import 'dart:convert';
 import 'dart:io';
-import 'package:scriptagher/shared/custom_logger.dart';
+
+import 'package:archive/archive.dart';
+import 'package:crypto/crypto.dart';
 import 'package:http/http.dart' as http;
+import 'package:scriptagher/shared/custom_logger.dart';
 import 'package:scriptagher/shared/utils/BotUtils.dart';
 import 'package:scriptagher/shared/utils/ZipUtils.dart';
 import '../db/bot_database.dart';
@@ -36,12 +40,25 @@ class BotDownloadService {
         );
       }
 
+      final manifestData = await _loadManifest(botZip);
+      final expectedHash = manifestData.manifest['sha256'] as String;
+      final actualHash = sha256.convert(manifestData.bytes).toString();
+
+      if (actualHash.toLowerCase() != expectedHash.toLowerCase()) {
+        await botZip.delete().catchError((_) {});
+        throw DownloadException(
+            'Downloaded archive hash mismatch for $language/$botName');
+      }
+
       logger.info(LOGS.BOT_SERVICE, LOGS.extractStart(botZip.path));
       await ZipUtils.unzipFile(botZip.path, botDir.path);
       logger.info(LOGS.BOT_SERVICE, LOGS.extractComplete(botDir.path));
 
       final botJsonPath = '${botDir.path}/${APIS.BOT_FILE_CONFIG}';
-      final botDetails = await BotUtils.fetchBotDetails(botJsonPath);
+      final botDetails = await BotUtils.fetchBotDetails(
+        botJsonPath,
+        expectedHash: expectedHash,
+      );
 
       final bot = Bot(
         botName: botDetails['botName'],
@@ -49,6 +66,9 @@ class BotDownloadService {
         startCommand: botDetails['startCommand'],
         sourcePath: botJsonPath,
         language: language,
+        permissions:
+            List<String>.from(botDetails['permissions'] as List<dynamic>),
+        archiveHash: botDetails['sha256'] as String,
       );
       await botDatabase.insertBot(bot);
       await botZip.delete();
@@ -119,6 +139,37 @@ class BotDownloadService {
         },
       );
       throw DownloadException('Failed to download file: $e');
+    }
+  }
+
+  Future<({Map<String, dynamic> manifest, List<int> bytes})> _loadManifest(
+      File botZip) async {
+    try {
+      final bytes = await botZip.readAsBytes();
+      final archive = ZipDecoder().decodeBytes(bytes);
+      final manifestFile = archive.files.firstWhere(
+        (file) =>
+            file.isFile &&
+            file.name.toLowerCase().endsWith(
+                APIS.BOT_FILE_CONFIG.toLowerCase()),
+        orElse: () => throw DownloadException(
+            'Manifest ${APIS.BOT_FILE_CONFIG} not found in archive ${botZip.path}'),
+      );
+
+      final content = manifestFile.content;
+      if (content is! List<int>) {
+        throw DownloadException('Invalid manifest content in archive');
+      }
+
+      final manifestJson =
+          json.decode(utf8.decode(content)) as Map<String, dynamic>;
+      final manifest = BotUtils.validateManifest(manifestJson);
+      return (manifest: manifest, bytes: bytes);
+    } catch (e) {
+      if (e is DownloadException) {
+        rethrow;
+      }
+      throw DownloadException('Failed to load manifest: $e');
     }
   }
 }
