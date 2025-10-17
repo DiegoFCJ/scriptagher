@@ -14,6 +14,7 @@ import 'package:scriptagher/frontend/widgets/pages/test1.dart';
 import 'package:scriptagher/frontend/widgets/pages/test2.dart';
 import 'package:scriptagher/frontend/widgets/pages/test3.dart';
 import 'package:scriptagher/frontend/widgets/pages/settings_page.dart';
+import 'package:scriptagher/frontend/widgets/pages/tutorial_page.dart';
 import 'package:scriptagher/shared/services/telemetry_service.dart';
 
 
@@ -100,6 +101,7 @@ class MyApp extends StatelessWidget {
         '/test2':     (_) => test2(),   // la pagina test1 List
         '/test3':     (_) => test3(),   // la pagina test1 List
         '/settings': (_) => SettingsPage(telemetryService: telemetryService),
+        '/tutorial': (_) => const TutorialPage(),
       },
 
       debugShowCheckedModeBanner: false,

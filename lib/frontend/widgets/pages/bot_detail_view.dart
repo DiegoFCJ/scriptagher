@@ -27,6 +27,10 @@ class _BotDetailViewState extends State<BotDetailView> {
   String _buffer = '';
   String? _error;
 
+  void _openTutorial() {
+    Navigator.pushNamed(context, '/tutorial');
+  }
+
   @override
   void dispose() {
     _stopExecution();
@@ -180,6 +184,13 @@ class _BotDetailViewState extends State<BotDetailView> {
     return Scaffold(
       appBar: AppBar(
         title: Text(widget.bot.botName),
+        actions: [
+          IconButton(
+            tooltip: 'Guida: crea il tuo bot',
+            onPressed: _openTutorial,
+            icon: const Icon(Icons.school_outlined),
+          ),
+        ],
       ),
       body: Padding(
         padding: const EdgeInsets.all(16.0),

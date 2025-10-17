@@ -3,6 +3,35 @@
 ## Descrizione
 Questo progetto è una semplice applicazione mobile/desktop/web sviluppata con Flutter. Flutter è un framework open-source che permette di creare app per dispositivi mobili, desktop e web da una singola base di codice. Questo README include informazioni su come eseguire, configurare, testare e distribuire l'app su diverse piattaforme (Android, iOS, Linux, Windows e altre).
 
+## Bot per Scriptagher
+
+Scriptagher consente di scaricare, installare ed eseguire bot provenienti da marketplace, repository locali o filesystem.
+
+- Consulta la guida completa su come strutturare e distribuire un bot in [`docs/create-your-bot.md`](docs/create-your-bot.md).
+- Troverai un esempio completo di `Bot.json`, il flusso di download/esecuzione e una checklist di sicurezza e best practice.
+
+### Struttura rapida di un bot
+
+```
+my-awesome-bot/
+├── Bot.json
+├── main.py
+├── requirements.txt
+└── resources/
+```
+
+Il file `Bot.json` contiene i metadati (nome, descrizione, versione), l'entrypoint da eseguire, variabili d'ambiente, comandi post installazione e le permission richieste. Consulta la guida per un esempio dettagliato e per comprendere come il backend esegue i comandi dichiarati in sicurezza.
+
+### Flusso di download ed esecuzione
+
+1. **Scoperta** – i bot online vengono caricati dall'API e presentati nella UI.
+2. **Download** – il pacchetto viene salvato nel database locale e nel filesystem.
+3. **Installazione** – eventuali comandi `postInstall` vengono eseguiti in un ambiente controllato.
+4. **Esecuzione** – l'entrypoint dichiarato in `Bot.json` viene avviato con argomenti e variabili configurate.
+5. **Monitoraggio** – l'interfaccia mostra i log in tempo reale nella pagina di dettaglio del bot.
+
+> **Sicurezza:** sviluppa bot in ambienti isolati, dichiara solo le permission indispensabili e controlla l'origine dei pacchetti. Altri suggerimenti sono disponibili nella guida dedicata.
+
 ## Struttura del Progetto
 La struttura di base di un'app Flutter è la seguente:
 
