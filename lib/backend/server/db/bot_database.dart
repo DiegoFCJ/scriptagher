@@ -49,7 +49,7 @@ class BotDatabase {
 
     return openDatabase(
       path,
-      version: 5,
+      version: 6,
       onCreate: (db, version) async {
         logger.info('BotDatabase', "Creating database structure...");
         try {
@@ -90,6 +90,12 @@ class BotDatabase {
             logger.info(
                 'BotDatabase', "metadata table created during upgrade.");
           }
+          if (oldVersion < 6) {
+            await _addMetadataColumns(db, 'bots');
+            await _addMetadataColumns(db, 'local_bots');
+            logger.info('BotDatabase',
+                "Metadata columns added to bots and local_bots tables.");
+          }
       } catch (e) {
         logger.error('BotDatabase', 'Error during database upgrade: $e');
       }
@@ -99,6 +105,8 @@ class BotDatabase {
         // 🛡 Verifica struttura dopo apertura, anche se onCreate/onUpgrade non chiamati
         await _createLocalBotsTable(db); // Sicuro grazie a IF NOT EXISTS
         await _createMetadataTable(db);
+        await _addMetadataColumns(db, 'bots');
+        await _addMetadataColumns(db, 'local_bots');
         await _checkDatabaseStructure(db);
       } catch (e) {
         logger.error('BotDatabase', 'Error during structure verification: $e');
@@ -120,7 +128,10 @@ class BotDatabase {
           language TEXT NOT NULL,
           compat_json TEXT,
           permissions_json TEXT,
-          archive_sha256 TEXT
+          archive_sha256 TEXT,
+          version TEXT,
+          author TEXT,
+          tags_json TEXT
         );
       ''');
       logger.info('BotDatabase', "Bots table created successfully.");
@@ -290,6 +301,48 @@ class BotDatabase {
     }
   }
 
+  Future<void> _addMetadataColumns(Database db, String tableName) async {
+    final columns = await db.rawQuery('PRAGMA table_info($tableName);');
+    final hasVersion = columns.any((column) => column['name'] == 'version');
+    final hasAuthor = columns.any((column) => column['name'] == 'author');
+    final hasTags = columns.any((column) => column['name'] == 'tags_json');
+
+    if (!hasVersion) {
+      try {
+        await db
+            .execute('ALTER TABLE $tableName ADD COLUMN version TEXT;');
+        logger.info('BotDatabase',
+            "version column added to table '$tableName'.");
+      } catch (e) {
+        logger.error('BotDatabase',
+            "Error adding version column to $tableName: $e");
+      }
+    }
+
+    if (!hasAuthor) {
+      try {
+        await db.execute('ALTER TABLE $tableName ADD COLUMN author TEXT;');
+        logger.info(
+            'BotDatabase', "author column added to table '$tableName'.");
+      } catch (e) {
+        logger.error('BotDatabase',
+            "Error adding author column to $tableName: $e");
+      }
+    }
+
+    if (!hasTags) {
+      try {
+        await db
+            .execute('ALTER TABLE $tableName ADD COLUMN tags_json TEXT;');
+        logger.info(
+            'BotDatabase', "tags_json column added to table '$tableName'.");
+      } catch (e) {
+        logger.error('BotDatabase',
+            "Error adding tags_json column to $tableName: $e");
+      }
+    }
+  }
+
   // --------------------------------------- LOCAL BOTS --------------------------------------- \\
   Future<void> _createLocalBotsTable(Database db) async {
     try {
@@ -303,7 +356,10 @@ class BotDatabase {
           language TEXT NOT NULL,
           compat_json TEXT,
           permissions_json TEXT,
-          archive_sha256 TEXT
+          archive_sha256 TEXT,
+          version TEXT,
+          author TEXT,
+          tags_json TEXT
         );
       ''');
       logger.info('BotDatabase', "local_bots table created successfully.");

@@ -66,6 +66,14 @@ class BotDownloadService {
           const <String>[];
       final botNameValue = botDetails['botName']?.toString() ?? botName;
       final descriptionValue = botDetails['description']?.toString() ?? '';
+      final versionValue = botDetails['version']?.toString() ?? '';
+      final authorValue = botDetails['author']?.toString();
+      final tagsValue = (botDetails['tags'] as List?)
+              ?.whereType<String>()
+              .map((tag) => tag.trim())
+              .where((tag) => tag.isNotEmpty)
+              .toList() ??
+          const <String>[];
 
       final bot = Bot(
         botName: botNameValue,
@@ -76,6 +84,9 @@ class BotDownloadService {
         compat: compat,
         permissions: permissions,
         archiveSha256: botDetails['archiveSha256']?.toString(),
+        version: versionValue,
+        author: authorValue?.isNotEmpty == true ? authorValue : null,
+        tags: tagsValue,
       );
       await botDatabase.insertBot(bot);
       await botZip.delete();

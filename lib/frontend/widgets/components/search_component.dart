@@ -1,54 +1,76 @@
 import 'package:flutter/material.dart';
 
+import '../../models/bot_filter.dart';
+
 class SearchView extends StatefulWidget {
+  const SearchView({
+    super.key,
+    required this.onFilterChanged,
+    this.initialQuery = '',
+    this.hintText = 'Cerca o filtra i bot',
+  });
+
+  final ValueChanged<BotFilter> onFilterChanged;
+  final String initialQuery;
+  final String hintText;
+
   @override
-  _SearchViewState createState() => _SearchViewState();
+  State<SearchView> createState() => _SearchViewState();
 }
 
 class _SearchViewState extends State<SearchView> {
-  // Controller per la barra di ricerca
-  TextEditingController _searchController = TextEditingController();
+  late final TextEditingController _controller;
+  late String _currentQuery;
+
+  @override
+  void initState() {
+    super.initState();
+    _currentQuery = widget.initialQuery;
+    _controller = TextEditingController(text: widget.initialQuery);
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (mounted) {
+        widget.onFilterChanged(BotFilter.fromQuery(_currentQuery));
+      }
+    });
+  }
+
+  @override
+  void dispose() {
+    _controller.dispose();
+    super.dispose();
+  }
+
+  void _onQueryChanged(String value) {
+    setState(() {
+      _currentQuery = value;
+    });
+    widget.onFilterChanged(BotFilter.fromQuery(value));
+  }
+
+  void _clearQuery() {
+    _controller.clear();
+    _onQueryChanged('');
+  }
 
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
-      appBar: AppBar(
-        title: Text('Cerca Bot'),
-        backgroundColor: Colors.blue,
+    return TextField(
+      controller: _controller,
+      decoration: InputDecoration(
+        labelText: widget.hintText,
+        prefixIcon: const Icon(Icons.search),
+        suffixIcon: _currentQuery.isNotEmpty
+            ? IconButton(
+                icon: const Icon(Icons.clear),
+                tooltip: 'Pulisci ricerca',
+                onPressed: _clearQuery,
+              )
+            : null,
+        helperText:
+            'Esempi: lang:python tag:utility #desktop author:"Jane Doe"',
+        border: const OutlineInputBorder(),
       ),
-      body: Padding(
-        padding: const EdgeInsets.all(16.0),
-        child: Column(
-          children: [
-            // Barra di ricerca
-            TextField(
-              controller: _searchController,
-              decoration: InputDecoration(
-                labelText: 'Cerca un bot',
-                border: OutlineInputBorder(),
-                suffixIcon: IconButton(
-                  icon: Icon(Icons.search),
-                  onPressed: () {
-                    // Qui andrà il codice per eseguire la ricerca una volta integrato il backend
-                    print('Cercando: ${_searchController.text}');
-                  },
-                ),
-              ),
-              onChanged: (value) {
-                // Gestisci l'input dell'utente se necessario
-                print('Ricerca in corso per: $value');
-              },
-            ),
-            SizedBox(height: 20),
-            // Un semplice testo che mostra il termine cercato
-            Text(
-              'Risultati per: ${_searchController.text}',
-              style: TextStyle(fontSize: 18),
-            ),
-            // Altri widget che mostreranno i risultati della ricerca (da aggiungere più tardi)
-          ],
-        ),
-      ),
+      onChanged: _onQueryChanged,
     );
   }
 }

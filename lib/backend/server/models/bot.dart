@@ -10,6 +10,9 @@ class Bot {
   final BotCompat compat;
   final List<String> permissions;
   final String? archiveSha256;
+  final String version;
+  final String? author;
+  final List<String> tags;
 
   Bot({
     this.id,
@@ -21,6 +24,9 @@ class Bot {
     this.compat = const BotCompat(),
     this.permissions = const [],
     this.archiveSha256,
+    this.version = '',
+    this.author,
+    this.tags = const [],
   });
 
   // Metodo factory per creare una nuova versione di Bot con dettagli aggiornati
@@ -30,6 +36,9 @@ class Bot {
     BotCompat? compat,
     List<String>? permissions,
     String? archiveSha256,
+    String? version,
+    String? author,
+    List<String>? tags,
   }) {
     return Bot(
       id: id,
@@ -41,6 +50,9 @@ class Bot {
       compat: compat ?? this.compat,
       permissions: permissions ?? this.permissions,
       archiveSha256: archiveSha256 ?? this.archiveSha256,
+      version: version ?? this.version,
+      author: author ?? this.author,
+      tags: tags ?? this.tags,
     );
   }
 
@@ -55,6 +67,9 @@ class Bot {
       'compat_json': jsonEncode(compat.toJson()),
       'permissions_json': jsonEncode(permissions),
       'archive_sha256': archiveSha256,
+      'version': version,
+      'author': author,
+      'tags_json': jsonEncode(tags),
     };
   }
 
@@ -69,6 +84,9 @@ class Bot {
       'compat': compat.toJson(),
       'permissions': permissions,
       'archive_sha256': archiveSha256,
+      'version': version,
+      if (author != null) 'author': author,
+      'tags': tags,
     };
   }
 
@@ -106,6 +124,33 @@ class Bot {
       archiveSha256 = archiveValue;
     }
 
+    String version = '';
+    final versionValue = map['version'];
+    if (versionValue is String) {
+      version = versionValue;
+    }
+
+    String? author;
+    final authorValue = map['author'];
+    if (authorValue is String && authorValue.isNotEmpty) {
+      author = authorValue;
+    }
+
+    List<String> tags = const [];
+    final tagsJson = map['tags_json'];
+    if (tagsJson is String && tagsJson.isNotEmpty) {
+      try {
+        final decoded = jsonDecode(tagsJson);
+        if (decoded is List) {
+          tags = decoded.whereType<String>().toList();
+        }
+      } catch (_) {
+        tags = const [];
+      }
+    } else if (map['tags'] is List) {
+      tags = (map['tags'] as List).whereType<String>().toList();
+    }
+
     return Bot(
       id: map['id'],
       botName: map['bot_name'],
@@ -116,6 +161,9 @@ class Bot {
       compat: compat,
       permissions: permissions,
       archiveSha256: archiveSha256,
+      version: version,
+      author: author,
+      tags: tags,
     );
   }
 }

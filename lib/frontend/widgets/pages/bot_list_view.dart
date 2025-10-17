@@ -7,10 +7,12 @@ import 'package:path/path.dart' as p;
 import 'package:path_provider/path_provider.dart';
 
 import '../../models/bot.dart';
+import '../../models/bot_filter.dart';
 import '../../models/bot_navigation.dart';
 import '../../services/bot_get_service.dart';
 import '../../services/bot_upload_service.dart';
 import '../components/bot_card_component.dart';
+import '../components/search_component.dart';
 import 'bot_detail_view.dart';
 
 class BotList extends StatefulWidget {
@@ -32,6 +34,7 @@ class _BotListState extends State<BotList>
   bool _argumentsHandled = false;
   bool _isUploading = false;
   bool _isRefreshingOnline = false;
+  BotFilter _activeFilter = const BotFilter();
 
   @override
   void initState() {
@@ -100,6 +103,16 @@ class _BotListState extends State<BotList>
     }
   }
 
+  void _handleFilterChanged(BotFilter filter) {
+    setState(() {
+      _activeFilter = filter;
+    });
+  }
+
+  Map<String, List<Bot>> _filterBots(Map<String, List<Bot>> data) {
+    return _botGetService.applyFilter(data, _activeFilter);
+  }
+
   Widget _buildCategoryView(BotCategory category) {
     return FutureBuilder<Map<String, List<Bot>>>(
       future: _categoryFutures[category],
@@ -115,13 +128,19 @@ class _BotListState extends State<BotList>
         }
 
         final data = snapshot.data ?? {};
-        if (data.isEmpty) {
-          return Center(child: Text(_emptyMessageForCategory(category)));
+        final filteredData = _filterBots(data);
+        if (filteredData.isEmpty) {
+          if (data.isEmpty) {
+            return Center(child: Text(_emptyMessageForCategory(category)));
+          }
+          return const Center(
+            child: Text('Nessun bot corrisponde ai filtri attivi.'),
+          );
         }
 
         return ListView(
-          padding: const EdgeInsets.all(16.0),
-          children: data.entries.map((entry) {
+          padding: const EdgeInsets.symmetric(horizontal: 16.0, vertical: 8.0),
+          children: filteredData.entries.map((entry) {
             final language = entry.key;
             final bots = entry.value;
 
@@ -180,10 +199,26 @@ class _BotListState extends State<BotList>
               .toList(),
         ),
       ),
-      body: TabBarView(
-        controller: _tabController,
-        children:
-            BotCategory.values.map(_buildCategoryView).toList(growable: false),
+      body: Column(
+        children: [
+          Padding(
+            padding:
+                const EdgeInsets.symmetric(horizontal: 16.0, vertical: 12.0),
+            child: SearchView(
+              onFilterChanged: _handleFilterChanged,
+              hintText:
+                  'Cerca per nome, tag, lingua o usa filtri (es. lang:python #utility)',
+            ),
+          ),
+          Expanded(
+            child: TabBarView(
+              controller: _tabController,
+              children: BotCategory.values
+                  .map(_buildCategoryView)
+                  .toList(growable: false),
+            ),
+          ),
+        ],
       ),
       floatingActionButton: _selectedCategory == BotCategory.local
           ? FloatingActionButton.extended(
