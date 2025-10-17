@@ -2,12 +2,15 @@ import 'dart:async';
 import 'dart:convert';
 import 'dart:io';
 
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:http/http.dart' as http;
 import 'package:path_provider/path_provider.dart';
 
 import '../../models/bot.dart';
 import '../../models/execution_log.dart';
+import '../../services/browser_runner/browser_bot_runner.dart';
+import '../../services/browser_runner/browser_runner_models.dart';
 
 class BotDetailView extends StatefulWidget {
   const BotDetailView(
@@ -27,6 +30,9 @@ class _BotDetailViewState extends State<BotDetailView> {
 
   http.Client? _client;
   StreamSubscription<String>? _subscription;
+  BrowserBotRunner? _browserRunner;
+  BrowserRunnerSession? _browserSession;
+  StreamSubscription<BrowserRunnerEvent>? _browserSubscription;
   bool _autoScroll = true;
   bool _isRunning = false;
   bool _isLoadingLogs = false;
@@ -47,6 +53,7 @@ class _BotDetailViewState extends State<BotDetailView> {
   void dispose() {
     _stopExecution();
     _scrollController.dispose();
+    _browserRunner?.dispose();
     super.dispose();
   }
 
@@ -233,6 +240,95 @@ class _BotDetailViewState extends State<BotDetailView> {
     if (closeClient) {
       _client?.close();
       _client = null;
+    }
+    _browserSubscription?.cancel();
+    _browserSubscription = null;
+    _browserSession?.stop();
+    _browserSession = null;
+  }
+
+  bool get _shouldUseBrowserRunner =>
+      kIsWeb && BrowserBotRunner.isSupported && widget.bot.compat.canRunInBrowser;
+
+  bool get _canExecuteBot {
+    if (kIsWeb) {
+      return _shouldUseBrowserRunner;
+    }
+    return true;
+  }
+
+  Future<void> _startBrowserExecution() async {
+    _stopExecution();
+    setState(() {
+      _entries.clear();
+      _error = null;
+      _isRunning = true;
+    });
+
+    _appendEntry(
+      _ConsoleEntry(
+        message: 'Avvio sandbox browser...',
+        type: 'status',
+      ),
+    );
+
+    _browserRunner ??= BrowserBotRunner();
+
+    try {
+      final session = await _browserRunner!.start(
+        widget.bot,
+        baseUrl: widget.baseUrl,
+      );
+      _browserSession = session;
+      _browserSubscription = session.stream.listen((event) {
+        if (!mounted) return;
+        if (event.type == 'status') {
+          final display = event.code != null
+              ? '${event.message} (code: ${event.code})'
+              : event.message;
+          _appendEntry(
+            _ConsoleEntry(
+              message: display,
+              type: event.type,
+            ),
+          );
+          if (event.message == 'finished' || event.message == 'failed') {
+            setState(() {
+              _isRunning = false;
+              if (event.message == 'failed' && _error == null) {
+                _error = 'Esecuzione fallita nella sandbox browser.';
+              }
+            });
+          }
+          return;
+        }
+
+        _appendEntry(
+          _ConsoleEntry(
+            message: event.message,
+            type: event.type,
+          ),
+        );
+      }, onError: (Object error, StackTrace _) {
+        if (!mounted) return;
+        setState(() {
+          _error = 'Errore sandbox: $error';
+          _isRunning = false;
+        });
+      }, onDone: () {
+        if (!mounted) return;
+        setState(() {
+          _isRunning = false;
+        });
+      });
+    } catch (error) {
+      if (!mounted) return;
+      setState(() {
+        _error = 'Impossibile avviare nel browser: $error';
+        _isRunning = false;
+      });
+      _browserSession?.stop();
+      _browserSession = null;
     }
   }
 
@@ -443,6 +539,17 @@ class _BotDetailViewState extends State<BotDetailView> {
               Text(
                 _error!,
                 style: TextStyle(color: Theme.of(context).colorScheme.error),
+              ),
+            ],
+            if (kIsWeb && !_shouldUseBrowserRunner) ...[
+              const SizedBox(height: 12),
+              Text(
+                widget.bot.compat.browserReason ??
+                    'Questo bot non è compatibile con il runner browser.',
+                style: TextStyle(
+                  color: Theme.of(context).colorScheme.error,
+                  fontWeight: FontWeight.w600,
+                ),
               ),
             ],
             const SizedBox(height: 20),
