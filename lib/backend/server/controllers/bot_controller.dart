@@ -71,7 +71,8 @@ class BotController {
   Future<Response> fetchLocalBots(Request request) async {
     try {
       logger.info(LOGS.BOT_SERVICE, 'Fetching list of local bots...');
-      final List<Bot> localBots = await botGetService.fetchLocalBotsFromDbAndFs();
+      final List<Bot> localBots =
+          await botGetService.fetchLocalBotsFromFilesystem();
 
       logger.info(LOGS.BOT_SERVICE, 'Fetched ${localBots.length} local bots.');
       return Response.ok(
@@ -83,6 +84,31 @@ class BotController {
       return Response.internalServerError(
         body: json.encode({
           'error': 'Error fetching local bots',
+          'message': e.toString(),
+        }),
+        headers: {'Content-Type': 'application/json'},
+      );
+    }
+  }
+
+  // Endpoint per ottenere la lista dei bot scaricati dal database
+  Future<Response> fetchDownloadedBots(Request request) async {
+    try {
+      logger.info(LOGS.BOT_SERVICE, 'Fetching downloaded bots from DB...');
+      final List<Bot> downloadedBots =
+          await botGetService.fetchDownloadedBotsFromDb();
+
+      logger.info(
+          LOGS.BOT_SERVICE, 'Fetched ${downloadedBots.length} downloaded bots.');
+      return Response.ok(
+        json.encode(downloadedBots.map((bot) => bot.toMap()).toList()),
+        headers: {'Content-Type': 'application/json'},
+      );
+    } catch (e) {
+      logger.error(LOGS.BOT_SERVICE, 'Error fetching downloaded bots: $e');
+      return Response.internalServerError(
+        body: json.encode({
+          'error': 'Error fetching downloaded bots',
           'message': e.toString(),
         }),
         headers: {'Content-Type': 'application/json'},

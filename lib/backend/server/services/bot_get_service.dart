@@ -12,7 +12,7 @@ class BotGetService {
 
   BotGetService(this.botDatabase, this.gitHubApi);
 
-  /// Fetches the list of all available bots from the server.
+  /// Fetches the list of all available bots from the remote API.
   Future<List<Bot>> fetchAvailableBots() async {
     try {
       logger.info('BotService', 'Fetching available bots list.');
@@ -57,6 +57,17 @@ class BotGetService {
     }
   }
 
+  /// Returns the list of bots stored inside the local database (downloaded).
+  Future<List<Bot>> fetchDownloadedBotsFromDb() async {
+    try {
+      logger.info('BotService', 'Fetching bots stored in the database.');
+      return await botDatabase.getAllBots();
+    } catch (e) {
+      logger.error('BotService', 'Error fetching downloaded bots: $e');
+      rethrow;
+    }
+  }
+
   /// Fetches the detailed information of a bot by extracting and reading the Bot.json inside the bot directory.
   Future<Bot> _getBotDetails(String language, Bot bot) async {
     try {
@@ -80,6 +91,18 @@ class BotGetService {
 
   // --------------------------------------- LOCAL BOTS --------------------------------------- \\
   // Funzione per caricare bot locali da DB e cartella filesystem
+  Future<List<Bot>> fetchLocalBotsFromFilesystem() async {
+    logger.info('BotService', 'Loading bots from local filesystem.');
+
+    final localBotsFromFs = await _loadBotsFromLocalFolder();
+
+    // Aggiorna la tabella locale per mantenere i dati sincronizzati.
+    await botDatabase.clearLocalBots();
+    await botDatabase.insertLocalBots(localBotsFromFs);
+
+    return localBotsFromFs;
+  }
+
   Future<List<Bot>> fetchLocalBotsFromDbAndFs() async {
     List<Bot> localBots = [];
 
@@ -88,14 +111,8 @@ class BotGetService {
       localBots = await botDatabase.getLocalBots();
     }
 
-    // Legge bot da filesystem
-    final localBotsFromFs = await _loadBotsFromLocalFolder();
+    final localBotsFromFs = await fetchLocalBotsFromFilesystem();
 
-    // Unisci e aggiorna DB (per semplicità sovrascrivi)
-    await botDatabase.clearLocalBots();
-    await botDatabase.insertLocalBots(localBotsFromFs);
-
-    // Ritorna lista unificata (evitando duplicati per nome+language)
     Map<String, Bot> uniqueBots = {};
     for (var b in localBots) {
       uniqueBots['${b.language}_${b.botName}'] = b;
