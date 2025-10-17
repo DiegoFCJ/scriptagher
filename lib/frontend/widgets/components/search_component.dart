@@ -1,54 +1,71 @@
 import 'package:flutter/material.dart';
 
 class SearchView extends StatefulWidget {
+  final TextEditingController controller;
+  final ValueChanged<String>? onChanged;
+  final ValueChanged<String>? onSubmitted;
+  final VoidCallback? onClear;
+  final String hintText;
+
+  const SearchView({
+    super.key,
+    required this.controller,
+    this.onChanged,
+    this.onSubmitted,
+    this.onClear,
+    this.hintText = 'Cerca un bot',
+  });
+
   @override
-  _SearchViewState createState() => _SearchViewState();
+  State<SearchView> createState() => _SearchViewState();
 }
 
 class _SearchViewState extends State<SearchView> {
-  // Controller per la barra di ricerca
-  TextEditingController _searchController = TextEditingController();
+  late TextEditingController _controller;
+
+  @override
+  void initState() {
+    super.initState();
+    _controller = widget.controller;
+  }
+
+  @override
+  void didUpdateWidget(covariant SearchView oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    if (oldWidget.controller != widget.controller) {
+      _controller = widget.controller;
+    }
+  }
 
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
-      appBar: AppBar(
-        title: Text('Cerca Bot'),
-        backgroundColor: Colors.blue,
-      ),
-      body: Padding(
-        padding: const EdgeInsets.all(16.0),
-        child: Column(
-          children: [
-            // Barra di ricerca
-            TextField(
-              controller: _searchController,
-              decoration: InputDecoration(
-                labelText: 'Cerca un bot',
-                border: OutlineInputBorder(),
-                suffixIcon: IconButton(
-                  icon: Icon(Icons.search),
-                  onPressed: () {
-                    // Qui andrà il codice per eseguire la ricerca una volta integrato il backend
-                    print('Cercando: ${_searchController.text}');
-                  },
-                ),
-              ),
-              onChanged: (value) {
-                // Gestisci l'input dell'utente se necessario
-                print('Ricerca in corso per: $value');
-              },
-            ),
-            SizedBox(height: 20),
-            // Un semplice testo che mostra il termine cercato
-            Text(
-              'Risultati per: ${_searchController.text}',
-              style: TextStyle(fontSize: 18),
-            ),
-            // Altri widget che mostreranno i risultati della ricerca (da aggiungere più tardi)
-          ],
-        ),
-      ),
+    return ValueListenableBuilder<TextEditingValue>(
+      valueListenable: _controller,
+      builder: (context, value, _) {
+        return TextField(
+          controller: _controller,
+          decoration: InputDecoration(
+            labelText: widget.hintText,
+            border: const OutlineInputBorder(),
+            prefixIcon: const Icon(Icons.search),
+            suffixIcon: value.text.isNotEmpty
+                ? IconButton(
+                    icon: const Icon(Icons.clear),
+                    onPressed: () {
+                      if (widget.onClear != null) {
+                        widget.onClear!();
+                      } else {
+                        _controller.clear();
+                      }
+                      widget.onChanged?.call('');
+                    },
+                  )
+                : null,
+          ),
+          onChanged: widget.onChanged,
+          onSubmitted: widget.onSubmitted,
+        );
+      },
     );
   }
 }

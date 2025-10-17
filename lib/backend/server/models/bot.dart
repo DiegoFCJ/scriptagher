@@ -7,6 +7,9 @@ class Bot {
   final String startCommand;
   final String sourcePath;
   final String language;
+  final List<String> tags;
+  final String? author;
+  final String? version;
   final BotCompat compat;
 
   Bot({
@@ -16,6 +19,9 @@ class Bot {
     required this.startCommand,
     required this.sourcePath,
     required this.language,
+    this.tags = const [],
+    this.author,
+    this.version,
     this.compat = const BotCompat(),
   });
 
@@ -24,6 +30,9 @@ class Bot {
     String? description,
     String? startCommand,
     BotCompat? compat,
+    List<String>? tags,
+    String? author,
+    String? version,
   }) {
     return Bot(
       id: id,
@@ -32,6 +41,9 @@ class Bot {
       startCommand: startCommand ?? this.startCommand,
       sourcePath: sourcePath,
       language: language,
+      tags: tags ?? this.tags,
+      author: author ?? this.author,
+      version: version ?? this.version,
       compat: compat ?? this.compat,
     );
   }
@@ -44,6 +56,9 @@ class Bot {
       'start_command': startCommand,
       'source_path': sourcePath,
       'language': language,
+      'tags_json': jsonEncode(tags),
+      'author': author,
+      'version': version,
       'compat_json': jsonEncode(compat.toJson()),
     };
   }
@@ -56,6 +71,9 @@ class Bot {
       'start_command': startCommand,
       'source_path': sourcePath,
       'language': language,
+      'tags': tags,
+      if (author != null) 'author': author,
+      if (version != null) 'version': version,
       'compat': compat.toJson(),
     };
   }
@@ -80,8 +98,52 @@ class Bot {
       startCommand: map['start_command'] ?? '',
       sourcePath: map['source_path'],
       language: map['language'],
+      tags: parseTags(map['tags_json'] ?? map['tags']),
+      author: parseOptionalString(map['author']),
+      version: parseOptionalString(map['version']),
       compat: compat,
     );
+  }
+
+  static List<String> parseTags(dynamic source) {
+    if (source == null) return const [];
+    if (source is String) {
+      if (source.trim().isEmpty) return const [];
+      try {
+        final decoded = jsonDecode(source);
+        if (decoded is List) {
+          return decoded
+              .whereType<String>()
+              .map((tag) => tag.trim())
+              .where((tag) => tag.isNotEmpty)
+              .toList();
+        }
+      } catch (_) {
+        return source
+            .split(',')
+            .map((tag) => tag.trim())
+            .where((tag) => tag.isNotEmpty)
+            .toList();
+      }
+    }
+
+    if (source is List) {
+      return source
+          .whereType<String>()
+          .map((tag) => tag.trim())
+          .where((tag) => tag.isNotEmpty)
+          .toList();
+    }
+
+    return const [];
+  }
+
+  static String? parseOptionalString(dynamic value) {
+    if (value is String) {
+      final trimmed = value.trim();
+      return trimmed.isEmpty ? null : trimmed;
+    }
+    return null;
   }
 }
 
@@ -113,9 +175,8 @@ class BotCompat {
       browserSupported: setBrowserSupportedNull
           ? null
           : (browserSupported ?? this.browserSupported),
-      browserReason: setBrowserReasonNull
-          ? null
-          : (browserReason ?? this.browserReason),
+      browserReason:
+          setBrowserReasonNull ? null : (browserReason ?? this.browserReason),
     );
   }
 

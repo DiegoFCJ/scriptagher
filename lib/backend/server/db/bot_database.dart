@@ -39,14 +39,15 @@ class BotDatabase {
 
     final fileExists = await File(path).exists();
     logger.info(
-        'BotDatabase',
-        fileExists
-            ? "Database file exists."
-            : "Database file does NOT exist. Creating a new one...");
+      'BotDatabase',
+      fileExists
+          ? "Database file exists."
+          : "Database file does NOT exist. Creating a new one...",
+    );
 
     return openDatabase(
       path,
-      version: 3,
+      version: 4,
       onCreate: (db, version) async {
         logger.info('BotDatabase', "Creating database structure...");
         try {
@@ -55,32 +56,50 @@ class BotDatabase {
           logger.info('BotDatabase', "Database structure created.");
         } catch (e) {
           logger.error(
-              'BotDatabase', 'Error during database table creation: $e');
+            'BotDatabase',
+            'Error during database table creation: $e',
+          );
         }
       },
       onUpgrade: (db, oldVersion, newVersion) async {
-        logger.info('BotDatabase',
-            "Upgrading database from v$oldVersion to v$newVersion...");
+        logger.info(
+          'BotDatabase',
+          "Upgrading database from v$oldVersion to v$newVersion...",
+        );
         try {
           if (oldVersion < 2) {
             await _createLocalBotsTable(db);
             logger.info(
-                'BotDatabase', "local_bots table created during upgrade.");
+              'BotDatabase',
+              "local_bots table created during upgrade.",
+            );
           }
           if (oldVersion < 3) {
             await _addCompatColumn(db, 'bots');
             await _addCompatColumn(db, 'local_bots');
-            logger.info('BotDatabase',
-                "compat_json column added to bots and local_bots tables.");
+            logger.info(
+              'BotDatabase',
+              "compat_json column added to bots and local_bots tables.",
+            );
           }
-      } catch (e) {
-        logger.error('BotDatabase', 'Error during database upgrade: $e');
-      }
+          if (oldVersion < 4) {
+            await _ensureMetadataColumns(db, 'bots');
+            await _ensureMetadataColumns(db, 'local_bots');
+            logger.info(
+              'BotDatabase',
+              "Metadata columns added to bots and local_bots tables.",
+            );
+          }
+        } catch (e) {
+          logger.error('BotDatabase', 'Error during database upgrade: $e');
+        }
       },
     ).then((db) async {
       try {
         // 🛡 Verifica struttura dopo apertura, anche se onCreate/onUpgrade non chiamati
         await _createLocalBotsTable(db); // Sicuro grazie a IF NOT EXISTS
+        await _ensureMetadataColumns(db, 'bots');
+        await _ensureMetadataColumns(db, 'local_bots');
         await _checkDatabaseStructure(db);
       } catch (e) {
         logger.error('BotDatabase', 'Error during structure verification: $e');
@@ -100,6 +119,9 @@ class BotDatabase {
           start_command TEXT,
           source_path TEXT,
           language TEXT NOT NULL,
+          tags_json TEXT,
+          author TEXT,
+          version TEXT,
           compat_json TEXT
         );
       ''');
@@ -178,7 +200,8 @@ class BotDatabase {
   Future<void> checkIfTableExists() async {
     final db = await database;
     final result = await db.rawQuery(
-        "SELECT name FROM sqlite_master WHERE type='table' AND name='bots';");
+      "SELECT name FROM sqlite_master WHERE type='table' AND name='bots';",
+    );
 
     if (result.isEmpty) {
       logger.warn('BotDatabase', "Table 'bots' does NOT exist.");
@@ -187,7 +210,8 @@ class BotDatabase {
     }
 
     final result2 = await db.rawQuery(
-        "SELECT name FROM sqlite_master WHERE type='table' AND name='local_bots';");
+      "SELECT name FROM sqlite_master WHERE type='table' AND name='local_bots';",
+    );
 
     if (result2.isEmpty) {
       logger.warn('BotDatabase', "Table 'local_bots' does NOT exist.");
@@ -211,10 +235,13 @@ class BotDatabase {
   /// Controlla la struttura del database
   Future<void> _checkDatabaseStructure(Database db) async {
     final tables = await db.rawQuery(
-        "SELECT name FROM sqlite_master WHERE type='table' AND name='bots';");
+      "SELECT name FROM sqlite_master WHERE type='table' AND name='bots';",
+    );
     if (tables.isEmpty) {
       logger.error(
-          'BotDatabase', "Table 'bots' does NOT exist. Something went wrong.");
+        'BotDatabase',
+        "Table 'bots' does NOT exist. Something went wrong.",
+      );
     } else {
       logger.info('BotDatabase', "Table 'bots' exists and is ready.");
     }
@@ -229,11 +256,48 @@ class BotDatabase {
     if (!hasCompatColumn) {
       try {
         await db.execute('ALTER TABLE $tableName ADD COLUMN compat_json TEXT;');
-        logger.info('BotDatabase',
-            "compat_json column added to table '$tableName'.");
+        logger.info(
+          'BotDatabase',
+          "compat_json column added to table '$tableName'.",
+        );
       } catch (e) {
-        logger.error('BotDatabase',
-            "Error adding compat_json column to $tableName: $e");
+        logger.error(
+          'BotDatabase',
+          "Error adding compat_json column to $tableName: $e",
+        );
+      }
+    }
+  }
+
+  Future<void> _ensureMetadataColumns(Database db, String tableName) async {
+    await _addColumnIfMissing(db, tableName, 'tags_json', 'TEXT');
+    await _addColumnIfMissing(db, tableName, 'author', 'TEXT');
+    await _addColumnIfMissing(db, tableName, 'version', 'TEXT');
+  }
+
+  Future<void> _addColumnIfMissing(
+    Database db,
+    String tableName,
+    String columnName,
+    String columnType,
+  ) async {
+    final columns = await db.rawQuery('PRAGMA table_info($tableName);');
+    final hasColumn = columns.any((column) => column['name'] == columnName);
+
+    if (!hasColumn) {
+      try {
+        await db.execute(
+          'ALTER TABLE $tableName ADD COLUMN $columnName $columnType;',
+        );
+        logger.info(
+          'BotDatabase',
+          "$columnName column added to table '$tableName'.",
+        );
+      } catch (e) {
+        logger.error(
+          'BotDatabase',
+          "Error adding $columnName column to $tableName: $e",
+        );
       }
     }
   }
@@ -249,6 +313,9 @@ class BotDatabase {
           start_command TEXT,
           source_path TEXT,
           language TEXT NOT NULL,
+          tags_json TEXT,
+          author TEXT,
+          version TEXT,
           compat_json TEXT
         );
       ''');

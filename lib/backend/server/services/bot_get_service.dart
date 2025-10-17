@@ -12,8 +12,7 @@ class BotGetService {
   final GitHubApi gitHubApi;
   final SystemRuntimeService systemRuntimeService;
 
-  BotGetService(
-      this.botDatabase, this.gitHubApi, this.systemRuntimeService);
+  BotGetService(this.botDatabase, this.gitHubApi, this.systemRuntimeService);
 
   /// Fetches the list of all available bots from the remote API.
   Future<List<Bot>> fetchAvailableBots() async {
@@ -30,6 +29,9 @@ class BotGetService {
         for (var botData in rawData[language]) {
           final botName = botData['botName'];
           final path = botData['path'];
+          final tags = Bot.parseTags(botData['tags']);
+          final author = Bot.parseOptionalString(botData['author']);
+          final version = Bot.parseOptionalString(botData['version']);
 
           // Crea un bot con valori di fallback
           Bot bot = Bot(
@@ -38,6 +40,9 @@ class BotGetService {
             startCommand: 'No start command',
             sourcePath: path,
             language: language,
+            tags: tags,
+            author: author,
+            version: version,
           );
 
           // Aggiorna ulteriormente con informazioni più precise
@@ -50,8 +55,10 @@ class BotGetService {
       // Salva la lista dei bot nel database
       await botDatabase.insertBots(allBots);
 
-      logger.info('BotService',
-          'Successfully saved ${allBots.length} bots to the database.');
+      logger.info(
+        'BotService',
+        'Successfully saved ${allBots.length} bots to the database.',
+      );
 
       return allBots;
     } catch (e) {
@@ -75,22 +82,23 @@ class BotGetService {
   Future<Bot> _getBotDetails(String language, Bot bot) async {
     try {
       // Ottieni i dettagli
-      final botDetailsMap =
-          await gitHubApi.fetchBotDetails(language, bot.botName);
+      final botDetailsMap = await gitHubApi.fetchBotDetails(
+        language,
+        bot.botName,
+      );
 
       final compat = BotCompat.fromManifest(botDetailsMap['compat']);
       BotCompat compatWithStatus = compat;
 
       if (compat.desktopRuntimes.isNotEmpty) {
-        final results =
-            await systemRuntimeService.ensureRuntimes(compat.desktopRuntimes);
+        final results = await systemRuntimeService.ensureRuntimes(
+          compat.desktopRuntimes,
+        );
         final missing = results.entries
             .where((entry) => entry.value == false)
             .map((entry) => entry.key)
             .toList();
-        compatWithStatus = compat.copyWith(
-          missingDesktopRuntimes: missing,
-        );
+        compatWithStatus = compat.copyWith(missingDesktopRuntimes: missing);
       }
 
       final description = botDetailsMap['description'] ?? bot.description;
@@ -98,20 +106,28 @@ class BotGetService {
           botDetailsMap['entrypoint'] ??
           bot.startCommand;
 
+      final metadata = _extractMetadata(botDetailsMap);
+      final tags = metadata.tags.isNotEmpty ? metadata.tags : bot.tags;
+      final author = metadata.author ?? bot.author;
+      final version = metadata.version ?? bot.version;
+
       bot = bot.copyWith(
         description: description,
         startCommand: startCommand,
         compat: compatWithStatus,
+        tags: tags,
+        author: author,
+        version: version,
       );
       return bot;
     } catch (e) {
       logger.error(
-          'BotService', 'Error fetching details for ${bot.botName}: $e');
+        'BotService',
+        'Error fetching details for ${bot.botName}: $e',
+      );
       return bot; // Fallisce solo parzialmente, ritorna comunque il bot senza aggiornamenti
     }
   }
-
-
 
   // --------------------------------------- LOCAL BOTS --------------------------------------- \\
   // Funzione per caricare bot locali da DB e cartella filesystem
@@ -170,7 +186,8 @@ class BotGetService {
         if (files.isEmpty) continue;
 
         final sourceFile = files.first;
-        final startCommand = ''; // qui potresti decidere come dedurlo, oppure lascialo vuoto
+        final startCommand =
+            ''; // qui potresti decidere come dedurlo, oppure lascialo vuoto
 
         final bot = Bot(
           botName: botName,
@@ -178,6 +195,7 @@ class BotGetService {
           startCommand: startCommand,
           sourcePath: sourceFile.path,
           language: language,
+          tags: const [],
         );
 
         bots.add(bot);
@@ -186,4 +204,36 @@ class BotGetService {
 
     return bots;
   }
+
+  _BotMetadata _extractMetadata(Map<String, dynamic> botDetailsMap) {
+    final metadata = botDetailsMap['metadata'];
+    final tags = _mergeTags(
+      Bot.parseTags(botDetailsMap['tags']),
+      Bot.parseTags(metadata is Map<String, dynamic> ? metadata['tags'] : null),
+    );
+    final author = Bot.parseOptionalString(
+          metadata is Map<String, dynamic> ? metadata['author'] : null,
+        ) ??
+        Bot.parseOptionalString(botDetailsMap['author']);
+    final version = Bot.parseOptionalString(
+          metadata is Map<String, dynamic> ? metadata['version'] : null,
+        ) ??
+        Bot.parseOptionalString(botDetailsMap['version']);
+
+    return _BotMetadata(tags: tags, author: author, version: version);
+  }
+
+  List<String> _mergeTags(List<String> first, List<String> second) {
+    final Set<String> merged = {...first, ...second};
+    final List<String> sorted = merged.toList()..sort();
+    return sorted;
+  }
+}
+
+class _BotMetadata {
+  final List<String> tags;
+  final String? author;
+  final String? version;
+
+  const _BotMetadata({this.tags = const [], this.author, this.version});
 }

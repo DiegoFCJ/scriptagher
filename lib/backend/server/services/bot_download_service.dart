@@ -44,15 +44,30 @@ class BotDownloadService {
       final botDetails = await BotUtils.fetchBotDetails(botJsonPath);
 
       final compat = BotCompat.fromManifest(botDetails['compat']);
-      final startCommand = botDetails['startCommand'] ??
-          botDetails['entrypoint'] ??
-          '';
+      final startCommand =
+          botDetails['startCommand'] ?? botDetails['entrypoint'] ?? '';
+      final metadata = botDetails['metadata'];
+      final tags = Bot.parseTags(
+        botDetails['tags'] ??
+            (metadata is Map<String, dynamic> ? metadata['tags'] : null),
+      );
+      final author = Bot.parseOptionalString(
+        botDetails['author'] ??
+            (metadata is Map<String, dynamic> ? metadata['author'] : null),
+      );
+      final version = Bot.parseOptionalString(
+        botDetails['version'] ??
+            (metadata is Map<String, dynamic> ? metadata['version'] : null),
+      );
       final bot = Bot(
         botName: botDetails['botName'],
         description: botDetails['description'],
         startCommand: startCommand,
         sourcePath: botJsonPath,
         language: language,
+        tags: tags,
+        author: author,
+        version: version,
         compat: compat,
       );
       await botDatabase.insertBot(bot);
@@ -66,9 +81,7 @@ class BotDownloadService {
         language: language,
         botName: botName,
         reason: 'download_exception',
-        extra: {
-          'error_type': e.runtimeType.toString(),
-        },
+        extra: {'error_type': e.runtimeType.toString()},
       );
       rethrow;
     } catch (e) {
@@ -77,9 +90,7 @@ class BotDownloadService {
         language: language,
         botName: botName,
         reason: 'unexpected_error',
-        extra: {
-          'error_type': e.runtimeType.toString(),
-        },
+        extra: {'error_type': e.runtimeType.toString()},
       );
       rethrow;
     }
@@ -103,12 +114,11 @@ class BotDownloadService {
           language: language,
           botName: botName,
           reason: 'http_${response.statusCode}',
-          extra: {
-            'status_code': response.statusCode,
-          },
+          extra: {'status_code': response.statusCode},
         );
         throw DownloadException(
-            'Failed to download file. Response code: ${response.statusCode}');
+          'Failed to download file. Response code: ${response.statusCode}',
+        );
       }
     } catch (e) {
       if (e is DownloadException) {
@@ -119,9 +129,7 @@ class BotDownloadService {
         language: language,
         botName: botName,
         reason: 'network_error',
-        extra: {
-          'error_type': e.runtimeType.toString(),
-        },
+        extra: {'error_type': e.runtimeType.toString()},
       );
       throw DownloadException('Failed to download file: $e');
     }
