@@ -8,6 +8,7 @@ import '../services/bot_get_service.dart';
 import '../services/bot_download_service.dart';
 import '../services/bot_upload_service.dart';
 import '../models/bot.dart';
+import '../exceptions/download_exceptions.dart';
 
 class BotController {
   final CustomLogger logger = CustomLogger();
@@ -63,6 +64,14 @@ class BotController {
 
       // Rispondi con i dettagli del bot come JSON
       return Response.ok(json.encode(bot.toResponseMap()),
+          headers: {'Content-Type': 'application/json'});
+    } on DownloadException catch (e) {
+      logger.warn(LOGS.BOT_SERVICE, 'Download failed: ${e.message}');
+      return Response(400,
+          body: json.encode({
+            'error': 'Download failed',
+            'message': e.message,
+          }),
           headers: {'Content-Type': 'application/json'});
     } catch (e) {
       logger.error(LOGS.BOT_SERVICE, 'Error downloading bot: $e');
