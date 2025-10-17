@@ -268,4 +268,32 @@ class BotDatabase {
     final db = await database;
     await db.delete('local_bots');
   }
+
+  Future<Bot?> findBotByName(String language, String botName) async {
+    final db = await database;
+
+    final result = await db.query(
+      'bots',
+      where: 'bot_name = ? AND language = ?',
+      whereArgs: [botName, language],
+      limit: 1,
+    );
+
+    if (result.isNotEmpty) {
+      return Bot.fromMap(result.first);
+    }
+
+    final localResult = await db.query(
+      'local_bots',
+      where: 'bot_name = ? AND language = ?',
+      whereArgs: [botName, language],
+      limit: 1,
+    );
+
+    if (localResult.isNotEmpty) {
+      return Bot.fromMap(localResult.first);
+    }
+
+    return null;
+  }
 }

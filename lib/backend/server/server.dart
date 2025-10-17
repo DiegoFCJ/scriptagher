@@ -3,9 +3,11 @@ import 'package:shelf/shelf.dart';
 import 'package:shelf/shelf_io.dart' as io;
 import 'package:scriptagher/shared/custom_logger.dart';
 import 'package:scriptagher/shared/constants/LOGS.dart';
+import 'package:shelf_router/shelf_router.dart';
 import 'controllers/bot_controller.dart';
 import 'services/bot_get_service.dart';
 import 'services/bot_download_service.dart';
+import 'services/execution_service.dart';
 import 'db/bot_database.dart';
 import 'routes.dart';
 import 'package:scriptagher/backend/server/api_integration/github_api.dart';
@@ -19,17 +21,24 @@ Future<void> startServer() async {
   // Istanzia il BotService e BotController
   final botGetService = BotGetService(botDatabase, gitHubApi);
   final botDownloadService = BotDownloadService();
+  final executionService = ExecutionService(botDatabase);
   final botController = BotController(botDownloadService, botGetService);
 
   // Ottieni il router con le rotte definite
   final botRoutes = BotRoutes(botController);
+  final router = Router();
+  router.mount('/', botRoutes.router);
+  router.get('/bots/<language>/<botName>/stream',
+      (Request request, String language, String botName) {
+    return executionService.streamExecution(request, language, botName);
+  });
 
   // Usa il middleware di logging per tracciare le richieste
   final handler = const Pipeline()
       .addMiddleware(logRequests()) // Middleware per il log delle richieste
       .addMiddleware(
           _logCustomRequests(logger)) // Usa il Custom Logger per le richieste
-      .addHandler(botRoutes.router); // Usa il router per gestire le richieste
+      .addHandler(router); // Usa il router per gestire le richieste
 
   try {
     // Avvio del server sulla porta 8080
