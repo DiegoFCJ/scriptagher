@@ -1,16 +1,30 @@
 footer {
-  margin-top: clamp(3rem, 8vw, 5rem);
-  padding: 2.5rem 1rem 2rem;
+  position: relative;
+  margin-top: clamp(3.5rem, 8vw, 5.5rem);
+  padding: 3rem 1rem 2.5rem;
   text-align: center;
-  color: var(--text-muted);
-  border-top: 1px solid rgba(148, 163, 184, 0.15);
-  background: radial-gradient(circle at top, rgba(56, 189, 248, 0.08), transparent 65%);
-  backdrop-filter: blur(12px);
+  color: rgba(148, 163, 184, 0.85);
+  border-top: 1px solid rgba(148, 163, 184, 0.12);
+  background: linear-gradient(180deg, rgba(2, 8, 23, 0), rgba(2, 8, 23, 0.8));
+  backdrop-filter: blur(14px);
+  overflow: hidden;
+
+  &::before {
+    content: '';
+    position: absolute;
+    inset: 0;
+    background: radial-gradient(circle at top, rgba(56, 189, 248, 0.18), transparent 60%);
+    pointer-events: none;
+  }
 
   p {
+    position: relative;
     margin: 0;
     font-size: 0.95rem;
-    letter-spacing: 0.08em;
+    letter-spacing: 0.18em;
     text-transform: uppercase;
+    background: linear-gradient(120deg, rgba(148, 163, 184, 0.85), rgba(56, 189, 248, 0.85));
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
   }
 }

@@ -1,15 +1,16 @@
 :root {
   --bg-base: #030617;
-  --bg-elevated: rgba(15, 23, 42, 0.75);
-  --bg-panel: rgba(2, 8, 23, 0.6);
+  --bg-elevated: rgba(15, 23, 42, 0.78);
+  --bg-panel: rgba(2, 8, 23, 0.65);
   --accent: #38bdf8;
   --accent-strong: #22d3ee;
+  --accent-highlight: #818cf8;
   --accent-muted: rgba(56, 189, 248, 0.2);
   --text-primary: #e2e8f0;
   --text-muted: #94a3b8;
-  --border-subtle: rgba(148, 163, 184, 0.25);
-  --shadow-strong: 0 30px 60px rgba(2, 8, 23, 0.45);
-  --shadow-soft: 0 18px 40px rgba(14, 23, 42, 0.35);
+  --border-subtle: rgba(148, 163, 184, 0.22);
+  --shadow-strong: 0 40px 120px rgba(2, 8, 23, 0.55);
+  --shadow-soft: 0 18px 45px rgba(14, 23, 42, 0.35);
   font-size: 16px;
 }
 
@@ -22,9 +23,9 @@
 body {
   margin: 0;
   font-family: 'Poppins', 'Segoe UI', sans-serif;
-  background: radial-gradient(circle at 20% -10%, rgba(56, 189, 248, 0.25), transparent 55%),
-    radial-gradient(circle at 85% 10%, rgba(14, 165, 233, 0.18), transparent 60%),
-    linear-gradient(180deg, rgba(2, 6, 23, 0.85), rgba(2, 6, 23, 1));
+  background: radial-gradient(circle at 20% -5%, rgba(56, 189, 248, 0.4), transparent 60%),
+    radial-gradient(circle at 80% 0%, rgba(129, 140, 248, 0.35), transparent 58%),
+    linear-gradient(180deg, rgba(2, 6, 23, 0.95), rgba(2, 6, 23, 1));
   color: var(--text-primary);
   min-height: 100vh;
   -webkit-font-smoothing: antialiased;
@@ -43,51 +44,83 @@ a {
   text-decoration: none;
 }
 
-button,
-.custom-button,
-.ghost-button {
+button {
+  font: inherit;
+  color: inherit;
+  background: none;
+  border: none;
+  padding: 0;
+}
+
+.btn {
   position: relative;
   display: inline-flex;
   align-items: center;
   justify-content: center;
   gap: 0.5rem;
-  padding: 0.7rem 1.6rem;
+  padding: 0.8rem 1.9rem;
   border-radius: 999px;
-  border: none;
+  border: 1px solid transparent;
   font-weight: 600;
+  font-size: 0.95rem;
   letter-spacing: 0.02em;
   cursor: pointer;
   transition: transform 0.2s ease, box-shadow 0.2s ease, filter 0.2s ease;
-  background: linear-gradient(135deg, var(--accent), var(--accent-strong));
-  color: #04172b;
-  box-shadow: 0 14px 30px rgba(34, 211, 238, 0.18);
+  text-decoration: none;
+  overflow: hidden;
+  isolation: isolate;
 }
 
-button:hover,
-.custom-button:hover,
-.ghost-button:hover {
-  transform: translateY(-1px) scale(1.01);
-  box-shadow: 0 20px 45px rgba(56, 189, 248, 0.25);
+.btn::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  border-radius: inherit;
+  z-index: -1;
+  transition: opacity 0.2s ease;
+}
+
+.btn-primary {
+  background: linear-gradient(135deg, var(--accent), var(--accent-strong));
+  color: #04172b;
+  box-shadow: 0 20px 45px rgba(34, 211, 238, 0.2);
+}
+
+.btn-primary::after {
+  background: radial-gradient(circle at top, rgba(255, 255, 255, 0.4), transparent 55%);
+  opacity: 0.5;
+}
+
+.btn-primary:hover {
+  transform: translateY(-2px) scale(1.01);
+  box-shadow: 0 28px 65px rgba(45, 212, 191, 0.28);
   filter: brightness(1.05);
 }
 
-button:active,
-.custom-button:active,
-.ghost-button:active {
+.btn-primary:active {
   transform: translateY(0) scale(0.99);
 }
 
-.ghost-button {
-  background: rgba(15, 23, 42, 0.55);
+.btn-secondary {
+  background: rgba(15, 23, 42, 0.65);
+  border-color: rgba(148, 163, 184, 0.25);
   color: var(--accent);
-  border: 1px solid var(--accent-muted);
   box-shadow: none;
-  backdrop-filter: blur(12px);
+  backdrop-filter: blur(16px);
 }
 
-.ghost-button:hover {
-  background: rgba(56, 189, 248, 0.08);
-  box-shadow: 0 15px 30px rgba(8, 145, 178, 0.2);
+.btn-secondary::after {
+  background: linear-gradient(135deg, rgba(56, 189, 248, 0.15), rgba(129, 140, 248, 0.08));
+  opacity: 0.7;
+}
+
+.btn-secondary:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 24px 45px rgba(14, 165, 233, 0.15);
+}
+
+.btn-secondary:active {
+  transform: translateY(0);
 }
 
 code {
