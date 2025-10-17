@@ -1,9 +1,13 @@
-import 'package:scriptagher/shared/custom_logger.dart';
-import 'package:scriptagher/backend/server/api_integration/github_api.dart';
-import '../models/bot.dart';
-import '../db/bot_database.dart';
 import 'dart:io';
+
 import 'package:path/path.dart' as p;
+import 'package:scriptagher/backend/server/api_integration/github_api.dart';
+import 'package:scriptagher/shared/constants/APIS.dart';
+import 'package:scriptagher/shared/custom_logger.dart';
+import 'package:scriptagher/shared/utils/BotUtils.dart';
+
+import '../db/bot_database.dart';
+import '../models/bot.dart';
 import 'system_runtime_service.dart';
 
 class BotGetService {
@@ -78,7 +82,12 @@ class BotGetService {
       final botDetailsMap =
           await gitHubApi.fetchBotDetails(language, bot.botName);
 
-      final compat = BotCompat.fromManifest(botDetailsMap['compat']);
+          final compat = BotCompat.fromManifest(botDetailsMap['compat']);
+          final platformCompat = BotPlatformCompatibility.fromManifest(
+            botDetailsMap['platformCompatibility'] ??
+                botDetailsMap['platforms'] ??
+                botDetailsMap['platform_compat'],
+          );
       BotCompat compatWithStatus = compat;
 
       if (compat.desktopRuntimes.isNotEmpty) {
@@ -102,6 +111,10 @@ class BotGetService {
         description: description,
         startCommand: startCommand,
         compat: compatWithStatus,
+        author: botDetailsMap['author'] ?? bot.author,
+        version: botDetailsMap['version'] ?? bot.version,
+        permissions: _parsePermissions(botDetailsMap['permissions']),
+        platformCompatibility: platformCompat,
       );
       return bot;
     } catch (e) {
@@ -172,7 +185,7 @@ class BotGetService {
         final sourceFile = files.first;
         final startCommand = ''; // qui potresti decidere come dedurlo, oppure lascialo vuoto
 
-        final bot = Bot(
+        Bot bot = Bot(
           botName: botName,
           description: 'Local bot from filesystem',
           startCommand: startCommand,
@@ -180,10 +193,52 @@ class BotGetService {
           language: language,
         );
 
+        final manifestFile = File('${botDir.path}/${APIS.BOT_FILE_CONFIG}');
+        if (await manifestFile.exists()) {
+          try {
+            final manifest = await BotUtils.fetchBotDetails(manifestFile.path);
+            final compat = BotCompat.fromManifest(manifest['compat']);
+            final platformCompat = BotPlatformCompatibility.fromManifest(
+              manifest['platformCompatibility'] ??
+                  manifest['platforms'] ??
+                  manifest['platform_compat'],
+            );
+            bot = bot.copyWith(
+              description: manifest['description'] ?? bot.description,
+              startCommand: manifest['startCommand'] ??
+                  manifest['entrypoint'] ??
+                  bot.startCommand,
+              compat: compat,
+              sourcePath: manifestFile.path,
+              author: manifest['author'] ?? bot.author,
+              version: manifest['version'] ?? bot.version,
+              permissions: _parsePermissions(manifest['permissions']),
+              platformCompatibility: platformCompat,
+            );
+          } catch (e) {
+            logger.warn('BotService',
+                'Unable to parse manifest for $language/$botName: $e');
+          }
+        }
+
         bots.add(bot);
       }
     }
 
     return bots;
+  }
+
+  List<String> _parsePermissions(dynamic data) {
+    if (data is List) {
+      return data.whereType<String>().toList();
+    }
+    if (data is String) {
+      return data
+          .split(',')
+          .map((value) => value.trim())
+          .where((value) => value.isNotEmpty)
+          .toList();
+    }
+    return const [];
   }
 }

@@ -46,7 +46,7 @@ class BotDatabase {
 
     return openDatabase(
       path,
-      version: 3,
+      version: 4,
       onCreate: (db, version) async {
         logger.info('BotDatabase', "Creating database structure...");
         try {
@@ -73,6 +73,12 @@ class BotDatabase {
             logger.info('BotDatabase',
                 "compat_json column added to bots and local_bots tables.");
           }
+          if (oldVersion < 4) {
+            await _addExtendedMetadataColumns(db, 'bots');
+            await _addExtendedMetadataColumns(db, 'local_bots');
+            logger.info('BotDatabase',
+                "Extended metadata columns added to bots and local_bots tables.");
+          }
       } catch (e) {
         logger.error('BotDatabase', 'Error during database upgrade: $e');
       }
@@ -82,6 +88,8 @@ class BotDatabase {
         // 🛡 Verifica struttura dopo apertura, anche se onCreate/onUpgrade non chiamati
         await _createLocalBotsTable(db); // Sicuro grazie a IF NOT EXISTS
         await _checkDatabaseStructure(db);
+        await _addExtendedMetadataColumns(db, 'bots');
+        await _addExtendedMetadataColumns(db, 'local_bots');
       } catch (e) {
         logger.error('BotDatabase', 'Error during structure verification: $e');
       }
@@ -100,7 +108,11 @@ class BotDatabase {
           start_command TEXT,
           source_path TEXT,
           language TEXT NOT NULL,
-          compat_json TEXT
+          author TEXT,
+          version TEXT,
+          permissions_json TEXT,
+          compat_json TEXT,
+          platforms_json TEXT
         );
       ''');
       logger.info('BotDatabase', "Bots table created successfully.");
@@ -238,6 +250,34 @@ class BotDatabase {
     }
   }
 
+  Future<void> _addExtendedMetadataColumns(
+      Database db, String tableName) async {
+    await _addColumnIfMissing(db, tableName, 'author', 'TEXT');
+    await _addColumnIfMissing(db, tableName, 'version', 'TEXT');
+    await _addColumnIfMissing(db, tableName, 'permissions_json', 'TEXT');
+    await _addColumnIfMissing(db, tableName, 'platforms_json', 'TEXT');
+  }
+
+  Future<void> _addColumnIfMissing(
+      Database db, String tableName, String columnName, String type) async {
+    final columns = await db.rawQuery('PRAGMA table_info($tableName);');
+    final hasColumn = columns.any(
+      (column) => column['name'] == columnName,
+    );
+
+    if (!hasColumn) {
+      try {
+        await db.execute(
+            'ALTER TABLE $tableName ADD COLUMN $columnName $type;');
+        logger.info('BotDatabase',
+            "$columnName column added to table '$tableName'.");
+      } catch (e) {
+        logger.error('BotDatabase',
+            "Error adding $columnName column to $tableName: $e");
+      }
+    }
+  }
+
   // --------------------------------------- LOCAL BOTS --------------------------------------- \\
   Future<void> _createLocalBotsTable(Database db) async {
     try {
@@ -249,7 +289,11 @@ class BotDatabase {
           start_command TEXT,
           source_path TEXT,
           language TEXT NOT NULL,
-          compat_json TEXT
+          author TEXT,
+          version TEXT,
+          permissions_json TEXT,
+          compat_json TEXT,
+          platforms_json TEXT
         );
       ''');
       logger.info('BotDatabase', "local_bots table created successfully.");

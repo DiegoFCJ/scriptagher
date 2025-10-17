@@ -44,6 +44,11 @@ class BotDownloadService {
       final botDetails = await BotUtils.fetchBotDetails(botJsonPath);
 
       final compat = BotCompat.fromManifest(botDetails['compat']);
+      final platformCompat = BotPlatformCompatibility.fromManifest(
+        botDetails['platformCompatibility'] ??
+            botDetails['platforms'] ??
+            botDetails['platform_compat'],
+      );
       final startCommand = botDetails['startCommand'] ??
           botDetails['entrypoint'] ??
           '';
@@ -54,6 +59,10 @@ class BotDownloadService {
         sourcePath: botJsonPath,
         language: language,
         compat: compat,
+        author: botDetails['author'],
+        version: botDetails['version'],
+        permissions: _parsePermissions(botDetails['permissions']),
+        platformCompatibility: platformCompat,
       );
       await botDatabase.insertBot(bot);
       await botZip.delete();
@@ -125,5 +134,19 @@ class BotDownloadService {
       );
       throw DownloadException('Failed to download file: $e');
     }
+  }
+
+  List<String> _parsePermissions(dynamic data) {
+    if (data is List) {
+      return data.whereType<String>().toList();
+    }
+    if (data is String) {
+      return data
+          .split(',')
+          .map((value) => value.trim())
+          .where((value) => value.isNotEmpty)
+          .toList();
+    }
+    return const [];
   }
 }

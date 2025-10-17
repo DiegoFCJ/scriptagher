@@ -8,6 +8,7 @@ import 'package:path_provider/path_provider.dart';
 
 import '../../models/bot.dart';
 import '../../models/execution_log.dart';
+import '../../services/bot_get_service.dart';
 
 class BotDetailView extends StatefulWidget {
   const BotDetailView(
@@ -24,14 +25,23 @@ class _BotDetailViewState extends State<BotDetailView> {
   final ScrollController _scrollController = ScrollController();
   final List<_ConsoleEntry> _entries = [];
   final List<ExecutionLog> _logHistory = [];
+  late BotGetService _botGetService;
+
+  Bot? _downloadedBot;
 
   http.Client? _client;
   StreamSubscription<String>? _subscription;
   bool _autoScroll = true;
   bool _isRunning = false;
   bool _isLoadingLogs = false;
+  bool _isCheckingDownload = false;
+  bool _isDownloading = false;
+  bool _isDownloaded = false;
+  bool _isUpdateAvailable = false;
   String _buffer = '';
   String? _error;
+
+  Bot get _effectiveBot => _downloadedBot ?? widget.bot;
 
   void _openTutorial() {
     Navigator.pushNamed(context, '/tutorial');
@@ -40,7 +50,9 @@ class _BotDetailViewState extends State<BotDetailView> {
   @override
   void initState() {
     super.initState();
+    _botGetService = BotGetService(baseUrl: widget.baseUrl);
     _loadLogs();
+    _refreshDownloadStatus();
   }
 
   @override
@@ -86,7 +98,140 @@ class _BotDetailViewState extends State<BotDetailView> {
     }
   }
 
+  Future<void> _refreshDownloadStatus() async {
+    setState(() {
+      _isCheckingDownload = true;
+    });
+
+    try {
+      final downloaded = await _botGetService.fetchDownloadedBotsFlat();
+      Bot? localBot;
+      try {
+        localBot = downloaded.firstWhere(
+          (bot) =>
+              bot.language == widget.bot.language &&
+              bot.botName == widget.bot.botName,
+        );
+      } catch (_) {
+        localBot = null;
+      }
+
+      if (!mounted) return;
+
+      final remoteVersion = widget.bot.version;
+      final localVersion = localBot?.version;
+      final updateAvailable = localBot != null &&
+          remoteVersion != null &&
+          localVersion != null &&
+          remoteVersion != localVersion;
+
+      setState(() {
+        _downloadedBot = localBot;
+        _isDownloaded = localBot != null;
+        _isUpdateAvailable = updateAvailable;
+      });
+    } catch (e) {
+      if (mounted) {
+        _showSnackBar('Impossibile verificare lo stato del download: $e');
+      }
+    } finally {
+      if (mounted) {
+        setState(() {
+          _isCheckingDownload = false;
+        });
+      }
+    }
+  }
+
+  Future<void> _downloadOrUpdateBot() async {
+    if (_isDownloading) {
+      return;
+    }
+
+    setState(() {
+      _isDownloading = true;
+    });
+
+    final uri = Uri.parse(
+        '${widget.baseUrl}/bots/${Uri.encodeComponent(widget.bot.language)}/${Uri.encodeComponent(widget.bot.botName)}');
+
+    try {
+      final response = await http.get(uri);
+
+      if (response.statusCode == 200) {
+        final dynamic payload = jsonDecode(response.body);
+        if (payload is! Map<String, dynamic>) {
+          throw const FormatException('Risposta non valida dal server');
+        }
+        final downloadedBot = Bot.fromJson(payload);
+        if (!mounted) return;
+        final bool wasUpdate = _isDownloaded && _isUpdateAvailable;
+
+        setState(() {
+          _downloadedBot = downloadedBot;
+          _isDownloaded = true;
+          _isUpdateAvailable = false;
+        });
+
+        _showSnackBar(
+            wasUpdate ? 'Bot aggiornato correttamente.' : 'Bot scaricato correttamente.');
+      } else {
+        if (!mounted) return;
+        _showSnackBar(
+            'Errore durante il download (codice ${response.statusCode}).');
+      }
+    } catch (e) {
+      if (mounted) {
+        _showSnackBar('Errore durante il download: $e');
+      }
+    } finally {
+      if (mounted) {
+        setState(() {
+          _isDownloading = false;
+        });
+      }
+      if (mounted) {
+        await _refreshDownloadStatus();
+      }
+    }
+  }
+
+  Future<void> _openBotFolder() async {
+    final bot = _downloadedBot;
+    if (bot == null || bot.sourcePath.isEmpty) {
+      _showSnackBar('Scarica il bot per aprire la cartella.');
+      return;
+    }
+
+    final file = File(bot.sourcePath);
+    final directory = file.parent;
+
+    if (!await directory.exists()) {
+      _showSnackBar('Cartella non trovata: ${directory.path}');
+      return;
+    }
+
+    try {
+      if (Platform.isMacOS) {
+        await Process.run('open', [directory.path]);
+      } else if (Platform.isWindows) {
+        await Process.run('explorer', [directory.path]);
+      } else if (Platform.isLinux) {
+        await Process.run('xdg-open', [directory.path]);
+      } else {
+        _showSnackBar(
+            'Apertura cartella non supportata su questa piattaforma.');
+      }
+    } catch (e) {
+      _showSnackBar("Errore durante l'apertura della cartella: $e");
+    }
+  }
+
   void _startExecution() async {
+    if (!_isDownloaded) {
+      _showSnackBar('Scarica il bot prima di eseguirlo.');
+      return;
+    }
     _stopExecution();
     setState(() {
       _entries.clear();
@@ -293,11 +438,239 @@ class _BotDetailViewState extends State<BotDetailView> {
     );
   }
 
+  Widget _buildMetadataSection(BuildContext context) {
+    final theme = Theme.of(context);
+    final author =
+        _effectiveBot.author?.isNotEmpty == true ? _effectiveBot.author! : 'Non specificato';
+    final remoteVersion = widget.bot.version ?? 'n/d';
+    final localVersion = _isDownloaded ? (_downloadedBot?.version ?? 'n/d') : null;
+
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Text('Autore: $author', style: theme.textTheme.bodyMedium),
+        const SizedBox(height: 4),
+        Wrap(
+          spacing: 16,
+          runSpacing: 4,
+          children: [
+            Text('Versione online: $remoteVersion',
+                style: theme.textTheme.bodyMedium),
+            if (localVersion != null)
+              Text('Versione locale: $localVersion',
+                  style: theme.textTheme.bodyMedium),
+          ],
+        ),
+      ],
+    );
+  }
+
+  Widget _buildPermissionsSection(BuildContext context) {
+    final permissions = _effectiveBot.permissions;
+    final theme = Theme.of(context);
+    if (permissions.isEmpty) {
+      return Text(
+        'Permessi dichiarati: nessuno',
+        style: theme.textTheme.bodyMedium,
+      );
+    }
+
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Text('Permessi dichiarati', style: theme.textTheme.titleSmall),
+        const SizedBox(height: 6),
+        Wrap(
+          spacing: 8,
+          runSpacing: 4,
+          children: permissions
+              .map(
+                (permission) => Chip(
+                  label: Text(permission),
+                  visualDensity: VisualDensity.compact,
+                ),
+              )
+              .toList(),
+        ),
+      ],
+    );
+  }
+
+  Widget _buildPlatformCompatibilitySection(BuildContext context) {
+    final theme = Theme.of(context);
+    final compatibility = _effectiveBot.platformCompatibility;
+
+    if (compatibility.isEmpty) {
+      return Text(
+        'Compatibilità piattaforme: non dichiarata',
+        style: theme.textTheme.bodyMedium,
+      );
+    }
+
+    final List<Widget> chips = [];
+    compatibility.platforms.forEach((platform, status) {
+      switch (status) {
+        case BotPlatformSupportStatus.supported:
+          chips.add(_compatChip(
+            context,
+            label: platform,
+            icon: Icons.check_circle_outline,
+            color: Colors.green.shade600,
+          ));
+          break;
+        case BotPlatformSupportStatus.partial:
+          chips.add(_compatChip(
+            context,
+            label: platform,
+            icon: Icons.info_outline,
+            color: Colors.orange.shade700,
+          ));
+          break;
+        case BotPlatformSupportStatus.unsupported:
+          chips.add(_compatChip(
+            context,
+            label: platform,
+            icon: Icons.block,
+            color: Colors.red.shade600,
+          ));
+          break;
+        case BotPlatformSupportStatus.unknown:
+          chips.add(_compatChip(
+            context,
+            label: platform,
+            icon: Icons.help_outline,
+            color: Colors.blueGrey.shade600,
+          ));
+          break;
+      }
+    });
+
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Text('Compatibilità piattaforme', style: theme.textTheme.titleSmall),
+        const SizedBox(height: 6),
+        Wrap(
+          spacing: 8,
+          runSpacing: 4,
+          children: chips,
+        ),
+        if (compatibility.notes.isNotEmpty) ...[
+          const SizedBox(height: 6),
+          Text(
+            'Note: ${compatibility.notes.join(', ')}',
+            style: theme.textTheme.bodySmall,
+          ),
+        ],
+      ],
+    );
+  }
+
+  Widget _buildUpdateBanner(BuildContext context) {
+    final theme = Theme.of(context);
+    final colorScheme = theme.colorScheme;
+    final remoteVersion = widget.bot.version ?? 'n/d';
+    final localVersion = _downloadedBot?.version ?? 'n/d';
+
+    return Card(
+      color: colorScheme.tertiaryContainer,
+      child: ListTile(
+        leading: Icon(Icons.system_update_alt,
+            color: colorScheme.onTertiaryContainer),
+        title: const Text('Aggiornamento disponibile'),
+        subtitle: Text(
+          'Versione locale: $localVersion • Versione online: $remoteVersion',
+        ),
+        trailing: _isDownloading
+            ? const SizedBox(
+                width: 20,
+                height: 20,
+                child: CircularProgressIndicator(strokeWidth: 2),
+              )
+            : null,
+      ),
+    );
+  }
+
+  Widget _buildActionButtons(BuildContext context) {
+    final downloadLabel = _isDownloading
+        ? 'Download in corso...'
+        : (_isUpdateAvailable ? 'Aggiorna' : 'Scarica');
+    final Widget downloadIcon = _isDownloading
+        ? const SizedBox(
+            width: 16,
+            height: 16,
+            child: CircularProgressIndicator(strokeWidth: 2),
+          )
+        : Icon(
+            _isUpdateAvailable ? Icons.system_update_alt : Icons.download,
+          );
+
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Wrap(
+          spacing: 12,
+          runSpacing: 8,
+          children: [
+            ElevatedButton.icon(
+              onPressed: _isDownloading ? null : _downloadOrUpdateBot,
+              icon: downloadIcon,
+              label: Text(downloadLabel),
+            ),
+            OutlinedButton.icon(
+              onPressed: _isDownloaded ? _openBotFolder : null,
+              icon: const Icon(Icons.folder_open),
+              label: const Text('Apri cartella'),
+            ),
+            ElevatedButton.icon(
+              onPressed: (_isRunning || !_isDownloaded) ? null : _startExecution,
+              icon: const Icon(Icons.play_arrow),
+              label:
+                  Text(_isRunning ? 'Esecuzione in corso...' : 'Esegui'),
+            ),
+            OutlinedButton.icon(
+              onPressed:
+                  _entries.isEmpty && _error == null ? null : _clearLog,
+              icon: const Icon(Icons.cleaning_services_outlined),
+              label: const Text('Pulisci log'),
+            ),
+          ],
+        ),
+        const SizedBox(height: 12),
+        Row(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            const Text('Auto-scroll'),
+            Switch(
+              value: _autoScroll,
+              onChanged: (value) {
+                setState(() {
+                  _autoScroll = value;
+                });
+              },
+            ),
+            if (_isCheckingDownload && !_isDownloading) ...[
+              const SizedBox(width: 12),
+              const SizedBox(
+                width: 16,
+                height: 16,
+                child: CircularProgressIndicator(strokeWidth: 2),
+              ),
+            ],
+          ],
+        ),
+      ],
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    final effectiveBot = _effectiveBot;
     return Scaffold(
       appBar: AppBar(
-        title: Text(widget.bot.botName),
+        title: Text(effectiveBot.botName),
         actions: [
           IconButton(
             tooltip: 'Guida: crea il tuo bot',
@@ -312,49 +685,47 @@ class _BotDetailViewState extends State<BotDetailView> {
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             Text(
-              'Nome: ${widget.bot.botName}',
-              style: Theme.of(context).textTheme.headlineMedium,
+              effectiveBot.botName,
+              style: theme.textTheme.headlineMedium,
             ),
             const SizedBox(height: 10),
             Text(
-              'Descrizione: ${widget.bot.description}',
-              style: Theme.of(context).textTheme.bodyLarge,
+              effectiveBot.description.isEmpty
+                  ? 'Nessuna descrizione disponibile.'
+                  : effectiveBot.description,
+              style: theme.textTheme.bodyLarge,
             ),
             const SizedBox(height: 12),
+            _buildMetadataSection(context),
+            const SizedBox(height: 12),
+            _buildPermissionsSection(context),
+            const SizedBox(height: 12),
+            _buildPlatformCompatibilitySection(context),
+            const SizedBox(height: 12),
             _buildCompatBadges(context),
-            const SizedBox(height: 20),
-            Row(
-              children: [
-                ElevatedButton(
-                  onPressed: _isRunning ? null : _startExecution,
-                  child: Text(_isRunning ? 'Esecuzione in corso...' : 'Esegui Bot'),
+            if (_isUpdateAvailable) ...[
+              const SizedBox(height: 12),
+              _buildUpdateBanner(context),
+            ],
+            if (_isDownloaded && !_isUpdateAvailable) ...[
+              const SizedBox(height: 12),
+              Align(
+                alignment: Alignment.centerLeft,
+                child: _compatChip(
+                  context,
+                  label: 'Bot scaricato',
+                  icon: Icons.download_done_outlined,
+                  color: Colors.green.shade600,
                 ),
-                const SizedBox(width: 16),
-                OutlinedButton(
-                  onPressed: _entries.isEmpty && _error == null ? null : _clearLog,
-                  child: const Text('Pulisci log'),
-                ),
-                const Spacer(),
-                Row(
-                  children: [
-                    const Text('Auto-scroll'),
-                    Switch(
-                      value: _autoScroll,
-                      onChanged: (value) {
-                        setState(() {
-                          _autoScroll = value;
-                        });
-                      },
-                    ),
-                  ],
-                ),
-              ],
-            ),
+              ),
+            ],
+            const SizedBox(height: 16),
+            _buildActionButtons(context),
             if (_error != null) ...[
               const SizedBox(height: 12),
               Text(
                 _error!,
-                style: TextStyle(color: Theme.of(context).colorScheme.error),
+                style: TextStyle(color: theme.colorScheme.error),
               ),
             ],
             const SizedBox(height: 20),
@@ -436,7 +807,7 @@ class _BotDetailViewState extends State<BotDetailView> {
   }
 
   Widget _buildCompatBadges(BuildContext context) {
-    final compat = widget.bot.compat;
+    final compat = _effectiveBot.compat;
     final List<Widget> chips = [];
 
     if (compat.desktopStatus == 'compatible') {
