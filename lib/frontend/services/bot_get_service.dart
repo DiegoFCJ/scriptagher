@@ -7,11 +7,20 @@ class BotGetService {
 
   BotGetService({this.baseUrl = 'http://localhost:8080'});
 
-  Future<Map<String, List<Bot>>> fetchBots() => fetchOnlineBots();
+  Future<Map<String, List<Bot>>> fetchBots({bool forceRefresh = false}) =>
+      fetchOnlineBots(forceRefresh: forceRefresh);
 
-  Future<Map<String, List<Bot>>> fetchOnlineBots() async {
-    return _fetchGrouped(Uri.parse('$baseUrl/bots'));
+  Future<Map<String, List<Bot>>> fetchOnlineBots({bool forceRefresh = false}) async {
+    final uri = forceRefresh
+        ? Uri.parse('$baseUrl/bots').replace(queryParameters: {
+            'forceRefresh': 'true',
+          })
+        : Uri.parse('$baseUrl/bots');
+    return _fetchGrouped(uri);
   }
+
+  Future<Map<String, List<Bot>>> refreshOnlineBots() async =>
+      fetchOnlineBots(forceRefresh: true);
 
   Future<Map<String, List<Bot>>> fetchDownloadedBots() async {
     return _fetchGrouped(Uri.parse('$baseUrl/bots/downloaded'));

@@ -14,13 +14,31 @@ class BotGetService {
   final GitHubApi gitHubApi;
   final SystemRuntimeService systemRuntimeService;
 
+  static const Duration _cacheDuration = Duration(minutes: 15);
+
   BotGetService(
       this.botDatabase, this.gitHubApi, this.systemRuntimeService);
 
   /// Fetches the list of all available bots from the remote API.
-  Future<List<Bot>> fetchAvailableBots() async {
+  Future<List<Bot>> fetchAvailableBots({bool forceRefresh = false}) async {
     try {
       logger.info('BotService', 'Fetching available bots list.');
+
+      if (!forceRefresh) {
+        final lastFetch = await botDatabase.getLastRemoteFetch();
+        if (lastFetch != null) {
+          final isFresh = DateTime.now().toUtc().difference(lastFetch) <=
+              _cacheDuration;
+          if (isFresh) {
+            final cachedBots = await botDatabase.getAllBots();
+            if (cachedBots.isNotEmpty) {
+              logger.info('BotService',
+                  'Serving ${cachedBots.length} bots from cache (last fetch at $lastFetch).');
+              return cachedBots;
+            }
+          }
+        }
+      }
 
       // Fetch the list of bots from GitHub API
       final rawData = await gitHubApi.fetchBotsList();
@@ -51,6 +69,7 @@ class BotGetService {
 
       // Salva la lista dei bot nel database
       await botDatabase.insertBots(allBots);
+      await botDatabase.setLastRemoteFetch(DateTime.now());
 
       logger.info('BotService',
           'Successfully saved ${allBots.length} bots to the database.');
@@ -58,6 +77,14 @@ class BotGetService {
       return allBots;
     } catch (e) {
       logger.error('BotService', 'Error fetching bots: $e');
+      if (!forceRefresh) {
+        final cachedBots = await botDatabase.getAllBots();
+        if (cachedBots.isNotEmpty) {
+          logger.warn('BotService',
+              'Returning cached bots after fetch failure (${cachedBots.length} bots).');
+          return cachedBots;
+        }
+      }
       rethrow;
     }
   }
