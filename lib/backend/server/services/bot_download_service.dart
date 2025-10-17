@@ -9,6 +9,7 @@ import 'package:scriptagher/shared/constants/APIS.dart';
 import 'package:scriptagher/shared/constants/LOGS.dart';
 import '../exceptions/download_exceptions.dart';
 import 'package:scriptagher/shared/services/telemetry_service.dart';
+import 'package:scriptagher/shared/exceptions/bot_manifest_validation_exception.dart';
 
 class BotDownloadService {
   final CustomLogger logger = CustomLogger();
@@ -60,6 +61,19 @@ class BotDownloadService {
 
       logger.info(LOGS.BOT_SERVICE, LOGS.downloadComplete(bot.botName));
       return bot;
+    } on BotManifestValidationException catch (e) {
+      final message = 'Invalid bot manifest: ${e.message}';
+      logger.error(LOGS.BOT_SERVICE, message);
+      await telemetryService.recordDownloadFailure(
+        language: language,
+        botName: botName,
+        reason: 'invalid_manifest',
+        extra: {
+          'error_type': e.runtimeType.toString(),
+          'details': e.message,
+        },
+      );
+      throw DownloadException(message);
     } on DownloadException catch (e) {
       logger.error(LOGS.BOT_SERVICE, 'Download exception: $e');
       await telemetryService.recordDownloadFailure(
