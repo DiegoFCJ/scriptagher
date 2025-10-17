@@ -30,6 +30,11 @@ class _HomePageState extends State<HomePage>
       icon: Icons.folder_outlined,
       category: BotCategory.local,
     ),
+    _Section(
+      title: 'Impostazioni',
+      description: 'Gestisci preferenze, privacy e telemetria',
+      routeName: '/settings',
+    ),
   ];
 
   late final TabController _tabController;
