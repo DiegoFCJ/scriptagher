@@ -49,6 +49,25 @@
           },
           "defaultConfiguration": "production"
         },
+        "server": {
+          "builder": "@angular-devkit/build-angular:server",
+          "options": {
+            "outputPath": "dist/bot-list/server",
+            "main": "server.ts",
+            "tsConfig": "tsconfig.server.json"
+          },
+          "configurations": {
+            "production": {
+              "bundleDependencies": "all",
+              "sourceMap": false
+            },
+            "development": {
+              "bundleDependencies": "all",
+              "sourceMap": true
+            }
+          },
+          "defaultConfiguration": "production"
+        },
         "serve": {
           "options": {
             "proxyConfig": "proxy.conf.json"
