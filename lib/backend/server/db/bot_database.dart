@@ -46,7 +46,7 @@ class BotDatabase {
 
     return openDatabase(
       path,
-      version: 2,
+      version: 3,
       onCreate: (db, version) async {
         logger.info('BotDatabase', "Creating database structure...");
         try {
@@ -66,6 +66,12 @@ class BotDatabase {
             await _createLocalBotsTable(db);
             logger.info(
                 'BotDatabase', "local_bots table created during upgrade.");
+          }
+          if (oldVersion < 3) {
+            await _addMetadataColumns(db, 'bots');
+            await _addMetadataColumns(db, 'local_bots');
+            logger.info('BotDatabase',
+                "Metadata columns added to bots and local_bots tables.");
           }
           // Future upgrade logic here
         } catch (e) {
@@ -94,7 +100,11 @@ class BotDatabase {
           description TEXT,
           start_command TEXT,
           source_path TEXT,
-          language TEXT NOT NULL
+          language TEXT NOT NULL,
+          author TEXT,
+          version TEXT,
+          permissions TEXT,
+          platform_compatibility TEXT
         );
       ''');
       logger.info('BotDatabase', "Bots table created successfully.");
@@ -113,7 +123,7 @@ class BotDatabase {
       final db = await database;
       await db.insert(
         'bots',
-        bot.toMap(),
+        bot.toDbMap(),
         conflictAlgorithm: ConflictAlgorithm.replace,
       );
       logger.info('BotDatabase', 'Bot ${bot.botName} inserted into DB.');
@@ -150,7 +160,7 @@ class BotDatabase {
     try {
       await db.update(
         'bots',
-        bot.toMap(),
+        bot.toDbMap(),
         where: 'bot_name = ? AND language = ?',
         whereArgs: [bot.botName, bot.language],
       );
@@ -224,7 +234,11 @@ class BotDatabase {
           description TEXT,
           start_command TEXT,
           source_path TEXT,
-          language TEXT NOT NULL
+          language TEXT NOT NULL,
+          author TEXT,
+          version TEXT,
+          permissions TEXT,
+          platform_compatibility TEXT
         );
       ''');
       logger.info('BotDatabase', "local_bots table created successfully.");
@@ -256,7 +270,7 @@ class BotDatabase {
     for (var bot in bots) {
       batch.insert(
         'local_bots',
-        bot.toMap(),
+        bot.toDbMap(),
         conflictAlgorithm: ConflictAlgorithm.replace,
       );
     }
@@ -267,5 +281,24 @@ class BotDatabase {
   Future<void> clearLocalBots() async {
     final db = await database;
     await db.delete('local_bots');
+  }
+
+  Future<void> _addMetadataColumns(Database db, String tableName) async {
+    final columnsToAdd = {
+      'author': "ALTER TABLE $tableName ADD COLUMN author TEXT;",
+      'version': "ALTER TABLE $tableName ADD COLUMN version TEXT;",
+      'permissions': "ALTER TABLE $tableName ADD COLUMN permissions TEXT;",
+      'platform_compatibility':
+          "ALTER TABLE $tableName ADD COLUMN platform_compatibility TEXT;",
+    };
+
+    for (final entry in columnsToAdd.entries) {
+      try {
+        await db.execute(entry.value);
+      } catch (e) {
+        logger.warn('BotDatabase',
+            "Column '${entry.key}' might already exist on $tableName: $e");
+      }
+    }
   }
 }

@@ -1,9 +1,12 @@
-import 'package:scriptagher/shared/custom_logger.dart';
-import 'package:scriptagher/backend/server/api_integration/github_api.dart';
-import '../models/bot.dart';
-import '../db/bot_database.dart';
+import 'dart:convert';
 import 'dart:io';
+
+import 'package:scriptagher/backend/server/api_integration/github_api.dart';
+import 'package:scriptagher/shared/custom_logger.dart';
 import 'package:path/path.dart' as p;
+
+import '../db/bot_database.dart';
+import '../models/bot.dart';
 
 class BotGetService {
   final CustomLogger logger = CustomLogger();
@@ -35,6 +38,11 @@ class BotGetService {
             startCommand: 'No start command',
             sourcePath: path,
             language: language,
+            author: botData['author'] ?? '',
+            version: botData['version'] ?? '',
+            permissions: _asStringList(botData['permissions']),
+            platformCompatibility:
+                _asStringList(botData['platform_compatibility']),
           );
 
           // Aggiorna ulteriormente con informazioni più precise
@@ -67,6 +75,13 @@ class BotGetService {
       bot = bot.copyWith(
         description: botDetailsMap['description'],
         startCommand: botDetailsMap['startCommand'],
+        author: botDetailsMap['author'],
+        version: botDetailsMap['version'],
+        permissions: _asStringList(botDetailsMap['permissions'] ??
+            botDetailsMap['requiredPermissions']),
+        platformCompatibility: _asStringList(botDetailsMap[
+                'platform_compatibility'] ??
+            botDetailsMap['platformCompatibility']),
       );
       return bot;
     } catch (e) {
@@ -137,6 +152,8 @@ class BotGetService {
           startCommand: startCommand,
           sourcePath: sourceFile.path,
           language: language,
+          author: 'Locale',
+          version: '',
         );
 
         bots.add(bot);
@@ -144,5 +161,29 @@ class BotGetService {
     }
 
     return bots;
+  }
+
+  List<String> _asStringList(dynamic value) {
+    if (value == null) {
+      return [];
+    }
+    if (value is List) {
+      return value.map((e) => e.toString()).toList();
+    }
+    if (value is String && value.isNotEmpty) {
+      try {
+        final decoded = jsonDecode(value);
+        if (decoded is List) {
+          return decoded.map((e) => e.toString()).toList();
+        }
+      } catch (_) {
+        return value
+            .split(',')
+            .map((e) => e.trim())
+            .where((e) => e.isNotEmpty)
+            .toList();
+      }
+    }
+    return [];
   }
 }

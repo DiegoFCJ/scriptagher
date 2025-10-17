@@ -1,13 +1,16 @@
+import 'dart:convert';
 import 'dart:io';
-import 'package:scriptagher/shared/custom_logger.dart';
+
 import 'package:http/http.dart' as http;
-import 'package:scriptagher/shared/utils/BotUtils.dart';
-import 'package:scriptagher/shared/utils/ZipUtils.dart';
-import '../db/bot_database.dart';
-import '../models/bot.dart';
 import 'package:scriptagher/shared/constants/APIS.dart';
 import 'package:scriptagher/shared/constants/LOGS.dart';
+import 'package:scriptagher/shared/custom_logger.dart';
+import 'package:scriptagher/shared/utils/BotUtils.dart';
+import 'package:scriptagher/shared/utils/ZipUtils.dart';
+
+import '../db/bot_database.dart';
 import '../exceptions/download_exceptions.dart';
+import '../models/bot.dart';
 
 class BotDownloadService {
   final CustomLogger logger = CustomLogger();
@@ -40,6 +43,12 @@ class BotDownloadService {
       startCommand: botDetails['startCommand'],
       sourcePath: botJsonPath,
       language: language,
+      author: botDetails['author'] ?? '',
+      version: botDetails['version'] ?? '',
+      permissions: _asStringList(botDetails['permissions'] ??
+          botDetails['requiredPermissions']),
+      platformCompatibility: _asStringList(botDetails['platform_compatibility'] ??
+          botDetails['platformCompatibility']),
     );
     await botDatabase.insertBot(bot);
     await botZip.delete();
@@ -58,5 +67,29 @@ class BotDownloadService {
       logger.error(LOGS.BOT_SERVICE, errorMessage);
       throw DownloadException('Failed to download file. Response code: ${response.statusCode}');
     }
+  }
+
+  List<String> _asStringList(dynamic value) {
+    if (value == null) {
+      return [];
+    }
+    if (value is List) {
+      return value.map((e) => e.toString()).toList();
+    }
+    if (value is String && value.isNotEmpty) {
+      try {
+        final decoded = jsonDecode(value);
+        if (decoded is List) {
+          return decoded.map((e) => e.toString()).toList();
+        }
+      } catch (_) {
+        return value
+            .split(',')
+            .map((e) => e.trim())
+            .where((e) => e.isNotEmpty)
+            .toList();
+      }
+    }
+    return [];
   }
 }
