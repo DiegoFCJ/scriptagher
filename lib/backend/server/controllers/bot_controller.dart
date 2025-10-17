@@ -7,6 +7,7 @@ import 'package:mime/mime.dart';
 import '../services/bot_get_service.dart';
 import '../services/bot_download_service.dart';
 import '../services/bot_upload_service.dart';
+import '../services/execution_service.dart';
 import '../models/bot.dart';
 
 class BotController {
@@ -14,9 +15,10 @@ class BotController {
   final BotDownloadService botDownloadService;
   final BotGetService botGetService;
   final BotUploadService botUploadService;
+  final ExecutionService executionService;
 
   BotController(
-      this.botDownloadService, this.botGetService, this.botUploadService);
+      this.botDownloadService, this.botGetService, this.botUploadService, this.executionService);
 
   // Endpoint per ottenere la lista dei bot disponibili remoti
   Future<Response> fetchAvailableBots(Request request) async {
@@ -43,6 +45,11 @@ class BotController {
           }),
           headers: {'Content-Type': 'application/json'});
     }
+  }
+
+  Future<Response> startBot(
+      Request request, String language, String botName) {
+    return executionService.startBot(request, language, botName);
   }
 
   // Endpoint per scaricare un bot specifico

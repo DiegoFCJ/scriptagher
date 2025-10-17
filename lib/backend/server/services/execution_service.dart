@@ -2,6 +2,7 @@ import 'dart:async';
 import 'dart:convert';
 import 'dart:io';
 
+import 'package:collection/collection.dart';
 import 'package:shelf/shelf.dart';
 import 'package:scriptagher/shared/constants/LOGS.dart';
 import 'package:scriptagher/shared/custom_logger.dart';
@@ -17,6 +18,152 @@ class ExecutionService {
   final BotDatabase _botDatabase;
   final ExecutionLogManager _logManager;
   final CustomLogger _logger = CustomLogger();
+  final Map<String, _ManagedProcess> _runningProcesses = {};
+
+  Future<Response> startBot(
+      Request request, String language, String botName) async {
+    final Bot? bot = await _botDatabase.findBotByName(language, botName);
+
+    if (bot == null || bot.startCommand.trim().isEmpty) {
+      final errorMessage =
+          'Bot $language/$botName not found or missing start command.';
+      _logger.error(LOGS.EXECUTION_SERVICE, errorMessage,
+          metadata: {'language': language, 'botName': botName});
+      return Response.notFound(jsonEncode({'error': errorMessage}));
+    }
+
+    final requiredPermissions = await _resolvePermissions(bot);
+    final grantedPermissions = _parseGrantedPermissions(request);
+    final missingPermissions = requiredPermissions
+        .where((perm) => !grantedPermissions.contains(perm))
+        .toList();
+
+    if (missingPermissions.isNotEmpty) {
+      final message =
+          'Missing permissions for ${bot.language}/${bot.botName}: ${missingPermissions.join(', ')}';
+      _logger.warn(LOGS.EXECUTION_SERVICE, message,
+          metadata: {'language': language, 'botName': botName});
+      return Response.forbidden(
+        jsonEncode({
+          'error': 'permissions_denied',
+          'missing_permissions': missingPermissions,
+        }),
+        headers: {'Content-Type': 'application/json'},
+      );
+    }
+
+    ExecutionLogSession session;
+    try {
+      session = await _logManager.startSession(bot);
+    } catch (e) {
+      final message =
+          'Unable to prepare log session for ${bot.language}/${bot.botName}: $e';
+      _logger.error(LOGS.EXECUTION_SERVICE, message,
+          metadata: {'language': language, 'botName': botName});
+      return Response.internalServerError(
+        body: jsonEncode({
+          'error': 'log_session_failed',
+          'message': message,
+        }),
+        headers: {'Content-Type': 'application/json'},
+      );
+    }
+
+    try {
+      final process = await _spawnProcess(bot);
+
+      final stdoutSub = process.stdout
+          .transform(utf8.decoder)
+          .transform(const LineSplitter())
+          .listen((line) {
+        _handleLine(session, line,
+            isError: false, emitter: (event) {});
+      }, onError: (Object error, StackTrace stackTrace) {
+        _logger.error(
+          LOGS.EXECUTION_SERVICE,
+          'Stdout stream error for ${bot.language}/${bot.botName}: $error',
+          metadata: session.metadata.toLogMetadata(),
+        );
+        session.logSink.writeln('[stdout-error] $error');
+        session.logSink.writeln(stackTrace.toString());
+      });
+
+      final stderrSub = process.stderr
+          .transform(utf8.decoder)
+          .transform(const LineSplitter())
+          .listen((line) {
+        _handleLine(session, line,
+            isError: true, emitter: (event) {});
+      }, onError: (Object error, StackTrace stackTrace) {
+        _logger.error(
+          LOGS.EXECUTION_SERVICE,
+          'Stderr stream error for ${bot.language}/${bot.botName}: $error',
+          metadata: session.metadata.toLogMetadata(entryType: 'stderr'),
+        );
+        session.logSink.writeln('[stderr-error] $error');
+        session.logSink.writeln(stackTrace.toString());
+      });
+
+      final processId = _generateProcessId(bot, process.pid);
+      final managedProcess = _ManagedProcess(
+        id: processId,
+        bot: bot,
+        process: process,
+        session: session,
+        stdoutSub: stdoutSub,
+        stderrSub: stderrSub,
+      );
+      _runningProcesses[processId] = managedProcess;
+
+      _logger.info(
+        LOGS.EXECUTION_SERVICE,
+        'Started execution for ${bot.language}/${bot.botName} (pid: ${process.pid}).',
+        metadata: session.metadata.toLogMetadata(),
+      );
+      session.logSink
+          .writeln('[status] process started (pid: ${process.pid})');
+
+      process.exitCode.then((exitCode) {
+        _handleManagedExit(managedProcess, exitCode);
+      }).catchError((error, stackTrace) async {
+        _logger.error(
+          LOGS.EXECUTION_SERVICE,
+          'Failed to await exit code for ${bot.language}/${bot.botName}: $error',
+          metadata: session.metadata.toLogMetadata(),
+        );
+        await _handleManagedExit(managedProcess, -1,
+            errorMessage: error.toString());
+      });
+
+      return Response.ok(
+        jsonEncode({
+          'status': 'started',
+          'processId': processId,
+          'pid': process.pid,
+          'runId': session.metadata.runId,
+        }),
+        headers: {'Content-Type': 'application/json'},
+      );
+    } catch (e, stack) {
+      _logger.error(
+        LOGS.EXECUTION_SERVICE,
+        'Execution failed for ${bot.language}/${bot.botName}: $e',
+        metadata: session.metadata.toLogMetadata(),
+      );
+      session.logSink.writeln('[error] $e');
+      session.logSink.writeln(stack.toString());
+      await _logManager.finalizeSession(session,
+          exitCode: -1, errorMessage: e.toString());
+      await session.dispose();
+      return Response.internalServerError(
+        body: jsonEncode({
+          'error': 'start_failed',
+          'message': e.toString(),
+        }),
+        headers: {'Content-Type': 'application/json'},
+      );
+    }
+  }
 
   Future<Response> streamExecution(
       Request request, String language, String botName) async {
@@ -119,12 +266,7 @@ class ExecutionService {
           metadata: session.metadata.toLogMetadata(),
         );
 
-        process = await Process.start(
-          '/bin/sh',
-          ['-c', bot.startCommand],
-          workingDirectory: _resolveWorkingDirectory(bot),
-          runInShell: false,
-        );
+        process = await _spawnProcess(bot);
 
         stdoutSub = process!.stdout
             .transform(utf8.decoder)
@@ -341,4 +483,221 @@ class ExecutionService {
     }
     return null;
   }
+
+  List<List<String>> _buildCommandCandidates(Bot bot) {
+    final trimmedCommand = bot.startCommand.trim();
+    if (trimmedCommand.isEmpty) {
+      throw StateError('Start command is empty for ${bot.botName}.');
+    }
+
+    final tokens = _splitCommand(trimmedCommand).toList();
+    if (tokens.isEmpty) {
+      throw StateError('Unable to parse start command for ${bot.botName}.');
+    }
+
+    final language = bot.language.toLowerCase();
+    final candidates = <List<String>>[];
+
+    bool addIfUnique(List<String> values) {
+      final exists = candidates.any((candidate) =>
+          candidate.length == values.length &&
+          const IterableEquality<String>().equals(candidate, values));
+      if (!exists) {
+        candidates.add(values);
+        return true;
+      }
+      return false;
+    }
+
+    switch (language) {
+      case 'python':
+      case 'py':
+        if (_looksLikePythonInterpreter(tokens.first)) {
+          addIfUnique(tokens);
+        } else {
+          addIfUnique(['python3', ...tokens]);
+          addIfUnique(['python', ...tokens]);
+        }
+        break;
+      case 'node':
+      case 'javascript':
+        if (_looksLikeNodeInterpreter(tokens.first)) {
+          addIfUnique(tokens);
+        } else {
+          addIfUnique(['node', ...tokens]);
+          addIfUnique(['nodejs', ...tokens]);
+        }
+        break;
+      case 'bash':
+      case 'shell':
+        if (_looksLikeShell(tokens.first)) {
+          addIfUnique(tokens);
+        } else {
+          addIfUnique(['/bin/bash', ...tokens]);
+          addIfUnique(['/bin/sh', ...tokens]);
+        }
+        break;
+      default:
+        addIfUnique(tokens);
+        break;
+    }
+
+    if (candidates.isEmpty) {
+      candidates.add(tokens);
+    }
+
+    return candidates;
+  }
+
+  Future<Process> _spawnProcess(Bot bot) async {
+    final workingDirectory = _resolveWorkingDirectory(bot);
+    final candidates = _buildCommandCandidates(bot);
+    ProcessException? lastError;
+
+    for (final candidate in candidates) {
+      final executable = candidate.first;
+      final args = candidate.skip(1).toList();
+      try {
+        return await Process.start(
+          executable,
+          args,
+          workingDirectory: workingDirectory,
+          runInShell: false,
+        );
+      } on ProcessException catch (error) {
+        lastError = error;
+        continue;
+      }
+    }
+
+    if (lastError != null) {
+      throw lastError;
+    }
+
+    throw ProcessException(
+      candidates.first.first,
+      candidates.first.skip(1).toList(),
+      'Unable to start process for ${bot.botName}.',
+    );
+  }
+
+  Iterable<String> _splitCommand(String command) sync* {
+    final buffer = StringBuffer();
+    var inSingleQuote = false;
+    var inDoubleQuote = false;
+    var escaping = false;
+
+    void flush() {
+      if (buffer.isNotEmpty) {
+        yield buffer.toString();
+        buffer.clear();
+      }
+    }
+
+    for (final rune in command.runes) {
+      final char = String.fromCharCode(rune);
+      if (escaping) {
+        buffer.write(char);
+        escaping = false;
+        continue;
+      }
+
+      if (char == '\\') {
+        escaping = true;
+        continue;
+      }
+
+      if (char == '\'' && !inDoubleQuote) {
+        inSingleQuote = !inSingleQuote;
+        continue;
+      }
+
+      if (char == '"' && !inSingleQuote) {
+        inDoubleQuote = !inDoubleQuote;
+        continue;
+      }
+
+      if (char.trim().isEmpty && !inSingleQuote && !inDoubleQuote) {
+        flush();
+        continue;
+      }
+
+      buffer.write(char);
+    }
+
+    flush();
+  }
+
+  bool _looksLikePythonInterpreter(String value) {
+    final normalized = value.toLowerCase();
+    return normalized == 'python' || normalized == 'python3' ||
+        normalized.startsWith('python3.');
+  }
+
+  bool _looksLikeNodeInterpreter(String value) {
+    final normalized = value.toLowerCase();
+    return normalized == 'node' || normalized == 'nodejs';
+  }
+
+  bool _looksLikeShell(String value) {
+    final normalized = value.toLowerCase();
+    return normalized == 'bash' ||
+        normalized == '/bin/bash' ||
+        normalized == 'sh' ||
+        normalized == '/bin/sh';
+  }
+
+  String _generateProcessId(Bot bot, int pid) {
+    final timestamp = DateTime.now().toUtc().millisecondsSinceEpoch;
+    return '${bot.language}-${bot.botName}-$pid-$timestamp';
+  }
+
+  Future<void> _handleManagedExit(_ManagedProcess managed, int exitCode,
+      {String? errorMessage}) async {
+    if (!_runningProcesses.containsKey(managed.id)) {
+      return;
+    }
+
+    try {
+      managed.session.logSink.writeln('[status] exit code: $exitCode');
+      await _logManager.finalizeSession(managed.session,
+          exitCode: exitCode, errorMessage: errorMessage);
+      _logger.info(
+        LOGS.EXECUTION_SERVICE,
+        'Execution finished for ${managed.bot.language}/${managed.bot.botName} with exit code $exitCode.',
+        metadata: managed.session.metadata.toLogMetadata(),
+      );
+    } catch (e, stack) {
+      _logger.error(
+        LOGS.EXECUTION_SERVICE,
+        'Failed to finalize session for ${managed.bot.language}/${managed.bot.botName}: $e',
+        metadata: managed.session.metadata.toLogMetadata(),
+      );
+      managed.session.logSink.writeln('[finalize-error] $e');
+      managed.session.logSink.writeln(stack.toString());
+    } finally {
+      await managed.stdoutSub.cancel();
+      await managed.stderrSub.cancel();
+      await managed.session.dispose();
+      _runningProcesses.remove(managed.id);
+    }
+  }
+}
+
+class _ManagedProcess {
+  _ManagedProcess({
+    required this.id,
+    required this.bot,
+    required this.process,
+    required this.session,
+    required this.stdoutSub,
+    required this.stderrSub,
+  });
+
+  final String id;
+  final Bot bot;
+  final Process process;
+  final ExecutionLogSession session;
+  final StreamSubscription<String> stdoutSub;
+  final StreamSubscription<String> stderrSub;
 }
