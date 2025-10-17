@@ -8,6 +8,7 @@ import 'controllers/bot_controller.dart';
 import 'services/bot_get_service.dart';
 import 'services/bot_download_service.dart';
 import 'services/execution_service.dart';
+import 'services/execution_log_service.dart';
 import 'db/bot_database.dart';
 import 'routes.dart';
 import 'package:scriptagher/backend/server/api_integration/github_api.dart';
@@ -21,7 +22,8 @@ Future<void> startServer() async {
   // Istanzia il BotService e BotController
   final botGetService = BotGetService(botDatabase, gitHubApi);
   final botDownloadService = BotDownloadService();
-  final executionService = ExecutionService(botDatabase);
+  final executionLogManager = ExecutionLogManager();
+  final executionService = ExecutionService(botDatabase, executionLogManager);
   final botController = BotController(botDownloadService, botGetService);
 
   // Ottieni il router con le rotte definite
@@ -31,6 +33,14 @@ Future<void> startServer() async {
   router.get('/bots/<language>/<botName>/stream',
       (Request request, String language, String botName) {
     return executionService.streamExecution(request, language, botName);
+  });
+  router.get('/bots/<language>/<botName>/logs',
+      (Request request, String language, String botName) {
+    return executionService.listLogs(request, language, botName);
+  });
+  router.get('/bots/<language>/<botName>/logs/<runId>',
+      (Request request, String language, String botName, String runId) {
+    return executionService.downloadLog(request, language, botName, runId);
   });
 
   // Usa il middleware di logging per tracciare le richieste
