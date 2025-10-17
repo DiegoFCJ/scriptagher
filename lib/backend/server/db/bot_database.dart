@@ -332,6 +332,16 @@ class BotDatabase {
     await batch.commit(noResult: true);
   }
 
+  Future<void> insertOrUpdateLocalBot(Bot bot) async {
+    final db = await database;
+    await db.insert(
+      'local_bots',
+      bot.toMap(),
+      conflictAlgorithm: ConflictAlgorithm.replace,
+    );
+    logger.info('BotDatabase', 'Local bot ${bot.botName} saved.');
+  }
+
   // Cancella tutti i bot locali (se serve)
   Future<void> clearLocalBots() async {
     final db = await database;

@@ -22,6 +22,8 @@ class BotRoutes {
 
     router.get('/bots/downloaded', botController.fetchDownloadedBots);
 
+    router.post('/bots/upload', botController.uploadBot);
+
     return router;
   }
 }

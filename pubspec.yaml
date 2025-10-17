@@ -22,6 +22,8 @@ dependencies:
   sentry_flutter: ^7.18.0
   shared_preferences: ^2.3.2
   crypto: ^3.0.5
+  file_picker: ^8.0.3
+  mime: ^1.0.5
 
 dev_dependencies:
   flutter_test:
