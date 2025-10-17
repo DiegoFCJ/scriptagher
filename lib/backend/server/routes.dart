@@ -24,6 +24,11 @@ class BotRoutes {
 
     router.post('/bots/upload', botController.uploadBot);
 
+    router.post(
+        '/bots/<language>/<botName>/start',
+        (Request request, String language, String botName) =>
+            botController.startBot(request, language, botName));
+
     return router;
   }
 }

@@ -38,6 +38,7 @@ class _BotDetailViewState extends State<BotDetailView> {
   bool _isLoadingLogs = false;
   String _buffer = '';
   String? _error;
+  String? _startStatus;
 
   void _openTutorial() {
     Navigator.pushNamed(context, '/tutorial');
@@ -108,10 +109,120 @@ class _BotDetailViewState extends State<BotDetailView> {
   }
 
   Future<void> _startExecution({List<String>? grantedPermissions}) async {
+    if (_shouldUseBrowserRunner) {
+      await _startBrowserExecution();
+      return;
+    }
+
+    if (!kIsWeb) {
+      await _startDesktopExecution(grantedPermissions: grantedPermissions);
+      return;
+    }
+
+    await _startServerStream(grantedPermissions: grantedPermissions);
+  }
+
+  Future<void> _startDesktopExecution({List<String>? grantedPermissions}) async {
     _stopExecution();
     setState(() {
       _entries.clear();
       _error = null;
+      _startStatus = null;
+      _isRunning = true;
+    });
+
+    final baseUri = Uri.parse(
+        '${widget.baseUrl}/bots/${Uri.encodeComponent(widget.bot.language)}/${Uri.encodeComponent(widget.bot.botName)}/start');
+    final uri = (grantedPermissions != null && grantedPermissions.isNotEmpty)
+        ? baseUri.replace(queryParameters: {
+            ...baseUri.queryParameters,
+            'grantedPermissions': grantedPermissions.join(','),
+          })
+        : baseUri;
+
+    try {
+      final response = await http.post(uri);
+      if (response.statusCode == 200) {
+        Map<String, dynamic> data = <String, dynamic>{};
+        if (response.body.isNotEmpty) {
+          try {
+            data = jsonDecode(response.body) as Map<String, dynamic>;
+          } catch (_) {
+            data = <String, dynamic>{};
+          }
+        }
+
+        final pid = data['pid']?.toString();
+        final processId = data['processId']?.toString();
+        final runId = data['runId']?.toString();
+
+        String message = 'Processo avviato';
+        if (pid != null && pid.isNotEmpty) {
+          message += ' (PID: $pid)';
+        }
+        if (processId != null && processId.isNotEmpty) {
+          message += ' [ID: $processId]';
+        }
+
+        setState(() {
+          _startStatus = message;
+        });
+
+        _appendEntry(_ConsoleEntry(message: message, type: 'status'));
+        if (runId != null && runId.isNotEmpty) {
+          _appendEntry(_ConsoleEntry(
+              message: 'ID log esecuzione: $runId', type: 'status'));
+        }
+      } else {
+        String errorMessage =
+            'Impossibile avviare il bot. Codice risposta: ${response.statusCode}';
+        final body = response.body;
+        if (body.isNotEmpty) {
+          try {
+            final decoded = jsonDecode(body) as Map<String, dynamic>;
+            final reason = decoded['message'] ?? decoded['error'];
+            if (reason is String && reason.isNotEmpty) {
+              errorMessage = reason;
+            } else if (decoded['missing_permissions'] is List) {
+              final missing = (decoded['missing_permissions'] as List)
+                  .whereType<String>()
+                  .join(', ');
+              if (missing.isNotEmpty) {
+                errorMessage =
+                    '${decoded['error'] ?? 'permissions_denied'}: $missing';
+              }
+            }
+          } catch (_) {
+            // Ignora eventuali errori di parsing
+          }
+        }
+
+        setState(() {
+          _error = errorMessage;
+          _startStatus = null;
+        });
+      }
+    } catch (e) {
+      if (!mounted) return;
+      setState(() {
+        _error = 'Errore durante l\'avvio: $e';
+        _startStatus = null;
+      });
+    } finally {
+      if (mounted) {
+        setState(() {
+          _isRunning = false;
+        });
+      }
+    }
+  }
+
+  Future<void> _startServerStream({List<String>? grantedPermissions}) async {
+    _stopExecution();
+    setState(() {
+      _entries.clear();
+      _error = null;
+      _startStatus = null;
       _isRunning = true;
     });
 
@@ -407,6 +518,7 @@ class _BotDetailViewState extends State<BotDetailView> {
     setState(() {
       _entries.clear();
       _error = null;
+      _startStatus = null;
     });
   }
 
@@ -539,6 +651,16 @@ class _BotDetailViewState extends State<BotDetailView> {
               Text(
                 _error!,
                 style: TextStyle(color: Theme.of(context).colorScheme.error),
+              ),
+            ],
+            if (_startStatus != null) ...[
+              const SizedBox(height: 12),
+              Text(
+                _startStatus!,
+                style: TextStyle(
+                  color: Theme.of(context).colorScheme.primary,
+                  fontWeight: FontWeight.w600,
+                ),
               ),
             ],
             if (kIsWeb && !_shouldUseBrowserRunner) ...[
