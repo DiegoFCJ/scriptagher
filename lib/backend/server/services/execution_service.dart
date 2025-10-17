@@ -590,11 +590,13 @@ class ExecutionService {
     var inDoubleQuote = false;
     var escaping = false;
 
-    void flush() {
+    String? flush() {
       if (buffer.isNotEmpty) {
-        yield buffer.toString();
+        final token = buffer.toString();
         buffer.clear();
+        return token;
       }
+      return null;
     }
 
     for (final rune in command.runes) {
@@ -621,14 +623,20 @@ class ExecutionService {
       }
 
       if (char.trim().isEmpty && !inSingleQuote && !inDoubleQuote) {
-        flush();
+        final token = flush();
+        if (token != null) {
+          yield token;
+        }
         continue;
       }
 
       buffer.write(char);
     }
 
-    flush();
+    final token = flush();
+    if (token != null) {
+      yield token;
+    }
   }
 
   bool _looksLikePythonInterpreter(String value) {
