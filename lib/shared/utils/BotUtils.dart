@@ -36,6 +36,14 @@ class BotUtils {
       {String? expectedSha256}) {
     final normalized = Map<String, dynamic>.from(manifest);
 
+    final botName = _requireNonEmptyStringField(normalized,
+        const ['botName', 'name'], 'Manifest must include a non-empty botName');
+    normalized['botName'] = botName;
+
+    final version = _requireNonEmptyStringField(normalized, const ['version'],
+        'Manifest must include a non-empty version');
+    normalized['version'] = version;
+
     final dynamic shaCandidate =
         normalized['archiveSha256'] ?? normalized['sha256'];
     if (shaCandidate is! String || shaCandidate.trim().isEmpty) {
@@ -60,7 +68,7 @@ class BotUtils {
 
     final dynamic permissionsValue = normalized['permissions'];
     if (permissionsValue == null) {
-      throw const FormatException('permissions field is required');
+      throw const FormatException('Manifest must include a permissions field');
     }
     if (permissionsValue is! List) {
       throw const FormatException('permissions must be an array of strings');
@@ -78,6 +86,18 @@ class BotUtils {
     normalized['permissions'] = permissions;
 
     return normalized;
+  }
+
+  static String _requireNonEmptyStringField(Map<String, dynamic> manifest,
+      List<String> candidateKeys, String errorMessage) {
+    for (final key in candidateKeys) {
+      final value = manifest[key];
+      if (value is String && value.trim().isNotEmpty) {
+        return value.trim();
+      }
+    }
+
+    throw FormatException(errorMessage);
   }
 
   // Checks if a bot is available locally by looking for required files

@@ -97,6 +97,25 @@ class BotDownloadService {
         await botZip.delete();
       }
       rethrow;
+    } on FormatException catch (e) {
+      final message = e.message.isNotEmpty
+          ? e.message
+          : 'Manifest validation failed with an unknown error.';
+      logger.error(LOGS.BOT_SERVICE,
+          'Manifest validation failed for $language/$botName: $message');
+      await telemetryService.recordDownloadFailure(
+        language: language,
+        botName: botName,
+        reason: 'manifest_invalid',
+        extra: {
+          'error_type': e.runtimeType.toString(),
+          'message': message,
+        },
+      );
+      if (await botZip.exists()) {
+        await botZip.delete();
+      }
+      throw DownloadException('Manifest validation failed: $message');
     } catch (e) {
       logger.error(LOGS.BOT_SERVICE, 'Unexpected download error: $e');
       await telemetryService.recordDownloadFailure(
