@@ -1,4 +1,4 @@
-const String telemetryDsn = String.fromEnvironment(
-  'SCRIPTAGHER_SENTRY_DSN',
-  defaultValue: '',
+const bool telemetryDefaultOptIn = bool.fromEnvironment(
+  'SCRIPTAGHER_TELEMETRY_OPT_IN',
+  defaultValue: false,
 );

@@ -3,7 +3,6 @@ import 'dart:convert';
 
 import 'package:crypto/crypto.dart';
 import 'package:flutter/foundation.dart';
-import 'package:sentry_flutter/sentry_flutter.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
 import '../constants/telemetry.dart';
@@ -24,16 +23,16 @@ class TelemetryService {
 
   SharedPreferences? _prefs;
   bool _initialized = false;
-  bool _sentryInitialized = false;
 
   Future<void> initialize() async {
     _prefs ??= await SharedPreferences.getInstance();
-    final stored = _prefs?.getBool(_prefKey) ?? false;
-    telemetryEnabled.value = stored;
-    _initialized = true;
-    if (stored) {
-      await _ensureSentryInitialized();
+    final stored = _prefs?.getBool(_prefKey);
+    final initialValue = stored ?? telemetryDefaultOptIn;
+    telemetryEnabled.value = initialValue;
+    if (stored == null) {
+      await _prefs?.setBool(_prefKey, initialValue);
     }
+    _initialized = true;
   }
 
   Future<void> setTelemetryEnabled(bool enabled) async {
@@ -45,15 +44,13 @@ class TelemetryService {
     await _prefs?.setBool(_prefKey, enabled);
 
     if (enabled) {
-      await _ensureSentryInitialized();
       _logger.info('Telemetry', 'Telemetry enabled by user');
     } else {
-      await _shutdownSentry();
       _logger.info('Telemetry', 'Telemetry disabled by user');
     }
   }
 
-  bool get isEnabled => telemetryEnabled.value && telemetryDsn.isNotEmpty;
+  bool get isEnabled => telemetryEnabled.value;
 
   Future<void> recordDownloadFailure({
     String? language,
@@ -96,48 +93,21 @@ class TelemetryService {
       return;
     }
 
-    await _ensureSentryInitialized();
+    final sanitized = _sanitizeMetadata(extra);
 
-    await Sentry.captureMessage(
-      eventName,
-      withScope: (scope) {
-        scope.setTag('event_type', eventName);
-        scope.setTag('reason', reason);
-        if (language != null && language.isNotEmpty) {
-          scope.setTag('language', language);
-        }
-        if (botName != null && botName.isNotEmpty) {
-          scope.setExtra('bot', _hash(botName));
-        }
-        final sanitized = _sanitizeMetadata(extra);
-        sanitized.forEach(scope.setExtra);
-        scope.setTag('source', 'scriptagher_app');
-      },
+    final metadata = <String, dynamic>{
+      'event': eventName,
+      'reason': reason,
+      if (language != null && language.isNotEmpty) 'language': language,
+      if (botName != null && botName.isNotEmpty) 'bot': _hash(botName),
+      if (sanitized.isNotEmpty) 'extra': sanitized,
+    };
+
+    _logger.error(
+      'Telemetry',
+      'Captured telemetry event: $eventName',
+      metadata: metadata,
     );
-  }
-
-  Future<void> _ensureSentryInitialized() async {
-    if (_sentryInitialized || telemetryDsn.isEmpty) {
-      return;
-    }
-
-    await Sentry.init((options) {
-      options.dsn = telemetryDsn;
-      options.tracesSampleRate = 0.0;
-      options.sendDefaultPii = false;
-      options.enableDefaultIntegrations = false;
-      options.attachStacktrace = false;
-    });
-
-    _sentryInitialized = true;
-  }
-
-  Future<void> _shutdownSentry() async {
-    if (!_sentryInitialized) {
-      return;
-    }
-    await Sentry.close();
-    _sentryInitialized = false;
   }
 
   Map<String, Object?> _sanitizeMetadata(Map<String, Object?>? extra) {
