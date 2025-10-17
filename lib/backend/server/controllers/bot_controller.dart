@@ -15,10 +15,34 @@ class BotController {
 
   // Endpoint per ottenere la lista dei bot disponibili remoti
   Future<Response> fetchAvailableBots(Request request) async {
+    return _handleFetchAvailableBots(request);
+  }
+
+  Future<Response> refreshAvailableBots(Request request) async {
+    return _handleFetchAvailableBots(request, forceRefreshOverride: true);
+  }
+
+  Future<Response> _handleFetchAvailableBots(Request request,
+      {bool forceRefreshOverride = false}) async {
     try {
       logger.info(LOGS.BOT_SERVICE, 'Fetching list of available bots...');
-      final List<Bot> availableBots = await botGetService
-          .fetchAvailableBots(); // Restituisce una lista di bot con tutti i dettagli
+      final forceRefreshQuery =
+          _parseBool(request.url.queryParameters['forceRefresh']);
+      final bool forceRefresh = forceRefreshOverride || forceRefreshQuery;
+
+      Duration? cacheDuration;
+      final cacheSecondsParam = request.url.queryParameters['maxCacheAge'];
+      if (cacheSecondsParam != null) {
+        final seconds = int.tryParse(cacheSecondsParam);
+        if (seconds != null && seconds >= 0) {
+          cacheDuration = Duration(seconds: seconds);
+        }
+      }
+
+      final List<Bot> availableBots = await botGetService.fetchAvailableBots(
+        forceRefresh: forceRefresh,
+        cacheDuration: cacheDuration,
+      );
 
       // Logga i dettagli della risposta
       logger.info(LOGS.BOT_SERVICE, 'Fetched ${availableBots.length} bots.');
@@ -38,6 +62,12 @@ class BotController {
           }),
           headers: {'Content-Type': 'application/json'});
     }
+  }
+
+  bool _parseBool(String? value) {
+    if (value == null) return false;
+    final normalized = value.toLowerCase();
+    return normalized == '1' || normalized == 'true' || normalized == 'yes';
   }
 
   // Endpoint per scaricare un bot specifico

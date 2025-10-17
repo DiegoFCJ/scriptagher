@@ -18,6 +18,9 @@ class BotRoutes {
     router.get('/bots',
         (Request request) => botController.fetchAvailableBots(request));
 
+    router.get('/bots/refresh',
+        (Request request) => botController.refreshAvailableBots(request));
+
     router.get('/localbots', botController.fetchLocalBots);
 
     router.get('/bots/downloaded', botController.fetchDownloadedBots);

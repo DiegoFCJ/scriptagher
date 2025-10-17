@@ -9,8 +9,25 @@ class BotGetService {
 
   Future<Map<String, List<Bot>>> fetchBots() => fetchOnlineBots();
 
-  Future<Map<String, List<Bot>>> fetchOnlineBots() async {
-    return _fetchGrouped(Uri.parse('$baseUrl/bots'));
+  Future<Map<String, List<Bot>>> fetchOnlineBots(
+      {bool forceRefresh = false, Duration? maxCacheAge}) async {
+    final queryParameters = <String, String>{};
+    if (forceRefresh) {
+      queryParameters['forceRefresh'] = 'true';
+    }
+    if (maxCacheAge != null) {
+      queryParameters['maxCacheAge'] = maxCacheAge.inSeconds.toString();
+    }
+
+    final uri = Uri.parse('$baseUrl/bots').replace(
+      queryParameters: queryParameters.isEmpty ? null : queryParameters,
+    );
+
+    return _fetchGrouped(uri);
+  }
+
+  Future<Map<String, List<Bot>>> refreshOnlineBots() async {
+    return _fetchGrouped(Uri.parse('$baseUrl/bots/refresh'));
   }
 
   Future<Map<String, List<Bot>>> fetchDownloadedBots() async {

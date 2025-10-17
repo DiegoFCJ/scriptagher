@@ -21,6 +21,7 @@ class _BotListState extends State<BotList>
 
   BotCategory _selectedCategory = BotCategory.online;
   bool _argumentsHandled = false;
+  bool _isRefreshing = false;
 
   @override
   void initState() {
@@ -50,6 +51,29 @@ class _BotListState extends State<BotList>
       setState(() {
         _selectedCategory = BotCategory.values[_tabController.index];
       });
+    }
+  }
+
+  Future<void> _refreshOnlineBots({bool forceRefresh = false}) async {
+    final future = forceRefresh
+        ? _botGetService.refreshOnlineBots()
+        : _botGetService.fetchOnlineBots(forceRefresh: forceRefresh);
+
+    setState(() {
+      _isRefreshing = true;
+      _categoryFutures[BotCategory.online] = future;
+    });
+
+    try {
+      await future;
+    } catch (_) {
+      // L'errore sarà mostrato dal FutureBuilder associato.
+    } finally {
+      if (mounted) {
+        setState(() {
+          _isRefreshing = false;
+        });
+      }
     }
   }
 
@@ -143,6 +167,29 @@ class _BotListState extends State<BotList>
     return Scaffold(
       appBar: AppBar(
         title: const Text('Gestione Bot'),
+        actions: [
+          if (_selectedCategory == BotCategory.online)
+            Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 12.0),
+              child: _isRefreshing
+                  ? const Center(
+                      child: SizedBox(
+                        width: 24,
+                        height: 24,
+                        child: CircularProgressIndicator(strokeWidth: 2),
+                      ),
+                    )
+                  : TextButton.icon(
+                      onPressed: () => _refreshOnlineBots(forceRefresh: true),
+                      style: TextButton.styleFrom(
+                        foregroundColor:
+                            Theme.of(context).colorScheme.onPrimary,
+                      ),
+                      icon: const Icon(Icons.refresh),
+                      label: const Text('Aggiorna'),
+                    ),
+            ),
+        ],
         bottom: TabBar(
           controller: _tabController,
           tabs: BotCategory.values

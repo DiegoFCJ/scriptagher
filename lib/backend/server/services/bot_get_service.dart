@@ -12,50 +12,56 @@ class BotGetService {
   final GitHubApi gitHubApi;
   final SystemRuntimeService systemRuntimeService;
 
+  static const Duration _defaultCacheDuration = Duration(minutes: 15);
+
   BotGetService(
       this.botDatabase, this.gitHubApi, this.systemRuntimeService);
 
   /// Fetches the list of all available bots from the remote API.
-  Future<List<Bot>> fetchAvailableBots() async {
-    try {
-      logger.info('BotService', 'Fetching available bots list.');
+  Future<List<Bot>> fetchAvailableBots(
+      {bool forceRefresh = false, Duration? cacheDuration}) async {
+    final effectiveCacheDuration = cacheDuration ?? _defaultCacheDuration;
+    final now = DateTime.now().toUtc();
 
-      // Fetch the list of bots from GitHub API
-      final rawData = await gitHubApi.fetchBotsList();
-
-      // Lista per contenere tutti i bot
-      List<Bot> allBots = [];
-
-      for (var language in rawData.keys) {
-        for (var botData in rawData[language]) {
-          final botName = botData['botName'];
-          final path = botData['path'];
-
-          // Crea un bot con valori di fallback
-          Bot bot = Bot(
-            botName: botName,
-            description: 'No description available',
-            startCommand: 'No start command',
-            sourcePath: path,
-            language: language,
-          );
-
-          // Aggiorna ulteriormente con informazioni più precise
-          final botDetails = await _getBotDetails(language, bot);
-
-          allBots.add(botDetails);
+    if (!forceRefresh) {
+      final lastFetch = await botDatabase.getLastRemoteFetchAt();
+      if (lastFetch != null) {
+        final cacheAge = now.difference(lastFetch);
+        if (cacheAge <= effectiveCacheDuration) {
+          final cachedBots = await botDatabase.getAllBots();
+          if (cachedBots.isNotEmpty) {
+            logger.info('BotService',
+                'Serving ${cachedBots.length} bots from cache (age: ${cacheAge.inSeconds}s).');
+            return cachedBots;
+          }
         }
       }
+    }
 
-      // Salva la lista dei bot nel database
-      await botDatabase.insertBots(allBots);
-
+    try {
+      final remoteBots = await _fetchBotsFromRemote();
+      await botDatabase.insertBots(remoteBots);
+      await botDatabase.setLastRemoteFetchAt(now);
       logger.info('BotService',
-          'Successfully saved ${allBots.length} bots to the database.');
-
-      return allBots;
+          'Successfully saved ${remoteBots.length} bots to the database.');
+      return remoteBots;
     } catch (e) {
       logger.error('BotService', 'Error fetching bots: $e');
+      if (forceRefresh) {
+        rethrow;
+      }
+
+      try {
+        final cachedBots = await botDatabase.getAllBots();
+        if (cachedBots.isNotEmpty) {
+          logger.warn('BotService',
+              'Returning ${cachedBots.length} cached bots due to remote error.');
+          return cachedBots;
+        }
+      } catch (cacheError) {
+        logger.error('BotService', 'Error accessing cached bots: $cacheError');
+      }
+
       rethrow;
     }
   }
@@ -109,6 +115,36 @@ class BotGetService {
           'BotService', 'Error fetching details for ${bot.botName}: $e');
       return bot; // Fallisce solo parzialmente, ritorna comunque il bot senza aggiornamenti
     }
+  }
+
+  Future<List<Bot>> _fetchBotsFromRemote() async {
+    logger.info('BotService', 'Fetching available bots list from remote API.');
+    final rawData = await gitHubApi.fetchBotsList();
+
+    List<Bot> allBots = [];
+
+    for (var language in rawData.keys) {
+      for (var botData in rawData[language]) {
+        final botName = botData['botName'];
+        final path = botData['path'];
+
+        // Crea un bot con valori di fallback
+        Bot bot = Bot(
+          botName: botName,
+          description: 'No description available',
+          startCommand: 'No start command',
+          sourcePath: path,
+          language: language,
+        );
+
+        // Aggiorna ulteriormente con informazioni più precise
+        final botDetails = await _getBotDetails(language, bot);
+
+        allBots.add(botDetails);
+      }
+    }
+
+    return allBots;
   }
 
 

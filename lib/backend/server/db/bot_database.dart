@@ -7,6 +7,11 @@ import 'package:scriptagher/shared/custom_logger.dart';
 class BotDatabase {
   static final BotDatabase _instance = BotDatabase._internal();
   final CustomLogger logger = CustomLogger();
+  static const String _metadataTable = 'metadata';
+  static const String _metadataKeyColumn = 'key';
+  static const String _metadataValueColumn = 'value';
+  static const String _lastRemoteFetchKey = 'last_remote_fetch_epoch';
+
   Database? _database;
 
   BotDatabase._internal();
@@ -46,12 +51,13 @@ class BotDatabase {
 
     return openDatabase(
       path,
-      version: 3,
+      version: 4,
       onCreate: (db, version) async {
         logger.info('BotDatabase', "Creating database structure...");
         try {
           await _createBotsTable(db);
           await _createLocalBotsTable(db);
+          await _createMetadataTable(db);
           logger.info('BotDatabase', "Database structure created.");
         } catch (e) {
           logger.error(
@@ -73,6 +79,11 @@ class BotDatabase {
             logger.info('BotDatabase',
                 "compat_json column added to bots and local_bots tables.");
           }
+          if (oldVersion < 4) {
+            await _createMetadataTable(db);
+            logger.info('BotDatabase',
+                "metadata table created during upgrade to version 4.");
+          }
       } catch (e) {
         logger.error('BotDatabase', 'Error during database upgrade: $e');
       }
@@ -81,6 +92,7 @@ class BotDatabase {
       try {
         // 🛡 Verifica struttura dopo apertura, anche se onCreate/onUpgrade non chiamati
         await _createLocalBotsTable(db); // Sicuro grazie a IF NOT EXISTS
+        await _createMetadataTable(db);
         await _checkDatabaseStructure(db);
       } catch (e) {
         logger.error('BotDatabase', 'Error during structure verification: $e');
@@ -218,6 +230,63 @@ class BotDatabase {
     } else {
       logger.info('BotDatabase', "Table 'bots' exists and is ready.");
     }
+  }
+
+  Future<void> _createMetadataTable(Database db) async {
+    try {
+      await db.execute('''
+        CREATE TABLE IF NOT EXISTS $_metadataTable (
+          $_metadataKeyColumn TEXT PRIMARY KEY,
+          $_metadataValueColumn TEXT
+        );
+      ''');
+      logger.info('BotDatabase', "metadata table ensured.");
+    } catch (e) {
+      logger.error('BotDatabase', "Error creating metadata table: $e");
+    }
+  }
+
+  Future<void> setLastRemoteFetchAt(DateTime timestamp) async {
+    final db = await database;
+    final value = timestamp.millisecondsSinceEpoch.toString();
+    await db.insert(
+      _metadataTable,
+      {
+        _metadataKeyColumn: _lastRemoteFetchKey,
+        _metadataValueColumn: value,
+      },
+      conflictAlgorithm: ConflictAlgorithm.replace,
+    );
+    logger.info('BotDatabase',
+        'Last remote fetch timestamp saved: ${timestamp.toIso8601String()}');
+  }
+
+  Future<DateTime?> getLastRemoteFetchAt() async {
+    final db = await database;
+    final result = await db.query(
+      _metadataTable,
+      where: '$_metadataKeyColumn = ?',
+      whereArgs: [_lastRemoteFetchKey],
+      limit: 1,
+    );
+
+    if (result.isEmpty) {
+      return null;
+    }
+
+    final value = result.first[_metadataValueColumn];
+    if (value == null) {
+      return null;
+    }
+
+    final milliseconds = int.tryParse(value.toString());
+    if (milliseconds == null) {
+      logger.warn('BotDatabase',
+          'Invalid timestamp stored for last remote fetch: $value');
+      return null;
+    }
+
+    return DateTime.fromMillisecondsSinceEpoch(milliseconds, isUtc: true);
   }
 
   Future<void> _addCompatColumn(Database db, String tableName) async {
