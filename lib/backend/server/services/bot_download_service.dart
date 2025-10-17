@@ -8,6 +8,7 @@ import '../models/bot.dart';
 import 'package:scriptagher/shared/constants/APIS.dart';
 import 'package:scriptagher/shared/constants/LOGS.dart';
 import '../exceptions/download_exceptions.dart';
+import 'package:scriptagher/shared/exceptions/bot_manifest_validation_exception.dart';
 
 class BotDownloadService {
   final CustomLogger logger = CustomLogger();
@@ -32,20 +33,18 @@ class BotDownloadService {
     logger.info(LOGS.BOT_SERVICE, LOGS.extractComplete(botDir.path));
 
     final botJsonPath = '${botDir.path}/${APIS.BOT_FILE_CONFIG}';
-    final botDetails = await BotUtils.fetchBotDetails(botJsonPath);
+    try {
+      final botDetails = await BotUtils.fetchBotDetails(botJsonPath);
+      final bot = _mapManifestToBot(botDetails, language, botJsonPath);
+      await botDatabase.insertBot(bot);
+      await botZip.delete();
 
-    final bot = Bot(
-      botName: botDetails['botName'],
-      description: botDetails['description'],
-      startCommand: botDetails['startCommand'],
-      sourcePath: botJsonPath,
-      language: language,
-    );
-    await botDatabase.insertBot(bot);
-    await botZip.delete();
-
-    logger.info(LOGS.BOT_SERVICE, LOGS.downloadComplete(bot.botName));
-    return bot;
+      logger.info(LOGS.BOT_SERVICE, LOGS.downloadComplete(bot.botName));
+      return bot;
+    } on BotManifestValidationException catch (e) {
+      logger.error(LOGS.BOT_SERVICE, e.message);
+      rethrow;
+    }
   }
 
   Future<void> downloadFile(String fileUrl, File destination) async {
@@ -58,5 +57,45 @@ class BotDownloadService {
       logger.error(LOGS.BOT_SERVICE, errorMessage);
       throw DownloadException('Failed to download file. Response code: ${response.statusCode}');
     }
+  }
+
+  Future<Bot> importLocalBot(String language, String botDirectoryPath) async {
+    final botDir = Directory(botDirectoryPath);
+    if (!await botDir.exists()) {
+      throw FileSystemException('Bot directory not found', botDirectoryPath);
+    }
+
+    final botJsonPath = '${botDir.path}/${APIS.BOT_FILE_CONFIG}';
+
+    if (!await File(botJsonPath).exists()) {
+      throw FileSystemException('Bot manifest not found', botJsonPath);
+    }
+
+    try {
+      final botDetails = await BotUtils.fetchBotDetails(botJsonPath);
+      final bot = _mapManifestToBot(botDetails, language, botJsonPath);
+      await botDatabase.insertLocalBots([bot]);
+      logger.info(LOGS.BOT_SERVICE,
+          'Imported local bot ${bot.botName} for language $language');
+      return bot;
+    } on BotManifestValidationException catch (e) {
+      logger.error(LOGS.BOT_SERVICE, e.message);
+      rethrow;
+    }
+  }
+
+  Bot _mapManifestToBot(
+      Map<String, dynamic> manifest, String language, String sourcePath) {
+    final botName = manifest['botName'] ?? manifest['name'] ?? 'unknown';
+    final description = manifest['description'] ?? '';
+    final startCommand = manifest['startCommand'] ?? '';
+
+    return Bot(
+      botName: botName,
+      description: description,
+      startCommand: startCommand,
+      sourcePath: sourcePath,
+      language: language,
+    );
   }
 }
