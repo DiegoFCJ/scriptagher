@@ -1,6 +1,7 @@
 {
   "name": "bot-list",
   "version": "0.0.0",
+  "type": "module",
   "scripts": {
     "ng": "ng",
     "start": "ng serve",
@@ -8,7 +9,7 @@
     "watch": "ng build --watch --configuration development",
     "test": "ng test",
     "serve:ssr:bot-list": "node dist/bot-list/server/server.mjs",
-    "deploy": "npx angular-cli-ghpages --branch=gh-pages --message 'Deploy to GitHub Pages'"
+    "deploy": "npx angular-cli-ghpages --dir=dist/bot-list/browser --branch=gh-pages --message 'Deploy to GitHub Pages'"
   },
   "private": true,
   "dependencies": {
