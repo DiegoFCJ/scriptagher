@@ -8,7 +8,7 @@
     "watch": "ng build --watch --configuration development",
     "test": "ng test",
     "serve:ssr:bot-list": "node dist/bot-list/server/server.mjs",
-    "deploy": "ng deploy"
+    "deploy": "npm run build && npx gh-pages -d dist/bot-list/browser --branch gh-pages --message 'Deploy to GitHub Pages'"
   },
   "private": true,
   "dependencies": {
