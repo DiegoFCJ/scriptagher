@@ -1,14 +1,17 @@
 import 'dart:async';
+
 import 'package:shelf/shelf.dart';
 import 'package:shelf/shelf_io.dart' as io;
-import 'package:scriptagher/shared/custom_logger.dart';
 import 'package:scriptagher/shared/constants/LOGS.dart';
+import 'package:scriptagher/shared/custom_logger.dart';
+
+import 'api_integration/github_api.dart';
 import 'controllers/bot_controller.dart';
-import 'services/bot_get_service.dart';
-import 'services/bot_download_service.dart';
 import 'db/bot_database.dart';
 import 'routes.dart';
-import 'package:scriptagher/backend/server/api_integration/github_api.dart';
+import 'services/bot_download_service.dart';
+import 'services/bot_get_service.dart';
+import 'services/execution_service.dart';
 
 Future<void> startServer() async {
   // Crea un'istanza del CustomLogger
@@ -19,7 +22,9 @@ Future<void> startServer() async {
   // Istanzia il BotService e BotController
   final botGetService = BotGetService(botDatabase, gitHubApi);
   final botDownloadService = BotDownloadService();
-  final botController = BotController(botDownloadService, botGetService);
+  final executionService = ExecutionService();
+  final botController =
+      BotController(botDownloadService, botGetService, executionService);
 
   // Ottieni il router con le rotte definite
   final botRoutes = BotRoutes(botController);

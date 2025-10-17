@@ -1,17 +1,25 @@
 import 'dart:convert';
+
 import 'package:shelf/shelf.dart';
-import 'package:scriptagher/shared/custom_logger.dart';
 import 'package:scriptagher/shared/constants/LOGS.dart';
-import '../services/bot_get_service.dart';
-import '../services/bot_download_service.dart';
+import 'package:scriptagher/shared/custom_logger.dart';
+
 import '../models/bot.dart';
+import '../services/bot_download_service.dart';
+import '../services/bot_get_service.dart';
+import '../services/execution_service.dart';
 
 class BotController {
   final CustomLogger logger = CustomLogger();
   final BotDownloadService botDownloadService;
   final BotGetService botGetService;
+  final ExecutionService executionService;
 
-  BotController(this.botDownloadService, this.botGetService);
+  BotController(
+    this.botDownloadService,
+    this.botGetService,
+    this.executionService,
+  );
 
   // Endpoint per ottenere la lista dei bot disponibili remoti
   Future<Response> fetchAvailableBots(Request request) async {
@@ -83,6 +91,100 @@ class BotController {
       return Response.internalServerError(
         body: json.encode({
           'error': 'Error fetching local bots',
+          'message': e.toString(),
+        }),
+        headers: {'Content-Type': 'application/json'},
+      );
+    }
+  }
+
+  Future<Response> stopBot(
+      Request request, String language, String botName) async {
+    try {
+      logger.info(LOGS.BOT_SERVICE, 'Stopping bot: $language/$botName');
+
+      final stopped = executionService.stopBot(language, botName);
+      if (!stopped) {
+        final exitCode = executionService.getExitCode(language, botName);
+        if (exitCode != null) {
+          return Response.ok(
+            json.encode({
+              'status': 'already_finished',
+              'exitCode': exitCode,
+            }),
+            headers: {'Content-Type': 'application/json'},
+          );
+        }
+        return Response.notFound(
+          json.encode({
+            'error': 'Process not found',
+            'message': 'No running process for $language/$botName',
+          }),
+          headers: {'Content-Type': 'application/json'},
+        );
+      }
+
+      final exitCode = await executionService.waitForExitCode(language, botName);
+
+      return Response.ok(
+        json.encode({
+          'status': 'stopped',
+          'exitCode': exitCode,
+        }),
+        headers: {'Content-Type': 'application/json'},
+      );
+    } catch (e) {
+      logger.error(LOGS.BOT_SERVICE, 'Error stopping bot: $e');
+      return Response.internalServerError(
+        body: json.encode({
+          'error': 'Error stopping bot',
+          'message': e.toString(),
+        }),
+        headers: {'Content-Type': 'application/json'},
+      );
+    }
+  }
+
+  Future<Response> killBot(
+      Request request, String language, String botName) async {
+    try {
+      logger.warn(LOGS.BOT_SERVICE, 'Killing bot: $language/$botName');
+
+      final killed = executionService.killBot(language, botName);
+      if (!killed) {
+        final exitCode = executionService.getExitCode(language, botName);
+        if (exitCode != null) {
+          return Response.ok(
+            json.encode({
+              'status': 'already_finished',
+              'exitCode': exitCode,
+            }),
+            headers: {'Content-Type': 'application/json'},
+          );
+        }
+        return Response.notFound(
+          json.encode({
+            'error': 'Process not found',
+            'message': 'No running process for $language/$botName',
+          }),
+          headers: {'Content-Type': 'application/json'},
+        );
+      }
+
+      final exitCode = await executionService.waitForExitCode(language, botName);
+
+      return Response.ok(
+        json.encode({
+          'status': 'killed',
+          'exitCode': exitCode,
+        }),
+        headers: {'Content-Type': 'application/json'},
+      );
+    } catch (e) {
+      logger.error(LOGS.BOT_SERVICE, 'Error killing bot: $e');
+      return Response.internalServerError(
+        body: json.encode({
+          'error': 'Error killing bot',
           'message': e.toString(),
         }),
         headers: {'Content-Type': 'application/json'},
