@@ -7,6 +7,9 @@ import 'package:scriptagher/shared/custom_logger.dart';
 class BotDatabase {
   static final BotDatabase _instance = BotDatabase._internal();
   final CustomLogger logger = CustomLogger();
+  static const String _metadataTable = 'metadata';
+  static const String _lastRemoteFetchKey = 'last_remote_fetch';
+
   Database? _database;
 
   BotDatabase._internal();
@@ -37,7 +40,6 @@ class BotDatabase {
     final path = join(await getDatabasesPath(), 'bot_database.db');
     logger.info('BotDatabase', "Database path: $path");
 
-    // Controlla se il file esiste
     final fileExists = await File(path).exists();
     logger.info(
         'BotDatabase',
@@ -47,23 +49,68 @@ class BotDatabase {
 
     return openDatabase(
       path,
-      version: 2,
+      version: 6,
       onCreate: (db, version) async {
         logger.info('BotDatabase', "Creating database structure...");
         try {
           await _createBotsTable(db);
+          await _createLocalBotsTable(db);
+          await _createMetadataTable(db);
           logger.info('BotDatabase', "Database structure created.");
         } catch (e) {
-          logger.error('BotDatabase', 'Error during database table creation: $e');
+          logger.error(
+              'BotDatabase', 'Error during database table creation: $e');
         }
       },
       onUpgrade: (db, oldVersion, newVersion) async {
-        logger.info('BotDatabase', "Upgrading database from $oldVersion to $newVersion...");
-        // Implementa aggiornamenti futuri del database qui
+        logger.info('BotDatabase',
+            "Upgrading database from v$oldVersion to v$newVersion...");
+        try {
+          if (oldVersion < 2) {
+            await _createLocalBotsTable(db);
+            logger.info(
+                'BotDatabase', "local_bots table created during upgrade.");
+          }
+          if (oldVersion < 3) {
+            await _addCompatColumn(db, 'bots');
+            await _addCompatColumn(db, 'local_bots');
+            logger.info('BotDatabase',
+                "compat_json column added to bots and local_bots tables.");
+          }
+          if (oldVersion < 4) {
+            await _addPermissionsColumns(db, 'bots');
+            await _addPermissionsColumns(db, 'local_bots');
+            logger.info(
+              'BotDatabase',
+              "permissions_json and archive_sha256 columns added to bots and local_bots tables.",
+            );
+          }
+          if (oldVersion < 5) {
+            await _createMetadataTable(db);
+            logger.info(
+                'BotDatabase', "metadata table created during upgrade.");
+          }
+          if (oldVersion < 6) {
+            await _addMetadataColumns(db, 'bots');
+            await _addMetadataColumns(db, 'local_bots');
+            logger.info('BotDatabase',
+                "Metadata columns added to bots and local_bots tables.");
+          }
+      } catch (e) {
+        logger.error('BotDatabase', 'Error during database upgrade: $e');
+      }
       },
     ).then((db) async {
-      // Controlla la struttura dopo l'inizializzazione
-      await _checkDatabaseStructure(db);
+      try {
+        // 🛡 Verifica struttura dopo apertura, anche se onCreate/onUpgrade non chiamati
+        await _createLocalBotsTable(db); // Sicuro grazie a IF NOT EXISTS
+        await _createMetadataTable(db);
+        await _addMetadataColumns(db, 'bots');
+        await _addMetadataColumns(db, 'local_bots');
+        await _checkDatabaseStructure(db);
+      } catch (e) {
+        logger.error('BotDatabase', 'Error during structure verification: $e');
+      }
       return db;
     });
   }
@@ -78,7 +125,13 @@ class BotDatabase {
           description TEXT,
           start_command TEXT,
           source_path TEXT,
-          language TEXT NOT NULL
+          language TEXT NOT NULL,
+          compat_json TEXT,
+          permissions_json TEXT,
+          archive_sha256 TEXT,
+          version TEXT,
+          author TEXT,
+          tags_json TEXT
         );
       ''');
       logger.info('BotDatabase', "Bots table created successfully.");
@@ -163,6 +216,15 @@ class BotDatabase {
     } else {
       logger.info('BotDatabase', "Table 'bots' exists.");
     }
+
+    final result2 = await db.rawQuery(
+        "SELECT name FROM sqlite_master WHERE type='table' AND name='local_bots';");
+
+    if (result2.isEmpty) {
+      logger.warn('BotDatabase', "Table 'local_bots' does NOT exist.");
+    } else {
+      logger.info('BotDatabase', "Table 'local_bots' exists.");
+    }
   }
 
   /// Controlla se il bot è già presente
@@ -182,9 +244,268 @@ class BotDatabase {
     final tables = await db.rawQuery(
         "SELECT name FROM sqlite_master WHERE type='table' AND name='bots';");
     if (tables.isEmpty) {
-      logger.error('BotDatabase', "Table 'bots' does NOT exist. Something went wrong.");
+      logger.error(
+          'BotDatabase', "Table 'bots' does NOT exist. Something went wrong.");
     } else {
       logger.info('BotDatabase', "Table 'bots' exists and is ready.");
+    }
+  }
+
+  Future<void> _addCompatColumn(Database db, String tableName) async {
+    final columns = await db.rawQuery('PRAGMA table_info($tableName);');
+    final hasCompatColumn = columns.any(
+      (column) => column['name'] == 'compat_json',
+    );
+
+    if (!hasCompatColumn) {
+      try {
+        await db.execute('ALTER TABLE $tableName ADD COLUMN compat_json TEXT;');
+        logger.info('BotDatabase',
+            "compat_json column added to table '$tableName'.");
+      } catch (e) {
+        logger.error('BotDatabase',
+            "Error adding compat_json column to $tableName: $e");
+      }
+    }
+  }
+
+  Future<void> _addPermissionsColumns(Database db, String tableName) async {
+    final columns = await db.rawQuery('PRAGMA table_info($tableName);');
+    final hasPermissions =
+        columns.any((column) => column['name'] == 'permissions_json');
+    final hasArchive =
+        columns.any((column) => column['name'] == 'archive_sha256');
+
+    if (!hasPermissions) {
+      try {
+        await db
+            .execute('ALTER TABLE $tableName ADD COLUMN permissions_json TEXT;');
+        logger.info('BotDatabase',
+            "permissions_json column added to table '$tableName'.");
+      } catch (e) {
+        logger.error('BotDatabase',
+            "Error adding permissions_json column to $tableName: $e");
+      }
+    }
+
+    if (!hasArchive) {
+      try {
+        await db
+            .execute('ALTER TABLE $tableName ADD COLUMN archive_sha256 TEXT;');
+        logger.info('BotDatabase',
+            "archive_sha256 column added to table '$tableName'.");
+      } catch (e) {
+        logger.error('BotDatabase',
+            "Error adding archive_sha256 column to $tableName: $e");
+      }
+    }
+  }
+
+  Future<void> _addMetadataColumns(Database db, String tableName) async {
+    final columns = await db.rawQuery('PRAGMA table_info($tableName);');
+    final hasVersion = columns.any((column) => column['name'] == 'version');
+    final hasAuthor = columns.any((column) => column['name'] == 'author');
+    final hasTags = columns.any((column) => column['name'] == 'tags_json');
+
+    if (!hasVersion) {
+      try {
+        await db
+            .execute('ALTER TABLE $tableName ADD COLUMN version TEXT;');
+        logger.info('BotDatabase',
+            "version column added to table '$tableName'.");
+      } catch (e) {
+        logger.error('BotDatabase',
+            "Error adding version column to $tableName: $e");
+      }
+    }
+
+    if (!hasAuthor) {
+      try {
+        await db.execute('ALTER TABLE $tableName ADD COLUMN author TEXT;');
+        logger.info(
+            'BotDatabase', "author column added to table '$tableName'.");
+      } catch (e) {
+        logger.error('BotDatabase',
+            "Error adding author column to $tableName: $e");
+      }
+    }
+
+    if (!hasTags) {
+      try {
+        await db
+            .execute('ALTER TABLE $tableName ADD COLUMN tags_json TEXT;');
+        logger.info(
+            'BotDatabase', "tags_json column added to table '$tableName'.");
+      } catch (e) {
+        logger.error('BotDatabase',
+            "Error adding tags_json column to $tableName: $e");
+      }
+    }
+  }
+
+  // --------------------------------------- LOCAL BOTS --------------------------------------- \\
+  Future<void> _createLocalBotsTable(Database db) async {
+    try {
+      await db.execute('''
+        CREATE TABLE IF NOT EXISTS local_bots (
+          id INTEGER PRIMARY KEY AUTOINCREMENT,
+          bot_name TEXT NOT NULL,
+          description TEXT,
+          start_command TEXT,
+          source_path TEXT,
+          language TEXT NOT NULL,
+          compat_json TEXT,
+          permissions_json TEXT,
+          archive_sha256 TEXT,
+          version TEXT,
+          author TEXT,
+          tags_json TEXT
+        );
+      ''');
+      logger.info('BotDatabase', "local_bots table created successfully.");
+    } catch (e) {
+      logger.error('BotDatabase', "Error creating 'local_bots' table: $e");
+    }
+  }
+
+  Future<void> _createMetadataTable(Database db) async {
+    try {
+      await db.execute('''
+        CREATE TABLE IF NOT EXISTS $_metadataTable (
+          key TEXT PRIMARY KEY,
+          value TEXT
+        );
+      ''');
+      logger.info('BotDatabase', "$_metadataTable table ensured.");
+    } catch (e) {
+      logger.error(
+          'BotDatabase', "Error creating '$_metadataTable' table: $e");
+    }
+  }
+
+  // Recupera i bot locali salvati
+  Future<List<Bot>> getLocalBots() async {
+    final db = await database;
+    final List<Map<String, dynamic>> maps = await db.query('local_bots');
+    return List.generate(maps.length, (i) => Bot.fromMap(maps[i]));
+  }
+
+  // Controlla se local_bots ha almeno un bot
+  Future<bool> hasLocalBots() async {
+    final db = await database;
+    final count = Sqflite.firstIntValue(
+      await db.rawQuery('SELECT COUNT(*) FROM local_bots'),
+    );
+    return (count ?? 0) > 0;
+  }
+
+  // Inserisce o aggiorna lista bot in local_bots
+  Future<void> insertLocalBots(List<Bot> bots) async {
+    final db = await database;
+    final batch = db.batch();
+    for (var bot in bots) {
+      batch.insert(
+        'local_bots',
+        bot.toMap(),
+        conflictAlgorithm: ConflictAlgorithm.replace,
+      );
+    }
+    await batch.commit(noResult: true);
+  }
+
+  Future<void> insertOrUpdateLocalBot(Bot bot) async {
+    final db = await database;
+    await db.insert(
+      'local_bots',
+      bot.toMap(),
+      conflictAlgorithm: ConflictAlgorithm.replace,
+    );
+    logger.info('BotDatabase', 'Local bot ${bot.botName} saved.');
+  }
+
+  // Cancella tutti i bot locali (se serve)
+  Future<void> clearLocalBots() async {
+    final db = await database;
+    await db.delete('local_bots');
+  }
+
+  Future<Bot?> findBotByName(String language, String botName) async {
+    final db = await database;
+
+    final result = await db.query(
+      'bots',
+      where: 'bot_name = ? AND language = ?',
+      whereArgs: [botName, language],
+      limit: 1,
+    );
+
+    if (result.isNotEmpty) {
+      return Bot.fromMap(result.first);
+    }
+
+    final localResult = await db.query(
+      'local_bots',
+      where: 'bot_name = ? AND language = ?',
+      whereArgs: [botName, language],
+      limit: 1,
+    );
+
+    if (localResult.isNotEmpty) {
+      return Bot.fromMap(localResult.first);
+    }
+
+    return null;
+  }
+
+  Future<void> setLastRemoteFetch(DateTime timestamp) async {
+    final db = await database;
+    final utcTimestamp = timestamp.toUtc();
+    try {
+      await db.insert(
+        _metadataTable,
+        {
+          'key': _lastRemoteFetchKey,
+          'value': utcTimestamp.toIso8601String(),
+        },
+        conflictAlgorithm: ConflictAlgorithm.replace,
+      );
+      logger.info('BotDatabase',
+          'Updated last remote fetch timestamp to ${utcTimestamp.toIso8601String()}');
+    } catch (e) {
+      logger.error(
+          'BotDatabase', 'Error updating last remote fetch timestamp: $e');
+    }
+  }
+
+  Future<DateTime?> getLastRemoteFetch() async {
+    final db = await database;
+    try {
+      final result = await db.query(
+        _metadataTable,
+        where: 'key = ?',
+        whereArgs: [_lastRemoteFetchKey],
+        limit: 1,
+      );
+
+      if (result.isEmpty) {
+        return null;
+      }
+
+      final value = result.first['value'];
+      if (value is String && value.isNotEmpty) {
+        try {
+          return DateTime.parse(value).toUtc();
+        } catch (_) {
+          logger.warn('BotDatabase',
+              'Stored last remote fetch timestamp is invalid: $value');
+          return null;
+        }
+      }
+      return null;
+    } catch (e) {
+      logger.error(
+          'BotDatabase', 'Error retrieving last remote fetch timestamp: $e');
+      return null;
     }
   }
 }

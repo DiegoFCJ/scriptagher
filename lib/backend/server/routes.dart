@@ -15,8 +15,29 @@ class BotRoutes {
         (Request request, String language, String botName) =>
             botController.downloadBot(request, language, botName));
 
-    router.get(
-        '/bots', (Request request) => botController.fetchAvailableBots(request));
+    router.get('/bots',
+        (Request request) => botController.fetchAvailableBots(request));
+
+    router.get('/localbots', botController.fetchLocalBots);
+
+    router.get('/bots/downloaded', botController.fetchDownloadedBots);
+
+    router.post('/bots/upload', botController.uploadBot);
+
+    router.post(
+        '/bots/<language>/<botName>/start',
+        (Request request, String language, String botName) =>
+            botController.startBot(request, language, botName));
+
+    router.post(
+        '/bots/<language>/<botName>/stop',
+        (Request request, String language, String botName) =>
+            botController.stopBot(request, language, botName));
+
+    router.post(
+        '/bots/<language>/<botName>/kill',
+        (Request request, String language, String botName) =>
+            botController.killBot(request, language, botName));
 
     return router;
   }

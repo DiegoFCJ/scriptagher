@@ -87,3 +87,6 @@ flutter/.plugin/
 .angular/
 dist/
 node_modules/
+
+# Ignore local bots directory
+/localbots
