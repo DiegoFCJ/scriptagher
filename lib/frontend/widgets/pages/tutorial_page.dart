@@ -99,6 +99,7 @@ class TutorialPage extends StatelessWidget {
                 '{\n'
                 '  "botName": "MyAwesomeBot",\n'
                 '  "version": "1.0.0",\n'
+                '  "archiveSha256": "0123456789abcdef...",\n'
                 '  "description": "Esempio di bot che stampa un messaggio",\n'
                 '  "author": "Jane Doe",\n'
                 '  "language": "python",\n'
@@ -127,7 +128,7 @@ class TutorialPage extends StatelessWidget {
             const _NumberedList(
               items: [
                 'Scopri i bot nella libreria Online o prepara una nuova cartella locale.',
-                'Compila Bot.json con metadati, entrypoint, permessi e comandi di installazione.',
+                'Compila Bot.json con metadati, hash SHA-256, permessi e comandi di installazione.',
                 'Testa il bot localmente eseguendo l\'entrypoint con gli stessi argomenti.',
                 'Comprimi la cartella e caricala nel marketplace oppure copiala nelle directory monitorate.',
                 'Scarica o apri il bot da Scriptagher per installarlo ed eseguirlo dal dettaglio.',

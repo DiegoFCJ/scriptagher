@@ -46,7 +46,7 @@ class BotDatabase {
 
     return openDatabase(
       path,
-      version: 3,
+      version: 4,
       onCreate: (db, version) async {
         logger.info('BotDatabase', "Creating database structure...");
         try {
@@ -72,6 +72,14 @@ class BotDatabase {
             await _addCompatColumn(db, 'local_bots');
             logger.info('BotDatabase',
                 "compat_json column added to bots and local_bots tables.");
+          }
+          if (oldVersion < 4) {
+            await _addPermissionsColumns(db, 'bots');
+            await _addPermissionsColumns(db, 'local_bots');
+            logger.info(
+              'BotDatabase',
+              "permissions_json and archive_sha256 columns added to bots and local_bots tables.",
+            );
           }
       } catch (e) {
         logger.error('BotDatabase', 'Error during database upgrade: $e');
@@ -100,7 +108,9 @@ class BotDatabase {
           start_command TEXT,
           source_path TEXT,
           language TEXT NOT NULL,
-          compat_json TEXT
+          compat_json TEXT,
+          permissions_json TEXT,
+          archive_sha256 TEXT
         );
       ''');
       logger.info('BotDatabase', "Bots table created successfully.");
@@ -238,6 +248,38 @@ class BotDatabase {
     }
   }
 
+  Future<void> _addPermissionsColumns(Database db, String tableName) async {
+    final columns = await db.rawQuery('PRAGMA table_info($tableName);');
+    final hasPermissions =
+        columns.any((column) => column['name'] == 'permissions_json');
+    final hasArchive =
+        columns.any((column) => column['name'] == 'archive_sha256');
+
+    if (!hasPermissions) {
+      try {
+        await db
+            .execute('ALTER TABLE $tableName ADD COLUMN permissions_json TEXT;');
+        logger.info('BotDatabase',
+            "permissions_json column added to table '$tableName'.");
+      } catch (e) {
+        logger.error('BotDatabase',
+            "Error adding permissions_json column to $tableName: $e");
+      }
+    }
+
+    if (!hasArchive) {
+      try {
+        await db
+            .execute('ALTER TABLE $tableName ADD COLUMN archive_sha256 TEXT;');
+        logger.info('BotDatabase',
+            "archive_sha256 column added to table '$tableName'.");
+      } catch (e) {
+        logger.error('BotDatabase',
+            "Error adding archive_sha256 column to $tableName: $e");
+      }
+    }
+  }
+
   // --------------------------------------- LOCAL BOTS --------------------------------------- \\
   Future<void> _createLocalBotsTable(Database db) async {
     try {
@@ -249,7 +291,9 @@ class BotDatabase {
           start_command TEXT,
           source_path TEXT,
           language TEXT NOT NULL,
-          compat_json TEXT
+          compat_json TEXT,
+          permissions_json TEXT,
+          archive_sha256 TEXT
         );
       ''');
       logger.info('BotDatabase', "local_bots table created successfully.");

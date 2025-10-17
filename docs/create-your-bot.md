@@ -26,9 +26,10 @@ my-awesome-bot/
 ## Esempio di `Bot.json`
 
 ```json
-{
+{ 
   "botName": "MyAwesomeBot",
   "version": "1.0.0",
+  "archiveSha256": "0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef",
   "description": "Esempio di bot che stampa un messaggio",
   "author": "Jane Doe",
   "language": "python",
@@ -62,11 +63,14 @@ Campi principali:
 * **version** – utile per aggiornamenti.
 * **description** – anteprima rapida della funzionalità.
 * **language** – usato dal backend per scegliere il runtime.
+* **archiveSha256** – hash SHA-256 dell'archivio `.zip` distribuito, usato per
+  verificare l'integrità prima e dopo l'estrazione.
 * **entrypoint** – file o comando da eseguire.
 * **args** – argomenti opzionali.
 * **environment** – variabili d'ambiente aggiuntive.
 * **postInstall** – comandi eseguiti dopo il download per preparare il bot.
-* **permissions** – elenco dichiarativo delle risorse richieste.
+* **permissions** – elenco dichiarativo delle risorse richieste; l'utente deve
+  esplicitamente concederle prima dell'esecuzione.
 * **compat** – compatibilità dichiarativa: elenca i runtime desktop necessari
   (`runtimes`) e indica se il bot è eseguibile nel browser (`browser.supported`).
   Specifica un motivo opzionale (`browser.reason`) quando il supporto non è
@@ -76,11 +80,13 @@ Campi principali:
 
 1. **Scoperta** – i bot pubblicati online vengono elencati nella sezione "Online".
 2. **Download** – l'utente avvia il download; il pacchetto zip viene salvato nel
-   database locale e sul filesystem.
+   database locale e sul filesystem. L'applicazione calcola l'hash SHA-256 del
+   file e lo confronta con `archiveSha256` per prevenire manomissioni.
 3. **Installazione** – se `postInstall` contiene comandi, il backend li esegue
    nell'ambiente isolato del bot.
-4. **Esecuzione** – dall'interfaccia è possibile avviare il bot: il backend
-   esegue l'`entrypoint` impostando argomenti e variabili indicati.
+4. **Esecuzione** – dall'interfaccia è possibile avviare il bot: prima
+   dell'esecuzione viene mostrato un prompt di consenso per i permessi
+   dichiarati e il backend verifica che siano stati concessi.
 5. **Monitoraggio** – l'output viene mostrato in tempo reale nella pagina di
    dettaglio del bot.
 

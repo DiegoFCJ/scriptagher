@@ -8,6 +8,8 @@ class Bot {
   final String sourcePath;
   final String language;
   final BotCompat compat;
+  final List<String> permissions;
+  final String? archiveSha256;
 
   Bot({
     this.id,
@@ -17,6 +19,8 @@ class Bot {
     required this.sourcePath,
     required this.language,
     this.compat = const BotCompat(),
+    this.permissions = const [],
+    this.archiveSha256,
   });
 
   // Metodo factory per creare una nuova versione di Bot con dettagli aggiornati
@@ -24,6 +28,8 @@ class Bot {
     String? description,
     String? startCommand,
     BotCompat? compat,
+    List<String>? permissions,
+    String? archiveSha256,
   }) {
     return Bot(
       id: id,
@@ -33,6 +39,8 @@ class Bot {
       sourcePath: sourcePath,
       language: language,
       compat: compat ?? this.compat,
+      permissions: permissions ?? this.permissions,
+      archiveSha256: archiveSha256 ?? this.archiveSha256,
     );
   }
 
@@ -45,6 +53,8 @@ class Bot {
       'source_path': sourcePath,
       'language': language,
       'compat_json': jsonEncode(compat.toJson()),
+      'permissions_json': jsonEncode(permissions),
+      'archive_sha256': archiveSha256,
     };
   }
 
@@ -57,6 +67,8 @@ class Bot {
       'source_path': sourcePath,
       'language': language,
       'compat': compat.toJson(),
+      'permissions': permissions,
+      'archive_sha256': archiveSha256,
     };
   }
 
@@ -73,6 +85,27 @@ class Bot {
       compat = BotCompat.fromJson(map['compat'] as Map<String, dynamic>);
     }
 
+    List<String> permissions = const [];
+    final permissionsJson = map['permissions_json'];
+    if (permissionsJson is String && permissionsJson.isNotEmpty) {
+      try {
+        final decoded = jsonDecode(permissionsJson);
+        if (decoded is List) {
+          permissions = decoded.whereType<String>().toList();
+        }
+      } catch (_) {
+        permissions = const [];
+      }
+    } else if (map['permissions'] is List) {
+      permissions = (map['permissions'] as List).whereType<String>().toList();
+    }
+
+    String? archiveSha256;
+    final archiveValue = map['archive_sha256'];
+    if (archiveValue is String && archiveValue.isNotEmpty) {
+      archiveSha256 = archiveValue;
+    }
+
     return Bot(
       id: map['id'],
       botName: map['bot_name'],
@@ -81,6 +114,8 @@ class Bot {
       sourcePath: map['source_path'],
       language: map['language'],
       compat: compat,
+      permissions: permissions,
+      archiveSha256: archiveSha256,
     );
   }
 }

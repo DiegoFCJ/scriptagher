@@ -6,6 +6,8 @@ class Bot {
   final String sourcePath;
   final String language;
   final BotCompat compat;
+  final List<String> permissions;
+  final String? archiveSha256;
 
   Bot({
     this.id,
@@ -15,6 +17,8 @@ class Bot {
     required this.sourcePath,
     required this.language,
     this.compat = const BotCompat(),
+    this.permissions = const [],
+    this.archiveSha256,
   });
 
   // Metodo factory per creare una nuova versione di Bot con dettagli aggiornati
@@ -22,6 +26,8 @@ class Bot {
     String? description,
     String? startCommand,
     BotCompat? compat,
+    List<String>? permissions,
+    String? archiveSha256,
   }) {
     return Bot(
       id: id,
@@ -31,6 +37,8 @@ class Bot {
       sourcePath: sourcePath,
       language: language,
       compat: compat ?? this.compat,
+      permissions: permissions ?? this.permissions,
+      archiveSha256: archiveSha256 ?? this.archiveSha256,
     );
   }
 
@@ -43,6 +51,8 @@ class Bot {
       'source_path': sourcePath,
       'language': language,
       'compat': compat.toJson(),
+      'permissions': permissions,
+      'archive_sha256': archiveSha256,
     };
   }
 
@@ -55,6 +65,9 @@ class Bot {
       sourcePath: map['source_path'],
       language: map['language'],
       compat: BotCompat.fromJson(map['compat']),
+      permissions:
+          (map['permissions'] as List?)?.whereType<String>().toList() ?? const [],
+      archiveSha256: map['archive_sha256'] as String?,
     );
   }
 
@@ -66,6 +79,9 @@ class Bot {
       sourcePath: json['source_path'] ?? '',
       language: json['language'] ?? '',
       compat: BotCompat.fromJson(json['compat']),
+      permissions:
+          (json['permissions'] as List?)?.whereType<String>().toList() ?? const [],
+      archiveSha256: json['archive_sha256'] as String?,
     );
   }
 }

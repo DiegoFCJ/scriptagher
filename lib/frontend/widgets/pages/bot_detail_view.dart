@@ -86,7 +86,21 @@ class _BotDetailViewState extends State<BotDetailView> {
     }
   }
 
-  void _startExecution() async {
+  Future<void> _requestExecution() async {
+    if (_isRunning) return;
+    final permissions = widget.bot.permissions;
+    if (permissions.isNotEmpty) {
+      final accepted = await _showPermissionsDialog(permissions);
+      if (accepted != true) {
+        return;
+      }
+      await _startExecution(grantedPermissions: permissions);
+    } else {
+      await _startExecution();
+    }
+  }
+
+  Future<void> _startExecution({List<String>? grantedPermissions}) async {
     _stopExecution();
     setState(() {
       _entries.clear();
@@ -97,8 +111,14 @@ class _BotDetailViewState extends State<BotDetailView> {
     final client = http.Client();
     _client = client;
 
-    final uri = Uri.parse(
+    final baseUri = Uri.parse(
         '${widget.baseUrl}/bots/${Uri.encodeComponent(widget.bot.language)}/${Uri.encodeComponent(widget.bot.botName)}/stream');
+    final uri = (grantedPermissions != null && grantedPermissions.isNotEmpty)
+        ? baseUri.replace(queryParameters: {
+            ...baseUri.queryParameters,
+            'grantedPermissions': grantedPermissions.join(','),
+          })
+        : baseUri;
 
     try {
       final request = http.Request('GET', uri)
@@ -106,9 +126,30 @@ class _BotDetailViewState extends State<BotDetailView> {
       final response = await client.send(request);
 
       if (response.statusCode != 200) {
+        final errorBody = await response.stream.bytesToString();
+        String errorMessage =
+            'Impossibile avviare il bot. Codice risposta: ${response.statusCode}';
+        try {
+          final decoded = jsonDecode(errorBody) as Map<String, dynamic>;
+          final reason = decoded['error']?.toString();
+          if (reason != null && reason.isNotEmpty) {
+            if (decoded['missing_permissions'] is List) {
+              final missing = (decoded['missing_permissions'] as List)
+                  .whereType<String>()
+                  .join(', ');
+              errorMessage =
+                  '$reason${missing.isNotEmpty ? ': $missing' : ''}';
+            } else {
+              errorMessage = reason;
+            }
+          }
+        } catch (_) {
+          if (errorBody.isNotEmpty) {
+            errorMessage = errorBody;
+          }
+        }
         setState(() {
-          _error =
-              'Impossibile avviare il bot. Codice risposta: ${response.statusCode}';
+          _error = errorMessage;
           _isRunning = false;
         });
         _stopExecution();
@@ -140,6 +181,50 @@ class _BotDetailViewState extends State<BotDetailView> {
       });
       _stopExecution();
     }
+  }
+
+  Future<bool> _showPermissionsDialog(List<String> permissions) async {
+    return await showDialog<bool>(
+          context: context,
+          builder: (context) {
+            return AlertDialog(
+              title: const Text('Permessi richiesti'),
+              content: Column(
+                mainAxisSize: MainAxisSize.min,
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  const Text(
+                      'Il bot richiede i seguenti permessi per essere eseguito:'),
+                  const SizedBox(height: 12),
+                  ...permissions.map(
+                    (perm) => Padding(
+                      padding: const EdgeInsets.only(bottom: 8),
+                      child: Row(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          const Icon(Icons.shield_outlined, size: 18),
+                          const SizedBox(width: 8),
+                          Expanded(child: Text(perm)),
+                        ],
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+              actions: [
+                TextButton(
+                  onPressed: () => Navigator.of(context).pop(false),
+                  child: const Text('Annulla'),
+                ),
+                ElevatedButton(
+                  onPressed: () => Navigator.of(context).pop(true),
+                  child: const Text('Conferma'),
+                ),
+              ],
+            );
+          },
+        ) ??
+        false;
   }
 
   void _stopExecution({bool closeClient = true}) {
@@ -321,12 +406,15 @@ class _BotDetailViewState extends State<BotDetailView> {
               style: Theme.of(context).textTheme.bodyLarge,
             ),
             const SizedBox(height: 12),
+            _buildPermissionsSection(context),
+            if (widget.bot.permissions.isNotEmpty) const SizedBox(height: 12),
             _buildCompatBadges(context),
             const SizedBox(height: 20),
             Row(
               children: [
                 ElevatedButton(
-                  onPressed: _isRunning ? null : _startExecution,
+                  onPressed:
+                      _isRunning ? null : () => _requestExecution(),
                   child: Text(_isRunning ? 'Esecuzione in corso...' : 'Esegui Bot'),
                 ),
                 const SizedBox(width: 16),
@@ -432,6 +520,36 @@ class _BotDetailViewState extends State<BotDetailView> {
           ],
         ),
       ),
+    );
+  }
+
+  Widget _buildPermissionsSection(BuildContext context) {
+    final permissions = widget.bot.permissions;
+    if (permissions.isEmpty) {
+      return const SizedBox.shrink();
+    }
+
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Text(
+          'Permessi richiesti',
+          style: Theme.of(context).textTheme.titleMedium,
+        ),
+        const SizedBox(height: 8),
+        Wrap(
+          spacing: 8,
+          runSpacing: 8,
+          children: permissions
+              .map(
+                (perm) => Chip(
+                  avatar: const Icon(Icons.shield_outlined, size: 18),
+                  label: Text(perm),
+                ),
+              )
+              .toList(),
+        ),
+      ],
     );
   }
 

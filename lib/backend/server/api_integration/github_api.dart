@@ -1,6 +1,7 @@
 import 'dart:convert';
 import 'package:http/http.dart' as http;
 import 'package:scriptagher/shared/custom_logger.dart';
+import 'package:scriptagher/shared/utils/BotUtils.dart';
 
 class GitHubApi {
   final CustomLogger logger = CustomLogger();
@@ -36,7 +37,7 @@ class GitHubApi {
       final response = await http.get(Uri.parse(botJsonUrl));
 
       if (response.statusCode == 200) {
-        return json.decode(response.body); // Restituisce i dettagli del bot
+        return BotUtils.parseManifestContent(response.body);
       } else {
         logger.error('GitHubApi',
             'Failed to fetch Bot.json for $botName. Status code: ${response.statusCode}');
