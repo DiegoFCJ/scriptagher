@@ -4,6 +4,7 @@ import '../models/bot.dart';
 import '../db/bot_database.dart';
 import 'dart:io';
 import 'package:path/path.dart' as p;
+import 'package:scriptagher/shared/models/bot_manifest.dart';
 
 class BotGetService {
   final CustomLogger logger = CustomLogger();
@@ -64,9 +65,13 @@ class BotGetService {
       final botDetailsMap =
           await gitHubApi.fetchBotDetails(language, bot.botName);
 
+      final manifest = BotManifest.fromJson(botDetailsMap);
+
       bot = bot.copyWith(
-        description: botDetailsMap['description'],
-        startCommand: botDetailsMap['startCommand'],
+        description: manifest.description,
+        startCommand: manifest.startCommand,
+        hash: manifest.hash,
+        permissions: manifest.permissions,
       );
       return bot;
     } catch (e) {
@@ -137,6 +142,7 @@ class BotGetService {
           startCommand: startCommand,
           sourcePath: sourceFile.path,
           language: language,
+          permissions: const [],
         );
 
         bots.add(bot);

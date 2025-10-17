@@ -61,4 +61,25 @@ class BotGetService {
       throw Exception('Failed to fetch local bots: $e');
     }
   }
+
+  Future<void> executeBot(Bot bot, List<String> grantedPermissions) async {
+    final url =
+        Uri.parse('$baseUrl/bots/${bot.language}/${bot.botName}/execute');
+
+    final response = await http.post(
+      url,
+      headers: {'Content-Type': 'application/json'},
+      body: jsonEncode({'grantedPermissions': grantedPermissions}),
+    );
+
+    if (response.statusCode == 200) {
+      return;
+    }
+
+    final errorMessage = response.body.isNotEmpty
+        ? jsonDecode(response.body)['message'] ?? 'Errore sconosciuto'
+        : 'Errore sconosciuto';
+
+    throw Exception('Impossibile eseguire il bot: $errorMessage');
+  }
 }

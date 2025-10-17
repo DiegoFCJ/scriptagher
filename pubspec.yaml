@@ -24,6 +24,7 @@ dependencies:
   bitsdojo_window: ^0.1.6
   carousel_slider: ^5.0.0
   url_launcher: ^6.3.1
+  crypto: ^3.0.3
 
 flutter:
   uses-material-design: true

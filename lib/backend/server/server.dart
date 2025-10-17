@@ -6,6 +6,7 @@ import 'package:scriptagher/shared/constants/LOGS.dart';
 import 'controllers/bot_controller.dart';
 import 'services/bot_get_service.dart';
 import 'services/bot_download_service.dart';
+import 'services/bot_execution_service.dart';
 import 'db/bot_database.dart';
 import 'routes.dart';
 import 'package:scriptagher/backend/server/api_integration/github_api.dart';
@@ -19,7 +20,9 @@ Future<void> startServer() async {
   // Istanzia il BotService e BotController
   final botGetService = BotGetService(botDatabase, gitHubApi);
   final botDownloadService = BotDownloadService();
-  final botController = BotController(botDownloadService, botGetService);
+  final botExecutionService = BotExecutionService(botDatabase);
+  final botController =
+      BotController(botDownloadService, botGetService, botExecutionService);
 
   // Ottieni il router con le rotte definite
   final botRoutes = BotRoutes(botController);

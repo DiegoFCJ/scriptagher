@@ -1,12 +1,13 @@
 import 'dart:convert';
 import 'dart:io';
 import 'package:scriptagher/shared/custom_logger.dart';
+import 'package:scriptagher/shared/models/bot_manifest.dart';
 
 class BotUtils {
   static final logger = CustomLogger();
 
   // Fetches bot details from a JSON file (bot.json)
-  static Future<Map<String, dynamic>> fetchBotDetails(String botJsonPath) async {
+  static Future<BotManifest> fetchBotDetails(String botJsonPath) async {
     try {
       final botJsonFile = File(botJsonPath);
       if (!await botJsonFile.exists()) {
@@ -14,7 +15,12 @@ class BotUtils {
       }
 
       String content = await botJsonFile.readAsString();
-      return json.decode(content);
+      final decoded = json.decode(content);
+      if (decoded is! Map<String, dynamic>) {
+        throw const FormatException('Bot.json deve contenere un oggetto JSON valido.');
+      }
+
+      return BotManifest.fromJson(decoded);
     } catch (e) {
       logger.error('BotUtils', 'Error reading bot.json: $e');
       rethrow;

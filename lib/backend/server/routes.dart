@@ -20,6 +20,12 @@ class BotRoutes {
 
     router.get('/localbots', botController.fetchLocalBots);
 
+    router.post(
+      '/bots/<language>/<botName>/execute',
+      (Request request, String language, String botName) =>
+          botController.executeBot(request, language, botName),
+    );
+
     return router;
   }
 }

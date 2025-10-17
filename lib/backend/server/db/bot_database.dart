@@ -46,7 +46,7 @@ class BotDatabase {
 
     return openDatabase(
       path,
-      version: 2,
+      version: 3,
       onCreate: (db, version) async {
         logger.info('BotDatabase', "Creating database structure...");
         try {
@@ -66,6 +66,11 @@ class BotDatabase {
             await _createLocalBotsTable(db);
             logger.info(
                 'BotDatabase', "local_bots table created during upgrade.");
+          }
+          if (oldVersion < 3) {
+            await _addSecurityColumns(db);
+            logger.info('BotDatabase',
+                "Added security columns (hash, permissions) during upgrade.");
           }
           // Future upgrade logic here
         } catch (e) {
@@ -94,7 +99,9 @@ class BotDatabase {
           description TEXT,
           start_command TEXT,
           source_path TEXT,
-          language TEXT NOT NULL
+          language TEXT NOT NULL,
+          hash TEXT,
+          permissions TEXT
         );
       ''');
       logger.info('BotDatabase', "Bots table created successfully.");
@@ -113,7 +120,7 @@ class BotDatabase {
       final db = await database;
       await db.insert(
         'bots',
-        bot.toMap(),
+        bot.toDbMap(),
         conflictAlgorithm: ConflictAlgorithm.replace,
       );
       logger.info('BotDatabase', 'Bot ${bot.botName} inserted into DB.');
@@ -143,6 +150,22 @@ class BotDatabase {
     }
   }
 
+  Future<Bot?> getBotByName(String botName, String language) async {
+    final db = await database;
+    final result = await db.query(
+      'bots',
+      where: 'bot_name = ? AND language = ?',
+      whereArgs: [botName, language],
+      limit: 1,
+    );
+
+    if (result.isEmpty) {
+      return null;
+    }
+
+    return Bot.fromMap(result.first);
+  }
+
   /// Aggiorna il bot esistente
   Future<void> _updateBot(Bot bot) async {
     final db = await database;
@@ -150,7 +173,7 @@ class BotDatabase {
     try {
       await db.update(
         'bots',
-        bot.toMap(),
+        bot.toDbMap(),
         where: 'bot_name = ? AND language = ?',
         whereArgs: [bot.botName, bot.language],
       );
@@ -224,7 +247,9 @@ class BotDatabase {
           description TEXT,
           start_command TEXT,
           source_path TEXT,
-          language TEXT NOT NULL
+          language TEXT NOT NULL,
+          hash TEXT,
+          permissions TEXT
         );
       ''');
       logger.info('BotDatabase', "local_bots table created successfully.");
@@ -256,11 +281,26 @@ class BotDatabase {
     for (var bot in bots) {
       batch.insert(
         'local_bots',
-        bot.toMap(),
+        bot.toDbMap(),
         conflictAlgorithm: ConflictAlgorithm.replace,
       );
     }
     await batch.commit(noResult: true);
+  }
+
+  Future<void> _addSecurityColumns(Database db) async {
+    try {
+      await db.execute("ALTER TABLE bots ADD COLUMN hash TEXT");
+    } catch (_) {}
+    try {
+      await db.execute("ALTER TABLE bots ADD COLUMN permissions TEXT");
+    } catch (_) {}
+    try {
+      await db.execute("ALTER TABLE local_bots ADD COLUMN hash TEXT");
+    } catch (_) {}
+    try {
+      await db.execute("ALTER TABLE local_bots ADD COLUMN permissions TEXT");
+    } catch (_) {}
   }
 
   // Cancella tutti i bot locali (se serve)
