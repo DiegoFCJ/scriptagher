@@ -32,6 +32,7 @@ class _BotDetailViewState extends State<BotDetailView> {
   bool _isLoadingLogs = false;
   String _buffer = '';
   String? _error;
+  int? _exitCode;
 
   void _openTutorial() {
     Navigator.pushNamed(context, '/tutorial');
@@ -70,6 +71,7 @@ class _BotDetailViewState extends State<BotDetailView> {
           _logHistory
             ..clear()
             ..addAll(logs);
+          _exitCode = logs.isNotEmpty ? logs.first.exitCode : null;
         });
       } else {
         _showSnackBar(
@@ -92,6 +94,7 @@ class _BotDetailViewState extends State<BotDetailView> {
       _entries.clear();
       _error = null;
       _isRunning = true;
+      _exitCode = null;
     });
 
     final client = http.Client();
@@ -174,6 +177,66 @@ class _BotDetailViewState extends State<BotDetailView> {
     }
   }
 
+  Future<void> _sendControlCommand(String action) async {
+    final uri = Uri.parse(
+        '${widget.baseUrl}/bots/${Uri.encodeComponent(widget.bot.language)}/${Uri.encodeComponent(widget.bot.botName)}/$action');
+    try {
+      final response = await http.post(uri);
+      if (response.statusCode == 200) {
+        Map<String, dynamic>? data;
+        try {
+          data = jsonDecode(response.body) as Map<String, dynamic>;
+        } catch (_) {
+          data = null;
+        }
+
+        if (!mounted) {
+          return;
+        }
+
+        final exitCode = _extractExitCode(data?['exit_code']);
+        final status = data?['status']?.toString();
+
+        setState(() {
+          if (status == 'stopped') {
+            _isRunning = false;
+          }
+          if (exitCode != null) {
+            _exitCode = exitCode;
+          }
+        });
+
+        if (status == 'stopped') {
+          _loadLogs();
+        }
+
+        final message = data?['message']?.toString() ??
+            'Segnale ${action.toUpperCase()} inviato.';
+        _showSnackBar(message);
+      } else {
+        var errorMessage =
+            'Richiesta $action fallita (codice ${response.statusCode}).';
+        try {
+          final data = jsonDecode(response.body) as Map<String, dynamic>;
+          final serverMessage =
+              (data['error'] ?? data['message'])?.toString();
+          if (serverMessage != null && serverMessage.isNotEmpty) {
+            errorMessage = serverMessage;
+          }
+        } catch (_) {
+          // Ignore parse errors and use generic message.
+        }
+        _showSnackBar(errorMessage);
+      }
+    } catch (e) {
+      _showSnackBar('Errore durante $action: $e');
+    }
+  }
+
+  Future<void> _requestStop() => _sendControlCommand('stop');
+
+  Future<void> _requestKill() => _sendControlCommand('kill');
+
   void _handleEvent(String payload) {
     try {
       final decoded = jsonDecode(payload) as Map<String, dynamic>;
@@ -189,8 +252,10 @@ class _BotDetailViewState extends State<BotDetailView> {
           type: type,
         ));
         if (message == 'finished') {
+          final parsedExitCode = _extractExitCode(code);
           setState(() {
             _isRunning = false;
+            _exitCode = parsedExitCode ?? _exitCode;
           });
           _loadLogs();
         }
@@ -329,7 +394,20 @@ class _BotDetailViewState extends State<BotDetailView> {
                   onPressed: _isRunning ? null : _startExecution,
                   child: Text(_isRunning ? 'Esecuzione in corso...' : 'Esegui Bot'),
                 ),
-                const SizedBox(width: 16),
+                const SizedBox(width: 12),
+                OutlinedButton(
+                  onPressed: _isRunning ? _requestStop : null,
+                  child: const Text('Stop'),
+                ),
+                const SizedBox(width: 12),
+                OutlinedButton(
+                  onPressed: _isRunning ? _requestKill : null,
+                  style: OutlinedButton.styleFrom(
+                    foregroundColor: Theme.of(context).colorScheme.error,
+                  ),
+                  child: const Text('Kill'),
+                ),
+                const SizedBox(width: 12),
                 OutlinedButton(
                   onPressed: _entries.isEmpty && _error == null ? null : _clearLog,
                   child: const Text('Pulisci log'),
@@ -349,6 +427,11 @@ class _BotDetailViewState extends State<BotDetailView> {
                   ],
                 ),
               ],
+            ),
+            const SizedBox(height: 12),
+            Text(
+              'Exit code corrente: ${_exitCodeDisplay}',
+              style: Theme.of(context).textTheme.bodyMedium,
             ),
             if (_error != null) ...[
               const SizedBox(height: 12),
@@ -433,6 +516,22 @@ class _BotDetailViewState extends State<BotDetailView> {
         ),
       ),
     );
+  }
+
+  String get _exitCodeDisplay =>
+      _exitCode?.toString() ?? (_isRunning ? 'in esecuzione' : 'n/d');
+
+  int? _extractExitCode(dynamic value) {
+    if (value is int) {
+      return value;
+    }
+    if (value is num) {
+      return value.toInt();
+    }
+    if (value is String) {
+      return int.tryParse(value);
+    }
+    return null;
   }
 
   Widget _buildCompatBadges(BuildContext context) {

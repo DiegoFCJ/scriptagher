@@ -4,14 +4,16 @@ import 'package:scriptagher/shared/custom_logger.dart';
 import 'package:scriptagher/shared/constants/LOGS.dart';
 import '../services/bot_get_service.dart';
 import '../services/bot_download_service.dart';
+import '../services/execution_service.dart';
 import '../models/bot.dart';
 
 class BotController {
   final CustomLogger logger = CustomLogger();
   final BotDownloadService botDownloadService;
   final BotGetService botGetService;
+  final ExecutionService executionService;
 
-  BotController(this.botDownloadService, this.botGetService);
+  BotController(this.botDownloadService, this.botGetService, this.executionService);
 
   // Endpoint per ottenere la lista dei bot disponibili remoti
   Future<Response> fetchAvailableBots(Request request) async {
@@ -114,5 +116,103 @@ class BotController {
         headers: {'Content-Type': 'application/json'},
       );
     }
+  }
+
+  Future<Response> stopBot(
+      Request request, String language, String botName) async {
+    final result = executionService.stopProcess(language, botName);
+    return _buildExecutionResponse(language, botName, result, 'stop');
+  }
+
+  Future<Response> killBot(
+      Request request, String language, String botName) async {
+    final result = executionService.killProcess(language, botName);
+    return _buildExecutionResponse(language, botName, result, 'kill');
+  }
+
+  Response _buildExecutionResponse(String language, String botName,
+      ExecutionSignalResult? result, String action) {
+    if (result == null) {
+      final message =
+          'Nessuna esecuzione registrata per $language/$botName.';
+      logger.warn(
+        LOGS.EXECUTION_SERVICE,
+        message,
+        metadata: {
+          'language': language,
+          'botName': botName,
+          'action': action,
+        },
+      );
+      return Response.notFound(
+        json.encode({
+          'error': message,
+          'action': action,
+        }),
+        headers: {'Content-Type': 'application/json'},
+      );
+    }
+
+    final message = _executionMessage(result, language, botName);
+    final payload = {
+      'action': action,
+      'message': message,
+      'status': result.isRunning ? 'running' : 'stopped',
+      ...result.toJson(),
+    };
+
+    if (result.signalDelivered) {
+      logger.info(
+        LOGS.EXECUTION_SERVICE,
+        'Segnale ${result.signalName} inviato a $language/$botName.',
+        metadata: {
+          'language': language,
+          'botName': botName,
+          'action': action,
+          'exitCode': result.exitCode,
+        },
+      );
+    } else {
+      logger.warn(
+        LOGS.EXECUTION_SERVICE,
+        'Segnale ${result.signalName} non consegnato a $language/$botName.',
+        metadata: {
+          'language': language,
+          'botName': botName,
+          'action': action,
+          'exitCode': result.exitCode,
+        },
+      );
+    }
+
+    return Response.ok(
+      json.encode(payload),
+      headers: {'Content-Type': 'application/json'},
+    );
+  }
+
+  String _executionMessage(
+      ExecutionSignalResult result, String language, String botName) {
+    if (!result.wasRunning && result.exitCode == null) {
+      return 'Nessun processo in esecuzione per $language/$botName.';
+    }
+
+    if (result.wasRunning && !result.signalDelivered) {
+      return 'Impossibile inviare ${result.signalName} a $language/$botName.';
+    }
+
+    if (!result.isRunning) {
+      final exitCode = result.exitCode;
+      if (exitCode != null) {
+        return 'Processo terminato con exit code $exitCode.';
+      }
+      return 'Processo terminato.';
+    }
+
+    if (!result.signalDelivered) {
+      return 'Segnale ${result.signalName} non consegnato.';
+    }
+
+    return 'Segnale ${result.signalName} inviato.';
   }
 }

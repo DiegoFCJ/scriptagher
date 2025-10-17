@@ -10,12 +10,58 @@ import '../db/bot_database.dart';
 import '../models/bot.dart';
 import 'execution_log_service.dart';
 
+class _ExecutionHandle {
+  _ExecutionHandle(this.process);
+
+  Process? process;
+  int? exitCode;
+
+  bool get isRunning => process != null;
+}
+
+class ExecutionSignalResult {
+  ExecutionSignalResult({
+    required this.signal,
+    required this.wasRunning,
+    required this.signalDelivered,
+    required this.isRunning,
+    required this.exitCode,
+  });
+
+  final ProcessSignal signal;
+  final bool wasRunning;
+  final bool signalDelivered;
+  final bool isRunning;
+  final int? exitCode;
+
+  String get signalName {
+    if (signal == ProcessSignal.sigterm) {
+      return 'SIGTERM';
+    }
+    if (signal == ProcessSignal.sigkill) {
+      return 'SIGKILL';
+    }
+    return signal.toString();
+  }
+
+  Map<String, dynamic> toJson() {
+    return {
+      'signal': signalName,
+      'was_running': wasRunning,
+      'signal_delivered': signalDelivered,
+      'is_running': isRunning,
+      'exit_code': exitCode,
+    };
+  }
+}
+
 class ExecutionService {
   ExecutionService(this._botDatabase, this._logManager);
 
   final BotDatabase _botDatabase;
   final ExecutionLogManager _logManager;
   final CustomLogger _logger = CustomLogger();
+  final Map<String, _ExecutionHandle> _executionHandles = {};
 
   Future<Response> streamExecution(
       Request request, String language, String botName) async {
@@ -47,6 +93,7 @@ class ExecutionService {
       );
     }
     Process? process;
+    final executionKey = _processKey(bot.language, bot.botName);
     var closed = false;
     var finalized = false;
     StreamSubscription<String>? stdoutSub;
@@ -105,6 +152,14 @@ class ExecutionService {
           runInShell: false,
         );
 
+        final handle = _ExecutionHandle(process);
+        _executionHandles[executionKey] = handle;
+        process.exitCode.then((value) {
+          handle
+            ..exitCode = value
+            ..process = null;
+        });
+
         stdoutSub = process!.stdout
             .transform(utf8.decoder)
             .transform(const LineSplitter())
@@ -122,6 +177,12 @@ class ExecutionService {
         });
 
         final exitCode = await process!.exitCode;
+        final handle = _executionHandles[executionKey];
+        if (handle != null) {
+          handle
+            ..exitCode = exitCode
+            ..process = null;
+        }
 
         addEvent({
           'type': 'status',
@@ -144,6 +205,12 @@ class ExecutionService {
           'type': 'error',
           'message': e.toString(),
         });
+        final handle = _executionHandles[executionKey];
+        if (handle != null) {
+          handle
+            ..exitCode = -1
+            ..process = null;
+        }
         await finalize(-1, errorMessage: e.toString());
         await closeResources();
       }
@@ -169,6 +236,51 @@ class ExecutionService {
       },
     );
   }
+
+  ExecutionSignalResult? stopProcess(String language, String botName) {
+    return _sendSignal(language, botName, ProcessSignal.sigterm);
+  }
+
+  ExecutionSignalResult? killProcess(String language, String botName) {
+    return _sendSignal(language, botName, ProcessSignal.sigkill);
+  }
+
+  int? getExitCode(String language, String botName) {
+    final handle = _executionHandles[_processKey(language, botName)];
+    return handle?.exitCode;
+  }
+
+  bool isRunning(String language, String botName) {
+    final handle = _executionHandles[_processKey(language, botName)];
+    return handle?.isRunning ?? false;
+  }
+
+  ExecutionSignalResult? _sendSignal(
+      String language, String botName, ProcessSignal signal) {
+    final key = _processKey(language, botName);
+    final handle = _executionHandles[key];
+    if (handle == null) {
+      return null;
+    }
+
+    final wasRunning = handle.isRunning;
+    final bool signalDelivered;
+    if (handle.process != null) {
+      signalDelivered = handle.process!.kill(signal);
+    } else {
+      signalDelivered = false;
+    }
+
+    return ExecutionSignalResult(
+      signal: signal,
+      wasRunning: wasRunning,
+      signalDelivered: signalDelivered,
+      isRunning: handle.isRunning,
+      exitCode: handle.exitCode,
+    );
+  }
+
+  String _processKey(String language, String botName) => '$language/$botName';
 
   Future<Response> listLogs(
       Request request, String language, String botName) async {
