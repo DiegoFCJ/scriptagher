@@ -25,7 +25,19 @@ class _BotListState extends State<BotList> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(title: Text('Lista dei Bot')),
+      appBar: AppBar(
+        title: Text('Lista dei Bot'),
+        actions: [
+          TextButton.icon(
+            onPressed: () => Navigator.pushNamed(context, '/create-bot'),
+            icon: const Icon(Icons.school_outlined),
+            label: const Text('Crea il tuo bot'),
+            style: TextButton.styleFrom(
+              foregroundColor: Colors.white,
+            ),
+          ),
+        ],
+      ),
       body: FutureBuilder<Map<String, List<Bot>>>(
         future: _remoteBots,
         builder: (context, remoteSnapshot) {

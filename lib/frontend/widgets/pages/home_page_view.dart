@@ -13,6 +13,12 @@ class _HomePageState extends State<HomePage> {
 
   final sections = [
     _Section(
+      title: 'Crea il tuo bot',
+      description:
+          'Tutorial passo passo su struttura, Bot.json e best practice.',
+      routeName: '/create-bot',
+    ),
+    _Section(
       title: 'Portfolio',
       description: 'Visualizza il tuo portafoglio di assets',
       routeName: '/portfolio',

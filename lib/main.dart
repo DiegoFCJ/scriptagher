@@ -13,6 +13,7 @@ import 'package:scriptagher/frontend/widgets/pages/bot_list_view.dart';
 import 'package:scriptagher/frontend/widgets/pages/test1.dart';
 import 'package:scriptagher/frontend/widgets/pages/test2.dart';
 import 'package:scriptagher/frontend/widgets/pages/test3.dart';
+import 'package:scriptagher/frontend/widgets/pages/create_bot_tutorial_view.dart';
 
 
 // La tua vista principale di Flutter
@@ -78,12 +79,13 @@ class MyApp extends StatelessWidget {
     return MaterialApp(
 
       routes: {
-        '/home':     (_) => HomePage(),       // la tua HomePage con il carosello
-        '/portfolio':(_) => Portfolio(),  // la pagina Portfolio
-        '/bots':     (_) => BotList(),   // la pagina Bots List
-        '/test1':     (_) => test1(),   // la pagina Bots List
-        '/test2':     (_) => test2(),   // la pagina test1 List
-        '/test3':     (_) => test3(),   // la pagina test1 List
+        '/home': (_) => HomePage(), // la tua HomePage con il carosello
+        '/portfolio': (_) => Portfolio(), // la pagina Portfolio
+        '/bots': (_) => BotList(), // la pagina Bots List
+        '/create-bot': (_) => CreateBotTutorialPage(),
+        '/test1': (_) => test1(), // la pagina Bots List
+        '/test2': (_) => test2(), // la pagina test1 List
+        '/test3': (_) => test3(), // la pagina test1 List
       },
 
       debugShowCheckedModeBanner: false,
