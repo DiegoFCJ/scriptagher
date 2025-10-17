@@ -104,10 +104,17 @@ class BotGetService {
               .toList() ??
           const <String>[];
       final archiveSha256 = botDetailsMap['archiveSha256'] as String?;
+      final authorValue = botDetailsMap['author']?.toString();
+      final versionValue = botDetailsMap['version']?.toString();
 
       bot = bot.copyWith(
         description: description,
         startCommand: startCommand,
+        author:
+            (authorValue != null && authorValue.isNotEmpty) ? authorValue : null,
+        version: (versionValue != null && versionValue.isNotEmpty)
+            ? versionValue
+            : null,
         compat: compatWithStatus,
         permissions: permissions,
         archiveSha256: archiveSha256,
@@ -195,6 +202,8 @@ class BotGetService {
                           as String? ??
                       '';
               final compat = BotCompat.fromManifest(manifest['compat']);
+              final authorValue = manifest['author']?.toString();
+              final versionValue = manifest['version']?.toString();
 
               bot = Bot(
                 botName: botName,
@@ -204,6 +213,12 @@ class BotGetService {
                 language: manifestLanguage?.isNotEmpty == true
                     ? manifestLanguage!
                     : language,
+                author: (authorValue != null && authorValue.isNotEmpty)
+                    ? authorValue
+                    : null,
+                version: (versionValue != null && versionValue.isNotEmpty)
+                    ? versionValue
+                    : null,
                 compat: compat,
               );
             } catch (e) {

@@ -66,6 +66,8 @@ class BotDownloadService {
           const <String>[];
       final botNameValue = botDetails['botName']?.toString() ?? botName;
       final descriptionValue = botDetails['description']?.toString() ?? '';
+      final authorValue = botDetails['author']?.toString();
+      final versionValue = botDetails['version']?.toString();
 
       final bot = Bot(
         botName: botNameValue,
@@ -73,6 +75,12 @@ class BotDownloadService {
         startCommand: startCommand,
         sourcePath: botJsonPath,
         language: language,
+        author: (authorValue != null && authorValue.isNotEmpty)
+            ? authorValue
+            : null,
+        version: (versionValue != null && versionValue.isNotEmpty)
+            ? versionValue
+            : null,
         compat: compat,
         permissions: permissions,
         archiveSha256: botDetails['archiveSha256']?.toString(),

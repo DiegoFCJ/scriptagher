@@ -77,6 +77,22 @@ class BotUtils {
 
     normalized['permissions'] = permissions;
 
+    final dynamic authorValue = normalized['author'];
+    if (authorValue is String) {
+      final trimmed = authorValue.trim();
+      normalized['author'] = trimmed.isNotEmpty ? trimmed : null;
+    } else if (authorValue != null) {
+      normalized['author'] = authorValue.toString();
+    }
+
+    final dynamic versionValue = normalized['version'];
+    if (versionValue is String) {
+      final trimmed = versionValue.trim();
+      normalized['version'] = trimmed.isNotEmpty ? trimmed : null;
+    } else if (versionValue != null) {
+      normalized['version'] = versionValue.toString();
+    }
+
     return normalized;
   }
 

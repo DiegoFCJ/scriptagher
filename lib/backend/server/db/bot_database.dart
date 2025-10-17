@@ -46,7 +46,7 @@ class BotDatabase {
 
     return openDatabase(
       path,
-      version: 4,
+      version: 5,
       onCreate: (db, version) async {
         logger.info('BotDatabase', "Creating database structure...");
         try {
@@ -81,6 +81,15 @@ class BotDatabase {
               "permissions_json and archive_sha256 columns added to bots and local_bots tables.",
             );
           }
+          if (oldVersion < 5) {
+            await _addMetadataColumns(db, 'bots');
+            await _addMetadataColumns(db, 'local_bots');
+            logger.info(
+              'BotDatabase',
+              "author and version columns added to bots and local_bots tables.",
+            );
+          }
+        }
       } catch (e) {
         logger.error('BotDatabase', 'Error during database upgrade: $e');
       }
@@ -108,6 +117,8 @@ class BotDatabase {
           start_command TEXT,
           source_path TEXT,
           language TEXT NOT NULL,
+          author TEXT,
+          version TEXT,
           compat_json TEXT,
           permissions_json TEXT,
           archive_sha256 TEXT
@@ -280,6 +291,34 @@ class BotDatabase {
     }
   }
 
+  Future<void> _addMetadataColumns(Database db, String tableName) async {
+    final columns = await db.rawQuery('PRAGMA table_info($tableName);');
+    final hasAuthor = columns.any((column) => column['name'] == 'author');
+    final hasVersion = columns.any((column) => column['name'] == 'version');
+
+    if (!hasAuthor) {
+      try {
+        await db.execute('ALTER TABLE $tableName ADD COLUMN author TEXT;');
+        logger.info(
+            'BotDatabase', "author column added to table '$tableName'.");
+      } catch (e) {
+        logger.error('BotDatabase',
+            "Error adding author column to $tableName: $e");
+      }
+    }
+
+    if (!hasVersion) {
+      try {
+        await db.execute('ALTER TABLE $tableName ADD COLUMN version TEXT;');
+        logger.info(
+            'BotDatabase', "version column added to table '$tableName'.");
+      } catch (e) {
+        logger.error('BotDatabase',
+            "Error adding version column to $tableName: $e");
+      }
+    }
+  }
+
   // --------------------------------------- LOCAL BOTS --------------------------------------- \\
   Future<void> _createLocalBotsTable(Database db) async {
     try {
@@ -291,6 +330,8 @@ class BotDatabase {
           start_command TEXT,
           source_path TEXT,
           language TEXT NOT NULL,
+          author TEXT,
+          version TEXT,
           compat_json TEXT,
           permissions_json TEXT,
           archive_sha256 TEXT

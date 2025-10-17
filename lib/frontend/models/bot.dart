@@ -8,6 +8,8 @@ class Bot {
   final String startCommand;
   final String sourcePath;
   final String language;
+  final String? author;
+  final String? version;
   final BotCompat compat;
   final List<String> permissions;
   final String? archiveSha256;
@@ -19,6 +21,8 @@ class Bot {
     required this.startCommand,
     required this.sourcePath,
     required this.language,
+    this.author,
+    this.version,
     this.compat = const BotCompat(),
     this.permissions = const [],
     this.archiveSha256,
@@ -28,6 +32,8 @@ class Bot {
   Bot copyWith({
     String? description,
     String? startCommand,
+    String? author,
+    String? version,
     BotCompat? compat,
     List<String>? permissions,
     String? archiveSha256,
@@ -39,6 +45,8 @@ class Bot {
       startCommand: startCommand ?? this.startCommand,
       sourcePath: sourcePath,
       language: language,
+      author: author ?? this.author,
+      version: version ?? this.version,
       compat: compat ?? this.compat,
       permissions: permissions ?? this.permissions,
       archiveSha256: archiveSha256 ?? this.archiveSha256,
@@ -53,6 +61,8 @@ class Bot {
       'start_command': startCommand,
       'source_path': sourcePath,
       'language': language,
+      'author': author,
+      'version': version,
       'compat': compat.toJson(),
       'permissions': permissions,
       'archive_sha256': archiveSha256,
@@ -67,6 +77,8 @@ class Bot {
       startCommand: map['start_command'] ?? '',
       sourcePath: map['source_path'],
       language: map['language'],
+      author: map['author'] as String?,
+      version: map['version'] as String?,
       compat: BotCompat.fromJson(map['compat']),
       permissions:
           (map['permissions'] as List?)?.whereType<String>().toList() ?? const [],
@@ -81,6 +93,8 @@ class Bot {
       startCommand: json['start_command'] ?? '',
       sourcePath: json['source_path'] ?? '',
       language: json['language'] ?? '',
+      author: json['author'] as String?,
+      version: json['version'] as String?,
       compat: BotCompat.fromJson(json['compat']),
       permissions:
           (json['permissions'] as List?)?.whereType<String>().toList() ?? const [],

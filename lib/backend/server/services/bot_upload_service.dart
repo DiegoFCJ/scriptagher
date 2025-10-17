@@ -106,6 +106,13 @@ class BotUploadService {
     final startCommand =
         (manifest['startCommand'] ?? manifest['entrypoint']) as String? ?? '';
     final compat = BotCompat.fromManifest(manifest['compat']);
+    final permissions = (manifest['permissions'] as List?)
+            ?.whereType<String>()
+            .toList() ??
+        const <String>[];
+    final authorValue = (manifest['author'] as String?)?.trim();
+    final versionValue = (manifest['version'] as String?)?.trim();
+    final archiveSha256 = manifest['archiveSha256']?.toString();
 
     final destinationManifestPath = p.join(
       APIS.BOT_DIR_DATA_LOCAL,
@@ -120,7 +127,11 @@ class BotUploadService {
       startCommand: startCommand,
       sourcePath: destinationManifestPath,
       language: language,
+      author: authorValue?.isNotEmpty == true ? authorValue : null,
+      version: versionValue?.isNotEmpty == true ? versionValue : null,
       compat: compat,
+      permissions: permissions,
+      archiveSha256: archiveSha256,
     );
   }
 
