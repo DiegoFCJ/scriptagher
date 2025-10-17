@@ -4,14 +4,17 @@ import 'package:scriptagher/shared/custom_logger.dart';
 import 'package:scriptagher/shared/constants/LOGS.dart';
 import '../services/bot_get_service.dart';
 import '../services/bot_download_service.dart';
+import '../services/execution_service.dart';
 import '../models/bot.dart';
 
 class BotController {
   final CustomLogger logger = CustomLogger();
   final BotDownloadService botDownloadService;
   final BotGetService botGetService;
+  final ExecutionService executionService;
 
-  BotController(this.botDownloadService, this.botGetService);
+  BotController(
+      this.botDownloadService, this.botGetService, this.executionService);
 
   // Endpoint per ottenere la lista dei bot disponibili remoti
   Future<Response> fetchAvailableBots(Request request) async {
@@ -83,6 +86,46 @@ class BotController {
       return Response.internalServerError(
         body: json.encode({
           'error': 'Error fetching local bots',
+          'message': e.toString(),
+        }),
+        headers: {'Content-Type': 'application/json'},
+      );
+    }
+  }
+
+  Future<Response> startBot(Request request) async {
+    try {
+      final payload = json.decode(await request.readAsString());
+      if (payload is! Map<String, dynamic>) {
+        throw const FormatException('Invalid payload');
+      }
+
+      final bot = Bot.fromMap(payload);
+
+      final pid = await executionService.startBot(bot);
+
+      return Response.ok(
+        json.encode({'processId': pid}),
+        headers: {'Content-Type': 'application/json'},
+      );
+    } on FormatException catch (e) {
+      logger.error(LOGS.BOT_SERVICE, 'Invalid start payload: $e');
+      return Response(400,
+          body: json.encode({'error': 'Invalid payload', 'message': e.toString()}),
+          headers: {'Content-Type': 'application/json'});
+    } on UnsupportedError catch (e) {
+      logger.error(LOGS.BOT_SERVICE, 'Unsupported bot start: $e');
+      return Response(400,
+          body: json.encode({
+            'error': 'Unsupported bot',
+            'message': e.toString(),
+          }),
+          headers: {'Content-Type': 'application/json'});
+    } catch (e) {
+      logger.error(LOGS.BOT_SERVICE, 'Error starting bot: $e');
+      return Response.internalServerError(
+        body: json.encode({
+          'error': 'Error starting bot',
           'message': e.toString(),
         }),
         headers: {'Content-Type': 'application/json'},

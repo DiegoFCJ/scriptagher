@@ -6,6 +6,7 @@ import 'package:scriptagher/shared/constants/LOGS.dart';
 import 'controllers/bot_controller.dart';
 import 'services/bot_get_service.dart';
 import 'services/bot_download_service.dart';
+import 'services/execution_service.dart';
 import 'db/bot_database.dart';
 import 'routes.dart';
 import 'package:scriptagher/backend/server/api_integration/github_api.dart';
@@ -19,7 +20,9 @@ Future<void> startServer() async {
   // Istanzia il BotService e BotController
   final botGetService = BotGetService(botDatabase, gitHubApi);
   final botDownloadService = BotDownloadService();
-  final botController = BotController(botDownloadService, botGetService);
+  final executionService = ExecutionService();
+  final botController =
+      BotController(botDownloadService, botGetService, executionService);
 
   // Ottieni il router con le rotte definite
   final botRoutes = BotRoutes(botController);
@@ -55,6 +58,9 @@ Middleware _logCustomRequests(CustomLogger logger) {
         // Logga il corpo della richiesta solo per POST o PUT
         final requestBody = await request.readAsString();
         logger.info(LOGS.REQUEST_LOG, 'Request Body: $requestBody');
+
+        final updatedRequest = request.change(body: requestBody);
+        return innerHandler(updatedRequest);
       }
 
       return innerHandler(request);

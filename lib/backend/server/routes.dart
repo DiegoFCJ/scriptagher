@@ -20,6 +20,8 @@ class BotRoutes {
 
     router.get('/localbots', botController.fetchLocalBots);
 
+    router.post('/bots/start', botController.startBot);
+
     return router;
   }
 }
