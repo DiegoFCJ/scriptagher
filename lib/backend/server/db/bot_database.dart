@@ -7,6 +7,9 @@ import 'package:scriptagher/shared/custom_logger.dart';
 class BotDatabase {
   static final BotDatabase _instance = BotDatabase._internal();
   final CustomLogger logger = CustomLogger();
+  static const String _metadataTable = 'metadata';
+  static const String _lastRemoteFetchKey = 'last_remote_fetch';
+
   Database? _database;
 
   BotDatabase._internal();
@@ -46,12 +49,13 @@ class BotDatabase {
 
     return openDatabase(
       path,
-      version: 4,
+      version: 5,
       onCreate: (db, version) async {
         logger.info('BotDatabase', "Creating database structure...");
         try {
           await _createBotsTable(db);
           await _createLocalBotsTable(db);
+          await _createMetadataTable(db);
           logger.info('BotDatabase', "Database structure created.");
         } catch (e) {
           logger.error(
@@ -81,6 +85,11 @@ class BotDatabase {
               "permissions_json and archive_sha256 columns added to bots and local_bots tables.",
             );
           }
+          if (oldVersion < 5) {
+            await _createMetadataTable(db);
+            logger.info(
+                'BotDatabase', "metadata table created during upgrade.");
+          }
       } catch (e) {
         logger.error('BotDatabase', 'Error during database upgrade: $e');
       }
@@ -89,6 +98,7 @@ class BotDatabase {
       try {
         // 🛡 Verifica struttura dopo apertura, anche se onCreate/onUpgrade non chiamati
         await _createLocalBotsTable(db); // Sicuro grazie a IF NOT EXISTS
+        await _createMetadataTable(db);
         await _checkDatabaseStructure(db);
       } catch (e) {
         logger.error('BotDatabase', 'Error during structure verification: $e');
@@ -302,6 +312,21 @@ class BotDatabase {
     }
   }
 
+  Future<void> _createMetadataTable(Database db) async {
+    try {
+      await db.execute('''
+        CREATE TABLE IF NOT EXISTS $_metadataTable (
+          key TEXT PRIMARY KEY,
+          value TEXT
+        );
+      ''');
+      logger.info('BotDatabase', "$_metadataTable table ensured.");
+    } catch (e) {
+      logger.error(
+          'BotDatabase', "Error creating '$_metadataTable' table: $e");
+    }
+  }
+
   // Recupera i bot locali salvati
   Future<List<Bot>> getLocalBots() async {
     final db = await database;
@@ -374,5 +399,57 @@ class BotDatabase {
     }
 
     return null;
+  }
+
+  Future<void> setLastRemoteFetch(DateTime timestamp) async {
+    final db = await database;
+    final utcTimestamp = timestamp.toUtc();
+    try {
+      await db.insert(
+        _metadataTable,
+        {
+          'key': _lastRemoteFetchKey,
+          'value': utcTimestamp.toIso8601String(),
+        },
+        conflictAlgorithm: ConflictAlgorithm.replace,
+      );
+      logger.info('BotDatabase',
+          'Updated last remote fetch timestamp to ${utcTimestamp.toIso8601String()}');
+    } catch (e) {
+      logger.error(
+          'BotDatabase', 'Error updating last remote fetch timestamp: $e');
+    }
+  }
+
+  Future<DateTime?> getLastRemoteFetch() async {
+    final db = await database;
+    try {
+      final result = await db.query(
+        _metadataTable,
+        where: 'key = ?',
+        whereArgs: [_lastRemoteFetchKey],
+        limit: 1,
+      );
+
+      if (result.isEmpty) {
+        return null;
+      }
+
+      final value = result.first['value'];
+      if (value is String && value.isNotEmpty) {
+        try {
+          return DateTime.parse(value).toUtc();
+        } catch (_) {
+          logger.warn('BotDatabase',
+              'Stored last remote fetch timestamp is invalid: $value');
+          return null;
+        }
+      }
+      return null;
+    } catch (e) {
+      logger.error(
+          'BotDatabase', 'Error retrieving last remote fetch timestamp: $e');
+      return null;
+    }
   }
 }

@@ -22,8 +22,11 @@ class BotController {
   Future<Response> fetchAvailableBots(Request request) async {
     try {
       logger.info(LOGS.BOT_SERVICE, 'Fetching list of available bots...');
+      final query = request.requestedUri.queryParameters;
+      final forceRefresh =
+          query['forceRefresh'] == 'true' || query['force_refresh'] == 'true';
       final List<Bot> availableBots = await botGetService
-          .fetchAvailableBots(); // Restituisce una lista di bot con tutti i dettagli
+          .fetchAvailableBots(forceRefresh: forceRefresh);
 
       // Logga i dettagli della risposta
       logger.info(LOGS.BOT_SERVICE, 'Fetched ${availableBots.length} bots.');

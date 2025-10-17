@@ -31,6 +31,7 @@ class _BotListState extends State<BotList>
   BotCategory _selectedCategory = BotCategory.online;
   bool _argumentsHandled = false;
   bool _isUploading = false;
+  bool _isRefreshingOnline = false;
 
   @override
   void initState() {
@@ -153,6 +154,25 @@ class _BotListState extends State<BotList>
     return Scaffold(
       appBar: AppBar(
         title: const Text('Gestione Bot'),
+        actions: [
+          if (_selectedCategory == BotCategory.online)
+            Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 8.0),
+              child: TextButton.icon(
+                onPressed:
+                    _isRefreshingOnline ? null : () => _refreshOnlineBots(),
+                icon: _isRefreshingOnline
+                    ? const SizedBox(
+                        width: 16,
+                        height: 16,
+                        child: CircularProgressIndicator(strokeWidth: 2),
+                      )
+                    : const Icon(Icons.refresh),
+                label: Text(
+                    _isRefreshingOnline ? 'Aggiornamento...' : 'Aggiorna'),
+              ),
+            ),
+        ],
         bottom: TabBar(
           controller: _tabController,
           tabs: BotCategory.values
@@ -183,6 +203,28 @@ class _BotListState extends State<BotList>
             )
           : null,
     );
+  }
+
+  Future<void> _refreshOnlineBots() async {
+    setState(() {
+      _isRefreshingOnline = true;
+      _categoryFutures[BotCategory.online] =
+          _botGetService.fetchOnlineBots(forceRefresh: true);
+    });
+
+    try {
+      await _categoryFutures[BotCategory.online];
+    } catch (e) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('Errore durante l\'aggiornamento: $e')),
+      );
+    } finally {
+      if (!mounted) return;
+      setState(() {
+        _isRefreshingOnline = false;
+      });
+    }
   }
 
   Future<void> _showUploadOptions() async {
