@@ -23,6 +23,13 @@ class BotGetService {
     return applyFilter(grouped, filter);
   }
 
+  Future<List<Bot>> fetchOnlineBotsFlat(
+      {bool forceRefresh = false, BotFilter? filter}) async {
+    final grouped = await fetchOnlineBots(
+        forceRefresh: forceRefresh, filter: filter);
+    return grouped.values.expand((bots) => bots).toList();
+  }
+
   Future<Map<String, List<Bot>>> refreshOnlineBots() async =>
       fetchOnlineBots(forceRefresh: true);
 

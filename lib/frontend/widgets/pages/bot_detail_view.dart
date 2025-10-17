@@ -9,6 +9,8 @@ import 'package:path_provider/path_provider.dart';
 
 import '../../models/bot.dart';
 import '../../models/execution_log.dart';
+import '../../services/bot_download_service.dart';
+import '../../services/bot_get_service.dart';
 import '../../services/browser_runner/browser_bot_runner.dart';
 import '../../services/browser_runner/browser_runner_models.dart';
 
@@ -27,6 +29,14 @@ class _BotDetailViewState extends State<BotDetailView> {
   final ScrollController _scrollController = ScrollController();
   final List<_ConsoleEntry> _entries = [];
   final List<ExecutionLog> _logHistory = [];
+  late final BotGetService _botGetService;
+  late final BotDownloadService _botDownloadService;
+  Bot? _downloadedBot;
+  Bot? _remoteBot;
+  bool _isStatusLoading = false;
+  bool _isDownloadingBot = false;
+  bool _isDownloaded = false;
+  bool _hasUpdateAvailable = false;
 
   http.Client? _client;
   StreamSubscription<String>? _subscription;
@@ -43,6 +53,12 @@ class _BotDetailViewState extends State<BotDetailView> {
   String? _activeProcessId;
   int? _lastExitCode;
 
+  Bot get _primaryBot => _remoteBot ?? _downloadedBot ?? widget.bot;
+  Bot? get _installedBot => _downloadedBot;
+  bool get _isDesktopPlatform => !kIsWeb &&
+      (Platform.isLinux || Platform.isMacOS || Platform.isWindows);
+  bool get _canOpenFolderAction => _isDesktopPlatform && _isDownloaded;
+
   void _openTutorial() {
     Navigator.pushNamed(context, '/tutorial');
   }
@@ -50,7 +66,13 @@ class _BotDetailViewState extends State<BotDetailView> {
   @override
   void initState() {
     super.initState();
+    _botGetService = BotGetService(baseUrl: widget.baseUrl);
+    _botDownloadService = BotDownloadService(baseUrl: widget.baseUrl);
+    if (!widget.bot.isDownloaded && !widget.bot.isLocal) {
+      _remoteBot = widget.bot;
+    }
     _loadLogs();
+    unawaited(_refreshBotStatus());
   }
 
   @override
@@ -59,6 +81,202 @@ class _BotDetailViewState extends State<BotDetailView> {
     _scrollController.dispose();
     _browserRunner?.dispose();
     super.dispose();
+  }
+
+  Future<void> _refreshBotStatus() async {
+    setState(() {
+      _isStatusLoading = true;
+    });
+
+    Bot? downloaded;
+    Bot? remote = _remoteBot;
+
+    try {
+      downloaded = await _fetchDownloadedBot();
+    } catch (e) {
+      if (mounted) {
+        _showSnackBar('Errore durante il controllo dei bot scaricati: $e');
+      }
+    }
+
+    if (remote == null) {
+      try {
+        remote = await _fetchRemoteBot();
+      } catch (e) {
+        if (mounted) {
+          _showSnackBar('Errore durante il recupero dei metadati remoti: $e');
+        }
+      }
+    }
+
+    if (!mounted) {
+      return;
+    }
+
+    setState(() {
+      _downloadedBot = downloaded;
+      if (remote != null) {
+        _remoteBot = remote;
+      }
+      _isDownloaded = downloaded != null;
+      _hasUpdateAvailable =
+          remote != null && downloaded != null && _isRemoteNewer(remote, downloaded);
+      _isStatusLoading = false;
+    });
+  }
+
+  Future<Bot?> _fetchDownloadedBot() async {
+    final bots = await _botGetService.fetchDownloadedBotsFlat();
+    return _findMatchingBot(bots);
+  }
+
+  Future<Bot?> _fetchRemoteBot() async {
+    // Evita chiamate inutili se il bot di partenza è già remoto.
+    if (!widget.bot.isDownloaded && !widget.bot.isLocal) {
+      return widget.bot;
+    }
+
+    final grouped = await _botGetService.fetchOnlineBots();
+    final botsForLanguage = grouped[widget.bot.language] ?? const <Bot>[];
+    return _findMatchingBot(botsForLanguage);
+  }
+
+  Bot? _findMatchingBot(Iterable<Bot> bots) {
+    for (final bot in bots) {
+      if (bot.botName == widget.bot.botName &&
+          bot.language == widget.bot.language) {
+        return bot;
+      }
+    }
+    return null;
+  }
+
+  bool _isRemoteNewer(Bot remote, Bot local) {
+    final remoteHash = remote.archiveSha256;
+    final localHash = local.archiveSha256;
+    if (remoteHash != null &&
+        remoteHash.isNotEmpty &&
+        localHash != null &&
+        localHash.isNotEmpty &&
+        remoteHash != localHash) {
+      return true;
+    }
+
+    final remoteVersion = remote.version;
+    final localVersion = local.version;
+    if (remoteVersion.isNotEmpty &&
+        localVersion.isNotEmpty &&
+        remoteVersion != localVersion) {
+      return true;
+    }
+
+    return false;
+  }
+
+  Future<void> _handleDownloadOrUpdate() async {
+    if (_isDownloadingBot) {
+      return;
+    }
+
+    setState(() {
+      _isDownloadingBot = true;
+    });
+
+    var completed = false;
+    try {
+      final bot = await _botDownloadService.downloadBot(
+          widget.bot.language, widget.bot.botName);
+      completed = true;
+      if (!mounted) {
+        return;
+      }
+      setState(() {
+        _downloadedBot = bot;
+        _isDownloaded = true;
+        _hasUpdateAvailable = false;
+      });
+      _showSnackBar('Bot scaricato correttamente.');
+    } catch (e) {
+      if (mounted) {
+        _showSnackBar('Errore durante il download: $e');
+      }
+    } finally {
+      if (mounted) {
+        setState(() {
+          _isDownloadingBot = false;
+        });
+      }
+    }
+
+    if (completed && mounted) {
+      await _refreshBotStatus();
+    }
+  }
+
+  Future<void> _openBotFolder() async {
+    if (!_canOpenFolderAction) {
+      _showSnackBar('Apertura cartella non supportata su questa piattaforma.');
+      return;
+    }
+
+    final bot = _installedBot;
+    if (bot == null) {
+      _showSnackBar('Scarica il bot per aprire la cartella.');
+      return;
+    }
+
+    final sourcePath = bot.sourcePath;
+    if (sourcePath.isEmpty) {
+      _showSnackBar('Percorso della cartella non disponibile.');
+      return;
+    }
+
+    final file = File(sourcePath);
+    Directory directory;
+    if (await file.exists()) {
+      directory = file.parent;
+    } else {
+      directory = Directory(sourcePath);
+    }
+
+    if (!await directory.exists()) {
+      _showSnackBar('Cartella non trovata: ${directory.path}');
+      return;
+    }
+
+    try {
+      late final String command;
+      late final List<String> args;
+
+      if (Platform.isMacOS) {
+        command = 'open';
+        args = [directory.path];
+      } else if (Platform.isWindows) {
+        command = 'explorer';
+        args = [directory.path];
+      } else if (Platform.isLinux) {
+        command = 'xdg-open';
+        args = [directory.path];
+      } else {
+        _showSnackBar('Sistema operativo non supportato per questa operazione.');
+        return;
+      }
+
+      final result = await Process.run(command, args);
+      if (result.exitCode != 0) {
+        final stderrOutput = result.stderr?.toString().trim();
+        final errorMessage =
+            (stderrOutput != null && stderrOutput.isNotEmpty)
+                ? stderrOutput
+                : 'exit code ${result.exitCode}';
+        throw Exception(errorMessage);
+      }
+    } catch (e) {
+      _showSnackBar('Errore durante l\'apertura della cartella: $e');
+      return;
+    }
+
+    _showSnackBar('Cartella aperta: ${directory.path}');
   }
 
   Future<void> _loadLogs() async {
@@ -100,7 +318,7 @@ class _BotDetailViewState extends State<BotDetailView> {
 
   Future<void> _requestExecution() async {
     if (_isRunning) return;
-    final permissions = widget.bot.permissions;
+    final permissions = _primaryBot.permissions;
     if (permissions.isNotEmpty) {
       final accepted = await _showPermissionsDialog(permissions);
       if (accepted != true) {
@@ -448,7 +666,7 @@ class _BotDetailViewState extends State<BotDetailView> {
   Future<void> _killBot() => _sendSignal('kill');
 
   bool get _shouldUseBrowserRunner =>
-      kIsWeb && BrowserBotRunner.isSupported && widget.bot.compat.canRunInBrowser;
+      kIsWeb && BrowserBotRunner.isSupported && _primaryBot.compat.canRunInBrowser;
 
   bool get _canExecuteBot {
     if (kIsWeb) {
@@ -478,7 +696,7 @@ class _BotDetailViewState extends State<BotDetailView> {
 
     try {
       final session = await _browserRunner!.start(
-        widget.bot,
+        _primaryBot,
         baseUrl: widget.baseUrl,
       );
       _browserSession = session;
@@ -686,9 +904,15 @@ class _BotDetailViewState extends State<BotDetailView> {
 
   @override
   Widget build(BuildContext context) {
+    final bot = _primaryBot;
+    final metadataChips = _buildMetadataChips(context);
+    final updateBanner = _buildUpdateBanner(context);
+    final theme = Theme.of(context);
+    final hasPermissions = bot.permissions.isNotEmpty;
+
     return Scaffold(
       appBar: AppBar(
-        title: Text(widget.bot.botName),
+        title: Text(bot.botName),
         actions: [
           IconButton(
             tooltip: 'Guida: crea il tuo bot',
@@ -703,79 +927,66 @@ class _BotDetailViewState extends State<BotDetailView> {
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             Text(
-              'Nome: ${widget.bot.botName}',
-              style: Theme.of(context).textTheme.headlineMedium,
+              bot.botName,
+              style: theme.textTheme.headlineMedium,
             ),
-            const SizedBox(height: 10),
+            const SizedBox(height: 8),
             Text(
-              'Descrizione: ${widget.bot.description}',
-              style: Theme.of(context).textTheme.bodyLarge,
+              bot.description.isNotEmpty
+                  ? bot.description
+                  : 'Nessuna descrizione disponibile.',
+              style: theme.textTheme.bodyLarge,
             ),
             const SizedBox(height: 12),
-            _buildPermissionsSection(context),
-            if (widget.bot.permissions.isNotEmpty) const SizedBox(height: 12),
-            _buildCompatBadges(context),
-            const SizedBox(height: 20),
-            Row(
-              children: [
-                ElevatedButton(
-                  onPressed: (_isRunning || _isTerminating || _activeProcessId != null)
-                      ? null
-                      : () => _requestExecution(),
-                  child: Text(_isRunning
-                      ? 'Esecuzione in corso...'
-                      : _isTerminating
-                          ? 'Terminazione in corso...'
-                          : _activeProcessId != null
-                              ? 'Processo attivo'
-                              : 'Esegui Bot'),
+            if (metadataChips != null) ...[
+              metadataChips,
+              const SizedBox(height: 12),
+            ],
+            _buildMetadataDetails(context),
+            const SizedBox(height: 12),
+            if (_isStatusLoading) ...[
+              const LinearProgressIndicator(),
+              const SizedBox(height: 12),
+            ],
+            if (!_isStatusLoading && updateBanner != null) ...[
+              updateBanner,
+              const SizedBox(height: 12),
+            ] else if (!_isStatusLoading && _isDownloaded && !_hasUpdateAvailable) ...[
+              Container(
+                padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                decoration: BoxDecoration(
+                  color: theme.colorScheme.surfaceVariant,
+                  borderRadius: BorderRadius.circular(8),
                 ),
-                const SizedBox(width: 12),
-                OutlinedButton.icon(
-                  onPressed: (_isTerminating || _activeProcessId == null)
-                      ? null
-                      : _stopBot,
-                  icon: const Icon(Icons.stop_circle_outlined),
-                  label: const Text('Stop'),
-                ),
-                const SizedBox(width: 12),
-                ElevatedButton.icon(
-                  onPressed: (_isTerminating || _activeProcessId == null)
-                      ? null
-                      : _killBot,
-                  style: ElevatedButton.styleFrom(
-                    backgroundColor: Theme.of(context).colorScheme.error,
-                    foregroundColor: Theme.of(context).colorScheme.onError,
-                  ),
-                  icon: const Icon(Icons.cancel_presentation_outlined),
-                  label: const Text('Kill'),
-                ),
-                const SizedBox(width: 12),
-                OutlinedButton(
-                  onPressed: _entries.isEmpty && _error == null ? null : _clearLog,
-                  child: const Text('Pulisci log'),
-                ),
-                const Spacer(),
-                Row(
+                child: Row(
+                  mainAxisSize: MainAxisSize.min,
                   children: [
-                    const Text('Auto-scroll'),
-                    Switch(
-                      value: _autoScroll,
-                      onChanged: (value) {
-                        setState(() {
-                          _autoScroll = value;
-                        });
-                      },
+                    Icon(Icons.check_circle_outline,
+                        color: theme.colorScheme.primary),
+                    const SizedBox(width: 8),
+                    Text(
+                      'Bot installato all\'ultima versione disponibile.',
+                      style: theme.textTheme.bodyMedium?.copyWith(
+                        color: theme.colorScheme.primary,
+                      ),
                     ),
                   ],
                 ),
-              ],
-            ),
+              ),
+              const SizedBox(height: 12),
+            ],
+            _buildPrimaryActions(context),
+            const SizedBox(height: 20),
+            _buildPermissionsSection(context),
+            if (hasPermissions) const SizedBox(height: 12),
+            _buildCompatBadges(context),
+            const SizedBox(height: 20),
+            _buildExecutionControls(context),
             if (_error != null) ...[
               const SizedBox(height: 12),
               Text(
                 _error!,
-                style: TextStyle(color: Theme.of(context).colorScheme.error),
+                style: TextStyle(color: theme.colorScheme.error),
               ),
             ],
             if (_startStatus != null) ...[
@@ -783,7 +994,7 @@ class _BotDetailViewState extends State<BotDetailView> {
               Text(
                 _startStatus!,
                 style: TextStyle(
-                  color: Theme.of(context).colorScheme.primary,
+                  color: theme.colorScheme.primary,
                   fontWeight: FontWeight.w600,
                 ),
               ),
@@ -792,21 +1003,21 @@ class _BotDetailViewState extends State<BotDetailView> {
               const SizedBox(height: 8),
               Text(
                 'Processo attivo: $_activeProcessId',
-                style: Theme.of(context).textTheme.bodyMedium,
+                style: theme.textTheme.bodyMedium,
               ),
             ],
             const SizedBox(height: 8),
             Text(
               'Ultimo exit code: ${_lastExitCode?.toString() ?? 'n/d'}',
-              style: Theme.of(context).textTheme.bodyMedium,
+              style: theme.textTheme.bodyMedium,
             ),
             if (kIsWeb && !_shouldUseBrowserRunner) ...[
               const SizedBox(height: 12),
               Text(
-                widget.bot.compat.browserReason ??
+                _primaryBot.compat.browserReason ??
                     'Questo bot non è compatibile con il runner browser.',
                 style: TextStyle(
-                  color: Theme.of(context).colorScheme.error,
+                  color: theme.colorScheme.error,
                   fontWeight: FontWeight.w600,
                 ),
               ),
@@ -858,7 +1069,7 @@ class _BotDetailViewState extends State<BotDetailView> {
                         children: [
                           Text(
                             'Storico esecuzioni',
-                            style: Theme.of(context).textTheme.titleMedium,
+                            style: theme.textTheme.titleMedium,
                           ),
                           const Spacer(),
                           IconButton(
@@ -889,8 +1100,256 @@ class _BotDetailViewState extends State<BotDetailView> {
     );
   }
 
+  Widget? _buildMetadataChips(BuildContext context) {
+    final bot = _primaryBot;
+    final List<Widget> chips = [];
+
+    if (bot.version.isNotEmpty) {
+      chips.add(
+        Chip(
+          avatar: const Icon(Icons.tag, size: 16),
+          label: Text('v${bot.version}'),
+          visualDensity: VisualDensity.compact,
+        ),
+      );
+    }
+
+    if (bot.author?.isNotEmpty == true) {
+      chips.add(
+        Chip(
+          avatar: const Icon(Icons.person_outline, size: 16),
+          label: Text(bot.author!),
+          visualDensity: VisualDensity.compact,
+        ),
+      );
+    }
+
+    for (final tag in bot.tags) {
+      if (tag.isEmpty) continue;
+      chips.add(
+        Chip(
+          label: Text('#$tag'),
+          visualDensity: VisualDensity.compact,
+        ),
+      );
+    }
+
+    if (chips.isEmpty) {
+      return null;
+    }
+
+    return Wrap(
+      spacing: 8,
+      runSpacing: 4,
+      children: chips,
+    );
+  }
+
+  Widget _buildMetadataDetails(BuildContext context) {
+    final bot = _primaryBot;
+    final installed = _installedBot;
+    final List<Widget> details = [];
+
+    details.add(_metadataLine(context, 'Linguaggio', bot.language));
+
+    final availableVersion = bot.version.isNotEmpty ? bot.version : 'n/d';
+    details.add(
+      _metadataLine(context, 'Versione disponibile', availableVersion),
+    );
+
+    if (installed != null) {
+      final installedVersion =
+          installed.version.isNotEmpty ? installed.version : 'n/d';
+      details.add(
+        _metadataLine(context, 'Versione installata', installedVersion),
+      );
+    }
+
+    if (bot.author?.isNotEmpty == true) {
+      details.add(_metadataLine(context, 'Autore', bot.author!));
+    }
+
+    if (bot.startCommand.isNotEmpty) {
+      details.add(
+        _metadataLine(context, 'Comando di avvio', bot.startCommand),
+      );
+    }
+
+    if (details.isEmpty) {
+      return const SizedBox.shrink();
+    }
+
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        for (int i = 0; i < details.length; i++) ...[
+          if (i > 0) const SizedBox(height: 4),
+          details[i],
+        ],
+      ],
+    );
+  }
+
+  Widget _metadataLine(BuildContext context, String label, String value) {
+    final baseStyle = Theme.of(context).textTheme.bodyMedium;
+    final labelStyle = baseStyle?.copyWith(fontWeight: FontWeight.w600);
+    return RichText(
+      text: TextSpan(
+        style: baseStyle,
+        children: [
+          TextSpan(text: '$label: ', style: labelStyle),
+          TextSpan(text: value),
+        ],
+      ),
+    );
+  }
+
+  Widget? _buildUpdateBanner(BuildContext context) {
+    if (!_hasUpdateAvailable || _remoteBot == null || _installedBot == null) {
+      return null;
+    }
+
+    final remote = _remoteBot!;
+    final installed = _installedBot!;
+    final remoteVersion = remote.version.isNotEmpty
+        ? remote.version
+        : (remote.archiveSha256 ?? 'n/d');
+    final installedVersion = installed.version.isNotEmpty
+        ? installed.version
+        : (installed.archiveSha256 ?? 'n/d');
+
+    final theme = Theme.of(context);
+    final onContainerColor = theme.colorScheme.onSecondaryContainer;
+
+    return Container(
+      width: double.infinity,
+      padding: const EdgeInsets.all(12),
+      decoration: BoxDecoration(
+        color: theme.colorScheme.secondaryContainer,
+        borderRadius: BorderRadius.circular(8),
+      ),
+      child: Row(
+        children: [
+          Icon(Icons.system_update_alt, color: onContainerColor),
+          const SizedBox(width: 12),
+          Expanded(
+            child: Text(
+              'Aggiornamento disponibile: versione $remoteVersion (installata $installedVersion).',
+              style: theme.textTheme.bodyMedium?.copyWith(
+                color: onContainerColor,
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildPrimaryActions(BuildContext context) {
+    final bool enableDownload =
+        !_isDownloadingBot && (!_isDownloaded || _hasUpdateAvailable);
+    final bool showSpinner = _isDownloadingBot;
+    final Widget downloadIcon = showSpinner
+        ? const SizedBox(
+            width: 18,
+            height: 18,
+            child: CircularProgressIndicator(strokeWidth: 2),
+          )
+        : Icon(_hasUpdateAvailable ? Icons.system_update_alt : Icons.download);
+    final String downloadLabel = showSpinner
+        ? 'Download in corso...'
+        : _hasUpdateAvailable
+            ? 'Aggiorna'
+            : _isDownloaded
+                ? 'Scaricato'
+                : 'Scarica';
+
+    return Wrap(
+      spacing: 12,
+      runSpacing: 12,
+      children: [
+        ElevatedButton.icon(
+          onPressed: enableDownload ? _handleDownloadOrUpdate : null,
+          icon: downloadIcon,
+          label: Text(downloadLabel),
+        ),
+        OutlinedButton.icon(
+          onPressed: _canOpenFolderAction ? _openBotFolder : null,
+          icon: const Icon(Icons.folder_open),
+          label: const Text('Apri cartella'),
+        ),
+        ElevatedButton.icon(
+          onPressed: (_isRunning || _isTerminating || _activeProcessId != null)
+              ? null
+              : _requestExecution,
+          icon: const Icon(Icons.play_arrow),
+          label: Text(_isRunning
+              ? 'Esecuzione in corso...'
+              : _isTerminating
+                  ? 'Terminazione in corso...'
+                  : _activeProcessId != null
+                      ? 'Processo attivo'
+                      : 'Esegui'),
+        ),
+      ],
+    );
+  }
+
+  Widget _buildExecutionControls(BuildContext context) {
+    return Row(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Expanded(
+          child: Wrap(
+            spacing: 12,
+            runSpacing: 12,
+            children: [
+              OutlinedButton.icon(
+                onPressed: (_isTerminating || _activeProcessId == null)
+                    ? null
+                    : _stopBot,
+                icon: const Icon(Icons.stop_circle_outlined),
+                label: const Text('Stop'),
+              ),
+              ElevatedButton.icon(
+                onPressed: (_isTerminating || _activeProcessId == null)
+                    ? null
+                    : _killBot,
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: Theme.of(context).colorScheme.error,
+                  foregroundColor: Theme.of(context).colorScheme.onError,
+                ),
+                icon: const Icon(Icons.cancel_presentation_outlined),
+                label: const Text('Kill'),
+              ),
+              OutlinedButton(
+                onPressed: _entries.isEmpty && _error == null ? null : _clearLog,
+                child: const Text('Pulisci log'),
+              ),
+            ],
+          ),
+        ),
+        const SizedBox(width: 12),
+        Row(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            const Text('Auto-scroll'),
+            Switch(
+              value: _autoScroll,
+              onChanged: (value) {
+                setState(() {
+                  _autoScroll = value;
+                });
+              },
+            ),
+          ],
+        ),
+      ],
+    );
+  }
+
   Widget _buildPermissionsSection(BuildContext context) {
-    final permissions = widget.bot.permissions;
+    final permissions = _primaryBot.permissions;
     if (permissions.isEmpty) {
       return const SizedBox.shrink();
     }
@@ -920,7 +1379,7 @@ class _BotDetailViewState extends State<BotDetailView> {
   }
 
   Widget _buildCompatBadges(BuildContext context) {
-    final compat = widget.bot.compat;
+    final compat = _primaryBot.compat;
     final List<Widget> chips = [];
 
     if (compat.desktopStatus == 'compatible') {
