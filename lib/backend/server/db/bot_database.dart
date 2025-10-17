@@ -46,7 +46,7 @@ class BotDatabase {
 
     return openDatabase(
       path,
-      version: 2,
+      version: 3,
       onCreate: (db, version) async {
         logger.info('BotDatabase', "Creating database structure...");
         try {
@@ -66,6 +66,10 @@ class BotDatabase {
             await _createLocalBotsTable(db);
             logger.info(
                 'BotDatabase', "local_bots table created during upgrade.");
+          }
+          if (oldVersion < 3) {
+            await _addBrowserColumns(db, 'bots');
+            await _addBrowserColumns(db, 'local_bots');
           }
           // Future upgrade logic here
         } catch (e) {
@@ -94,7 +98,9 @@ class BotDatabase {
           description TEXT,
           start_command TEXT,
           source_path TEXT,
-          language TEXT NOT NULL
+          language TEXT NOT NULL,
+          browser_compatible INTEGER DEFAULT 0,
+          browser_payload TEXT
         );
       ''');
       logger.info('BotDatabase', "Bots table created successfully.");
@@ -224,12 +230,31 @@ class BotDatabase {
           description TEXT,
           start_command TEXT,
           source_path TEXT,
-          language TEXT NOT NULL
+          language TEXT NOT NULL,
+          browser_compatible INTEGER DEFAULT 0,
+          browser_payload TEXT
         );
       ''');
       logger.info('BotDatabase', "local_bots table created successfully.");
     } catch (e) {
       logger.error('BotDatabase', "Error creating 'local_bots' table: $e");
+    }
+  }
+
+  Future<void> _addBrowserColumns(Database db, String table) async {
+    try {
+      await db.execute(
+          'ALTER TABLE $table ADD COLUMN browser_compatible INTEGER DEFAULT 0');
+    } catch (e) {
+      logger.warn('BotDatabase',
+          "Column browser_compatible for $table already exists or failed: $e");
+    }
+
+    try {
+      await db.execute('ALTER TABLE $table ADD COLUMN browser_payload TEXT');
+    } catch (e) {
+      logger.warn('BotDatabase',
+          "Column browser_payload for $table already exists or failed: $e");
     }
   }
 

@@ -4,6 +4,7 @@ import '../models/bot.dart';
 import '../db/bot_database.dart';
 import 'dart:io';
 import 'package:path/path.dart' as p;
+import 'package:scriptagher/shared/models/browser_bot_descriptor.dart';
 
 class BotGetService {
   final CustomLogger logger = CustomLogger();
@@ -64,9 +65,25 @@ class BotGetService {
       final botDetailsMap =
           await gitHubApi.fetchBotDetails(language, bot.botName);
 
+      BrowserBotDescriptor? descriptor;
+      final browser = botDetailsMap['browser'] ??
+          botDetailsMap['browser_payload'] ??
+          botDetailsMap['browserDescriptor'];
+      if (browser is Map<String, dynamic>) {
+        descriptor = BrowserBotDescriptor.fromJson(browser);
+      } else if (browser is String && browser.isNotEmpty) {
+        try {
+          descriptor = BrowserBotDescriptor.fromEncodedJson(browser);
+        } catch (e) {
+          logger.warn('BotService',
+              'Failed to decode browser descriptor for ${bot.botName}: $e');
+        }
+      }
+
       bot = bot.copyWith(
         description: botDetailsMap['description'],
         startCommand: botDetailsMap['startCommand'],
+        browserDescriptor: descriptor,
       );
       return bot;
     } catch (e) {

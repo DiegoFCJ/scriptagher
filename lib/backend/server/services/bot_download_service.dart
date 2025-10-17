@@ -8,6 +8,7 @@ import '../models/bot.dart';
 import 'package:scriptagher/shared/constants/APIS.dart';
 import 'package:scriptagher/shared/constants/LOGS.dart';
 import '../exceptions/download_exceptions.dart';
+import 'package:scriptagher/shared/models/browser_bot_descriptor.dart';
 
 class BotDownloadService {
   final CustomLogger logger = CustomLogger();
@@ -34,12 +35,28 @@ class BotDownloadService {
     final botJsonPath = '${botDir.path}/${APIS.BOT_FILE_CONFIG}';
     final botDetails = await BotUtils.fetchBotDetails(botJsonPath);
 
+    BrowserBotDescriptor? descriptor;
+    final browser = botDetails['browser'] ??
+        botDetails['browser_payload'] ??
+        botDetails['browserDescriptor'];
+    if (browser is Map<String, dynamic>) {
+      descriptor = BrowserBotDescriptor.fromJson(browser);
+    } else if (browser is String && browser.isNotEmpty) {
+      try {
+        descriptor = BrowserBotDescriptor.fromEncodedJson(browser);
+      } catch (e) {
+        logger.warn(LOGS.BOT_SERVICE,
+            'Failed to decode browser descriptor for ${botDetails['botName']}: $e');
+      }
+    }
+
     final bot = Bot(
       botName: botDetails['botName'],
       description: botDetails['description'],
       startCommand: botDetails['startCommand'],
       sourcePath: botJsonPath,
       language: language,
+      browserDescriptor: descriptor,
     );
     await botDatabase.insertBot(bot);
     await botZip.delete();

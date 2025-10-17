@@ -15,6 +15,9 @@ class BotCard extends StatelessWidget {
         title: Text(bot.botName),
         subtitle: Text(bot.description),
         onTap: onTap,
+        trailing: bot.isBrowserCompatible
+            ? const Icon(Icons.web, color: Colors.green)
+            : const Icon(Icons.desktop_windows, color: Colors.grey),
       ),
     );
   }
