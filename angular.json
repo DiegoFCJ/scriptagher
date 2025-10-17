@@ -17,7 +17,7 @@
         "build": {
           "builder": "@angular-devkit/build-angular:browser",
           "options": {
-            "outputPath": "dist",
+            "outputPath": "dist/bot-list/browser",
             "main": "src/main.ts",
             "baseHref": "/scriptagher/",
             "index": "src/index.html",
@@ -53,7 +53,7 @@
           "builder": "@angular-devkit/build-angular:server",
           "options": {
             "outputPath": "dist/bot-list/server",
-            "main": "server.ts",
+            "main": "src/main.server.ts",
             "tsConfig": "tsconfig.server.json"
           },
           "configurations": {
@@ -110,29 +110,8 @@
         "deploy": {
           "builder": "angular-cli-ghpages:deploy",
           "options": {
-            "outputPath": "dist",
-            "baseHref": "/scriptagher/",
-            "index": "src/index.html",
-            "polyfills": [
-              "zone.js"
-            ],
-            "assets": [
-              {
-                "glob": "**/*",
-                "input": "public"
-              }
-            ],
-            "styles": [
-              "src/styles.scss"
-            ],
-            "scripts": []
-          },
-          "configurations": {
-            "production": {
-              "optimization": true,
-              "sourceMap": false,
-              "outputHashing": "all"
-            }
+            "buildTarget": "bot-list:build:production",
+            "dir": "dist/bot-list/browser"
           }
         }
       }

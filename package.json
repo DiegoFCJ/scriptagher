@@ -8,7 +8,7 @@
     "watch": "ng build --watch --configuration development",
     "test": "ng test",
     "serve:ssr:bot-list": "node dist/bot-list/server/server.mjs",
-    "deploy": "npm run build && npx gh-pages -d dist/bot-list/browser --branch gh-pages --message 'Deploy to GitHub Pages'"
+    "deploy": "ng deploy"
   },
   "private": true,
   "dependencies": {
@@ -34,6 +34,7 @@
     "@types/express": "^4.17.17",
     "@types/jasmine": "~5.1.0",
     "@types/node": "^18.18.0",
+    "angular-cli-ghpages": "^2.0.3",
     "gh-pages": "^6.1.1",
     "jasmine-core": "~5.2.0",
     "karma": "~6.4.0",
