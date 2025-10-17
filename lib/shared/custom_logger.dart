@@ -1,3 +1,4 @@
+import 'dart:convert';
 import 'dart:io';
 import 'package:logging/logging.dart';
 import 'package:path_provider/path_provider.dart';
@@ -5,7 +6,7 @@ import 'package:intl/intl.dart';
 
 class CustomLogger {
   final Logger _logger = Logger('CustomLogger'); // Non statico
-  
+
   // Formato data
   static final DateFormat dateFormatter = DateFormat('yyyy-MM-dd');
   static final String todayDate = dateFormatter.format(DateTime.now());
@@ -18,8 +19,8 @@ class CustomLogger {
   // Metodo per inizializzare il logger
   CustomLogger() {
     _logger.onRecord.listen((LogRecord rec) async {
-      String logMessage = _formatLogMessage(
-        rec.level.name, rec.loggerName, rec.time, rec.message);
+      final logMessage = _formatLogMessage(
+          rec.level.name, rec.loggerName, rec.time, rec.message);
       await _writeToFile(logMessage, rec.level.name);
     });
   }
@@ -28,14 +29,14 @@ class CustomLogger {
   Future<void> _writeToFile(String logMessage, String level) async {
     final directory = await getApplicationDocumentsDirectory();
     final logDirectory = Directory('${directory.path}/.scriptagher/logs/$todayDate');
-    
+
     // Crea la cartella se non esiste
     if (!await logDirectory.exists()) {
       await logDirectory.create(recursive: true);
     }
 
     // Determina il componente in base al livello o al tipo di operazione
-    String component = _getComponent(level);
+    final component = _getComponent(level);
     final logFile = File('${logDirectory.path}/$component.log');
 
     // Controlla la dimensione del file e ruota se necessario
@@ -58,7 +59,7 @@ class CustomLogger {
       case WARN_LEVEL:
         return 'data';
       case ERROR_LEVEL:
-        return 'general';  // Può essere modificato se hai bisogno di più granularità per gli errori
+        return 'general';
       default:
         return 'general';
     }
@@ -68,46 +69,50 @@ class CustomLogger {
   Future<void> _rotateLogFile(File logFile) async {
     final now = DateTime.now();
     final archiveName = '${logFile.path}_${now.toIso8601String()}.log';
-    
+
     // Rinomina il file esistente per archiviarlo
     await logFile.rename(archiveName);
     await logFile.create();
   }
 
   // Formatta il messaggio di log
-  String _formatLogMessage(String level, String className, DateTime time, String message) {
+  String _formatLogMessage(
+      String level, String className, DateTime time, String message) {
     final timeFormatted = DateFormat('yyyy-MM-dd HH:mm:ss').format(time);
-    final threadId = DateTime.now().millisecondsSinceEpoch;  // Simulazione del Thread ID
+    final threadId = DateTime.now().millisecondsSinceEpoch;
 
     return '[$timeFormatted] [$threadId] [$level] [$className] - $message';
   }
 
-  // Metodo di debug
-  void debug(String operationType, String description) {
-    _log(DEBUG_LEVEL, operationType, description);
+  void debug(String operationType, String description,
+      {Map<String, dynamic>? metadata}) {
+    _log(DEBUG_LEVEL, operationType, description, metadata: metadata);
   }
 
-  // Metodo di info
-  void info(String operationType, String description) {
-    _log(INFO_LEVEL, operationType, description);
+  void info(String operationType, String description,
+      {Map<String, dynamic>? metadata}) {
+    _log(INFO_LEVEL, operationType, description, metadata: metadata);
   }
 
-  // Metodo di warning
-  void warn(String operationType, String description) {
-    _log(WARN_LEVEL, operationType, description);
+  void warn(String operationType, String description,
+      {Map<String, dynamic>? metadata}) {
+    _log(WARN_LEVEL, operationType, description, metadata: metadata);
   }
 
-  // Metodo di errore
-  void error(String operationType, String description) {
-    _log(ERROR_LEVEL, operationType, description);
+  void error(String operationType, String description,
+      {Map<String, dynamic>? metadata}) {
+    _log(ERROR_LEVEL, operationType, description, metadata: metadata);
   }
 
-  // Metodo centrale per il logging
-  void _log(String level, String operationType, String description) {
-    final formattedMessage = '[$operationType] - $description';
+  void _log(String level, String operationType, String description,
+      {Map<String, dynamic>? metadata}) {
+    final buffer = StringBuffer('[$operationType] - $description');
+    if (metadata != null && metadata.isNotEmpty) {
+      buffer.write(' | metadata: ${jsonEncode(metadata)}');
+    }
+
     Level logLevel;
 
-    // Assegna il valore numerico in base al livello di log
     switch (level) {
       case DEBUG_LEVEL:
         logLevel = Level.FINEST; // DEBUG
@@ -126,7 +131,6 @@ class CustomLogger {
         break;
     }
 
-    // Logga il messaggio con il livello corretto
-    _logger.log(logLevel, formattedMessage);
+    _logger.log(logLevel, buffer.toString());
   }
 }

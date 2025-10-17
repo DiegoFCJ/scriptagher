@@ -1,13 +1,17 @@
 import 'dart:async';
 import 'dart:convert';
+import 'dart:io';
 
 import 'package:flutter/material.dart';
 import 'package:http/http.dart' as http;
+import 'package:path_provider/path_provider.dart';
 
 import '../../models/bot.dart';
+import '../../models/execution_log.dart';
 
 class BotDetailView extends StatefulWidget {
-  const BotDetailView({super.key, required this.bot, this.baseUrl = 'http://localhost:8080'});
+  const BotDetailView(
+      {super.key, required this.bot, this.baseUrl = 'http://localhost:8080'});
 
   final Bot bot;
   final String baseUrl;
@@ -19,11 +23,13 @@ class BotDetailView extends StatefulWidget {
 class _BotDetailViewState extends State<BotDetailView> {
   final ScrollController _scrollController = ScrollController();
   final List<_ConsoleEntry> _entries = [];
+  final List<ExecutionLog> _logHistory = [];
 
   http.Client? _client;
   StreamSubscription<String>? _subscription;
   bool _autoScroll = true;
   bool _isRunning = false;
+  bool _isLoadingLogs = false;
   String _buffer = '';
   String? _error;
 
@@ -32,10 +38,52 @@ class _BotDetailViewState extends State<BotDetailView> {
   }
 
   @override
+  void initState() {
+    super.initState();
+    _loadLogs();
+  }
+
+  @override
   void dispose() {
     _stopExecution();
     _scrollController.dispose();
     super.dispose();
+  }
+
+  Future<void> _loadLogs() async {
+    setState(() {
+      _isLoadingLogs = true;
+    });
+
+    final uri = Uri.parse(
+        '${widget.baseUrl}/bots/${Uri.encodeComponent(widget.bot.language)}/${Uri.encodeComponent(widget.bot.botName)}/logs');
+
+    try {
+      final response = await http.get(uri);
+      if (response.statusCode == 200) {
+        final List<dynamic> data = jsonDecode(response.body) as List<dynamic>;
+        final logs = data
+            .whereType<Map<String, dynamic>>()
+            .map(ExecutionLog.fromJson)
+            .toList();
+        setState(() {
+          _logHistory
+            ..clear()
+            ..addAll(logs);
+        });
+      } else {
+        _showSnackBar(
+            'Impossibile recuperare i log (codice ${response.statusCode}).');
+      }
+    } catch (e) {
+      _showSnackBar('Errore durante il caricamento dei log: $e');
+    } finally {
+      if (mounted) {
+        setState(() {
+          _isLoadingLogs = false;
+        });
+      }
+    }
   }
 
   void _startExecution() async {
@@ -82,6 +130,7 @@ class _BotDetailViewState extends State<BotDetailView> {
           _isRunning = false;
         });
         _stopExecution();
+        _loadLogs();
       });
     } catch (e) {
       if (!mounted) return;
@@ -143,6 +192,7 @@ class _BotDetailViewState extends State<BotDetailView> {
           setState(() {
             _isRunning = false;
           });
+          _loadLogs();
         }
         return;
       }
@@ -177,6 +227,70 @@ class _BotDetailViewState extends State<BotDetailView> {
       _entries.clear();
       _error = null;
     });
+  }
+
+  Future<void> _openLog(ExecutionLog log) async {
+    final uri = Uri.parse(
+        '${widget.baseUrl}/bots/${Uri.encodeComponent(widget.bot.language)}/${Uri.encodeComponent(widget.bot.botName)}/logs/${Uri.encodeComponent(log.runId)}');
+    try {
+      final response = await http.get(uri);
+      if (response.statusCode == 200) {
+        final content = utf8.decode(response.bodyBytes);
+        if (!mounted) return;
+        await showDialog<void>(
+          context: context,
+          builder: (context) {
+            return AlertDialog(
+              title: Text('Log ${log.runId}'),
+              content: SizedBox(
+                width: 600,
+                child: SingleChildScrollView(
+                  child: SelectableText(content),
+                ),
+              ),
+              actions: [
+                TextButton(
+                  onPressed: () => Navigator.of(context).pop(),
+                  child: const Text('Chiudi'),
+                ),
+              ],
+            );
+          },
+        );
+      } else {
+        _showSnackBar(
+            'Impossibile aprire il log (codice ${response.statusCode}).');
+      }
+    } catch (e) {
+      _showSnackBar('Errore durante l\'apertura del log: $e');
+    }
+  }
+
+  Future<void> _exportLog(ExecutionLog log) async {
+    final uri = Uri.parse(
+        '${widget.baseUrl}/bots/${Uri.encodeComponent(widget.bot.language)}/${Uri.encodeComponent(widget.bot.botName)}/logs/${Uri.encodeComponent(log.runId)}');
+    try {
+      final response = await http.get(uri);
+      if (response.statusCode != 200) {
+        _showSnackBar(
+            'Impossibile esportare il log (codice ${response.statusCode}).');
+        return;
+      }
+
+      final directory = await getApplicationDocumentsDirectory();
+      final file = File('${directory.path}/${log.logFileName}');
+      await file.writeAsBytes(response.bodyBytes);
+      _showSnackBar('Log salvato in ${file.path}');
+    } catch (e) {
+      _showSnackBar('Errore durante l\'esportazione del log: $e');
+    }
+  }
+
+  void _showSnackBar(String message) {
+    if (!mounted) return;
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(content: Text(message)),
+    );
   }
 
   @override
@@ -274,9 +388,89 @@ class _BotDetailViewState extends State<BotDetailView> {
                       ),
               ),
             ),
+            const SizedBox(height: 20),
+            SizedBox(
+              height: 220,
+              child: Card(
+                elevation: 2,
+                child: Padding(
+                  padding: const EdgeInsets.all(16.0),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Row(
+                        children: [
+                          Text(
+                            'Storico esecuzioni',
+                            style: Theme.of(context).textTheme.titleMedium,
+                          ),
+                          const Spacer(),
+                          IconButton(
+                            tooltip: 'Aggiorna',
+                            onPressed: _isLoadingLogs ? null : _loadLogs,
+                            icon: _isLoadingLogs
+                                ? const SizedBox(
+                                    width: 16,
+                                    height: 16,
+                                    child: CircularProgressIndicator(strokeWidth: 2),
+                                  )
+                                : const Icon(Icons.refresh),
+                          ),
+                        ],
+                      ),
+                      const SizedBox(height: 12),
+                      Expanded(
+                        child: _buildLogList(),
+                      ),
+                    ],
+                  ),
+                ),
+              ),
+            ),
           ],
         ),
       ),
+    );
+  }
+
+  Widget _buildLogList() {
+    if (_isLoadingLogs && _logHistory.isEmpty) {
+      return const Center(child: CircularProgressIndicator());
+    }
+
+    if (_logHistory.isEmpty) {
+      return const Center(
+        child: Text('Nessun log disponibile per questo bot.'),
+      );
+    }
+
+    return ListView.separated(
+      itemCount: _logHistory.length,
+      separatorBuilder: (_, __) => const Divider(height: 1),
+      itemBuilder: (context, index) {
+        final log = _logHistory[index];
+        return ListTile(
+          title: Text('${log.formattedStartedAt} • ${log.status}'),
+          subtitle: Text(
+            'Fine: ${log.formattedFinishedAt} • Exit code: ${log.exitCode ?? 'n/d'} • Dimensione: ${log.formattedSize}',
+          ),
+          trailing: Wrap(
+            spacing: 8,
+            children: [
+              IconButton(
+                tooltip: 'Apri log',
+                icon: const Icon(Icons.visibility),
+                onPressed: () => _openLog(log),
+              ),
+              IconButton(
+                tooltip: 'Esporta log',
+                icon: const Icon(Icons.download),
+                onPressed: () => _exportLog(log),
+              ),
+            ],
+          ),
+        );
+      },
     );
   }
 }

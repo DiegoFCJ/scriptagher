@@ -8,11 +8,13 @@ import 'package:scriptagher/shared/custom_logger.dart';
 
 import '../db/bot_database.dart';
 import '../models/bot.dart';
+import 'execution_log_service.dart';
 
 class ExecutionService {
-  ExecutionService(this._botDatabase);
+  ExecutionService(this._botDatabase, this._logManager);
 
   final BotDatabase _botDatabase;
+  final ExecutionLogManager _logManager;
   final CustomLogger _logger = CustomLogger();
 
   Future<Response> streamExecution(
@@ -22,20 +24,51 @@ class ExecutionService {
     if (bot == null || bot.startCommand.trim().isEmpty) {
       final errorMessage =
           'Bot $language/$botName not found or missing start command.';
-      _logger.error(LOGS.EXECUTION_SERVICE, errorMessage);
+      _logger.error(LOGS.EXECUTION_SERVICE, errorMessage,
+          metadata: {'language': language, 'botName': botName});
       return Response.notFound(jsonEncode({'error': errorMessage}));
     }
 
     final controller = StreamController<List<int>>();
-    final logSink = await _prepareLogSink(bot);
+    late final ExecutionLogSession session;
+    try {
+      session = await _logManager.startSession(bot);
+    } catch (e) {
+      final message =
+          'Unable to prepare log session for ${bot.language}/${bot.botName}: $e';
+      _logger.error(LOGS.EXECUTION_SERVICE, message,
+          metadata: {'language': language, 'botName': botName});
+      controller.add(utf8.encode(
+          'data: ${jsonEncode({'type': 'error', 'message': message})}\n\n'));
+      await controller.close();
+      return Response.internalServerError(
+        body: jsonEncode({'error': message}),
+        headers: {'Content-Type': 'application/json'},
+      );
+    }
     Process? process;
     var closed = false;
+    var finalized = false;
     StreamSubscription<String>? stdoutSub;
     StreamSubscription<String>? stderrSub;
 
     void addEvent(Map<String, dynamic> event) {
       final payload = 'data: ${jsonEncode(event)}\n\n';
       controller.add(utf8.encode(payload));
+    }
+
+    Future<void> finalize(int exitCode, {String? errorMessage}) async {
+      if (finalized) {
+        return;
+      }
+      finalized = true;
+      await _logManager.finalizeSession(session,
+          exitCode: exitCode, errorMessage: errorMessage);
+      _logger.info(
+        LOGS.EXECUTION_SERVICE,
+        'Execution finished for ${bot.language}/${bot.botName} with exit code $exitCode.',
+        metadata: session.metadata.toLogMetadata(),
+      );
     }
 
     Future<void> closeResources() async {
@@ -46,11 +79,10 @@ class ExecutionService {
       await stdoutSub?.cancel();
       await stderrSub?.cancel();
       try {
-        await logSink.flush();
+        await session.dispose();
       } finally {
-        await logSink.close();
+        await controller.close();
       }
-      await controller.close();
     }
 
     Future(() async {
@@ -60,6 +92,12 @@ class ExecutionService {
           'message': 'starting',
         });
 
+        _logger.info(
+          LOGS.EXECUTION_SERVICE,
+          'Started execution for ${bot.language}/${bot.botName}.',
+          metadata: session.metadata.toLogMetadata(),
+        );
+
         process = await Process.start(
           '/bin/sh',
           ['-c', bot.startCommand],
@@ -67,14 +105,11 @@ class ExecutionService {
           runInShell: false,
         );
 
-        _logger.info(LOGS.EXECUTION_SERVICE,
-            'Started execution for ${bot.language}/${bot.botName}.');
-
         stdoutSub = process!.stdout
             .transform(utf8.decoder)
             .transform(const LineSplitter())
             .listen((line) {
-          _handleLine(logSink, line,
+          _handleLine(session, line,
               isError: false, emitter: (event) => addEvent(event));
         });
 
@@ -82,7 +117,7 @@ class ExecutionService {
             .transform(utf8.decoder)
             .transform(const LineSplitter())
             .listen((line) {
-          _handleLine(logSink, line,
+          _handleLine(session, line,
               isError: true, emitter: (event) => addEvent(event));
         });
 
@@ -94,24 +129,32 @@ class ExecutionService {
           'code': exitCode,
         });
 
-        logSink.writeln('[status] exit code: $exitCode');
+        session.logSink.writeln('[status] exit code: $exitCode');
+        await finalize(exitCode);
         await closeResources();
       } catch (e, stack) {
-        _logger.error(LOGS.EXECUTION_SERVICE,
-            'Execution failed for ${bot.language}/${bot.botName}: $e');
-        logSink.writeln('[error] $e');
-        logSink.writeln(stack.toString());
+        _logger.error(
+          LOGS.EXECUTION_SERVICE,
+          'Execution failed for ${bot.language}/${bot.botName}: $e',
+          metadata: session.metadata.toLogMetadata(),
+        );
+        session.logSink.writeln('[error] $e');
+        session.logSink.writeln(stack.toString());
         addEvent({
           'type': 'error',
           'message': e.toString(),
         });
+        await finalize(-1, errorMessage: e.toString());
         await closeResources();
       }
     });
 
     controller.onCancel = () async {
-      _logger.info(LOGS.EXECUTION_SERVICE,
-          'Stream cancelled for ${bot.language}/${bot.botName}.');
+      _logger.info(
+        LOGS.EXECUTION_SERVICE,
+        'Stream cancelled for ${bot.language}/${bot.botName}.',
+        metadata: session.metadata.toLogMetadata(),
+      );
       process?.kill();
       await closeResources();
     };
@@ -127,24 +170,90 @@ class ExecutionService {
     );
   }
 
-  Future<IOSink> _prepareLogSink(Bot bot) async {
-    final timestamp = DateTime.now().toIso8601String().replaceAll(':', '-');
-    final directory =
-        Directory('logs/executions/${bot.language}/${bot.botName}');
-    await directory.create(recursive: true);
-    final file = File('${directory.path}/run_$timestamp.log');
-    return file.openWrite(mode: FileMode.append);
+  Future<Response> listLogs(
+      Request request, String language, String botName) async {
+    try {
+      final logs = await _logManager.listLogs(language, botName);
+      final payload = logs.map((log) => log.toJson()).toList();
+      return Response.ok(jsonEncode(payload),
+          headers: {'Content-Type': 'application/json'});
+    } catch (e) {
+      _logger.error(
+        LOGS.EXECUTION_SERVICE,
+        'Failed to list logs for $language/$botName: $e',
+        metadata: {'language': language, 'botName': botName},
+      );
+      return Response.internalServerError(
+        body: jsonEncode({
+          'error': 'Unable to read logs',
+          'message': e.toString(),
+        }),
+        headers: {'Content-Type': 'application/json'},
+      );
+    }
   }
 
-  void _handleLine(IOSink logSink, String line,
+  Future<Response> downloadLog(Request request, String language,
+      String botName, String runId) async {
+    try {
+      final metadata =
+          await _logManager.loadMetadata(language, botName, runId);
+      if (metadata == null) {
+        return Response.notFound(
+          jsonEncode({'error': 'Log non trovato'}),
+          headers: {'Content-Type': 'application/json'},
+        );
+      }
+      final logFile =
+          await _logManager.openLogFile(language, botName, metadata.logFileName);
+      if (logFile == null) {
+        return Response.notFound(
+          jsonEncode({'error': 'File di log non disponibile'}),
+          headers: {'Content-Type': 'application/json'},
+        );
+      }
+
+      return Response.ok(
+        logFile.openRead(),
+        headers: {
+          'Content-Type': 'text/plain; charset=utf-8',
+          'Content-Disposition':
+              'attachment; filename="${metadata.logFileName}"',
+          'Access-Control-Expose-Headers': 'Content-Disposition',
+        },
+      );
+    } catch (e) {
+      _logger.error(
+        LOGS.EXECUTION_SERVICE,
+        'Failed to download log $runId for $language/$botName: $e',
+        metadata: {'language': language, 'botName': botName, 'runId': runId},
+      );
+      return Response.internalServerError(
+        body: jsonEncode({
+          'error': 'Unable to download log',
+          'message': e.toString(),
+        }),
+        headers: {'Content-Type': 'application/json'},
+      );
+    }
+  }
+
+  void _handleLine(ExecutionLogSession session, String line,
       {required bool isError,
       required void Function(Map<String, dynamic> event) emitter}) {
     final entryType = isError ? 'stderr' : 'stdout';
-    logSink.writeln('[$entryType] $line');
+    session.logSink.writeln('[$entryType] $line');
     emitter({
       'type': entryType,
       'message': line,
     });
+
+    final metadata = session.metadata.toLogMetadata(entryType: entryType);
+    if (isError) {
+      _logger.error(LOGS.EXECUTION_SERVICE, line, metadata: metadata);
+    } else {
+      _logger.debug(LOGS.EXECUTION_SERVICE, line, metadata: metadata);
+    }
   }
 
   String? _resolveWorkingDirectory(Bot bot) {
