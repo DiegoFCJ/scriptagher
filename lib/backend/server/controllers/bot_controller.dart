@@ -56,6 +56,16 @@ class BotController {
     return executionService.startBot(request, language, botName);
   }
 
+  Future<Response> stopBot(
+      Request request, String language, String botName) {
+    return executionService.stopBot(request, language, botName);
+  }
+
+  Future<Response> killBot(
+      Request request, String language, String botName) {
+    return executionService.killBot(request, language, botName);
+  }
+
   // Endpoint per scaricare un bot specifico
   Future<Response> downloadBot(
       Request request, String language, String botName) async {
