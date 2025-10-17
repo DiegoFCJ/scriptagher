@@ -40,6 +40,7 @@ class BotDownloadService {
       startCommand: botDetails['startCommand'],
       sourcePath: botJsonPath,
       language: language,
+      origin: 'Remoto',
     );
     await botDatabase.insertBot(bot);
     await botZip.delete();

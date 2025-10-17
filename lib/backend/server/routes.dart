@@ -19,6 +19,7 @@ class BotRoutes {
         (Request request) => botController.fetchAvailableBots(request));
 
     router.get('/localbots', botController.fetchLocalBots);
+    router.post('/bots/upload', botController.uploadBot);
 
     return router;
   }

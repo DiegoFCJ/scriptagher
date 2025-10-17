@@ -5,6 +5,7 @@ class Bot {
   final String startCommand;
   final String sourcePath;
   final String language;
+  final String origin;
 
   Bot({
     this.id,
@@ -13,12 +14,14 @@ class Bot {
     required this.startCommand,
     required this.sourcePath,
     required this.language,
+    required this.origin,
   });
 
   // Metodo factory per creare una nuova versione di Bot con dettagli aggiornati
   Bot copyWith({
     String? description,
     String? startCommand,
+    String? origin,
   }) {
     return Bot(
       id: id,
@@ -27,6 +30,7 @@ class Bot {
       startCommand: startCommand ?? this.startCommand,
       sourcePath: sourcePath,
       language: language,
+      origin: origin ?? this.origin,
     );
   }
 
@@ -38,6 +42,7 @@ class Bot {
       'start_command': startCommand,
       'source_path': sourcePath,
       'language': language,
+      'origin': origin,
     };
   }
 
@@ -49,6 +54,7 @@ class Bot {
       startCommand: map['start_command'] ?? '',
       sourcePath: map['source_path'],
       language: map['language'],
+      origin: map['origin'] ?? 'Remoto',
     );
   }
 }

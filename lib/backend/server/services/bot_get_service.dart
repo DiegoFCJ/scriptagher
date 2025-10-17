@@ -35,6 +35,7 @@ class BotGetService {
             startCommand: 'No start command',
             sourcePath: path,
             language: language,
+            origin: 'Remoto',
           );
 
           // Aggiorna ulteriormente con informazioni più precise
@@ -137,6 +138,7 @@ class BotGetService {
           startCommand: startCommand,
           sourcePath: sourceFile.path,
           language: language,
+          origin: 'Locali',
         );
 
         bots.add(bot);

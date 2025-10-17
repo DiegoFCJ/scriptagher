@@ -4,14 +4,17 @@ import 'package:scriptagher/shared/custom_logger.dart';
 import 'package:scriptagher/shared/constants/LOGS.dart';
 import '../services/bot_get_service.dart';
 import '../services/bot_download_service.dart';
-import '../models/bot.dart';
+import '../services/bot_upload_service.dart';
+import '../exceptions/bot_upload_exception.dart';
 
 class BotController {
   final CustomLogger logger = CustomLogger();
   final BotDownloadService botDownloadService;
   final BotGetService botGetService;
+  final BotUploadService botUploadService;
 
-  BotController(this.botDownloadService, this.botGetService);
+  BotController(
+      this.botDownloadService, this.botGetService, this.botUploadService);
 
   // Endpoint per ottenere la lista dei bot disponibili remoti
   Future<Response> fetchAvailableBots(Request request) async {
@@ -37,6 +40,32 @@ class BotController {
             'message': e.toString(),
           }),
           headers: {'Content-Type': 'application/json'});
+    }
+  }
+
+  Future<Response> uploadBot(Request request) async {
+    try {
+      final bot = await botUploadService.handleUpload(request);
+      return Response.ok(
+        json.encode(bot.toMap()),
+        headers: {'Content-Type': 'application/json'},
+      );
+    } on BotUploadException catch (e) {
+      logger.warn(LOGS.BOT_CONTROLLER, 'Upload error: ${e.message}');
+      return Response(e.statusCode,
+          body: json.encode({
+            'error': e.message,
+          }),
+          headers: {'Content-Type': 'application/json'});
+    } catch (e) {
+      logger.error(LOGS.BOT_CONTROLLER, 'Unexpected upload error: $e');
+      return Response.internalServerError(
+        body: json.encode({
+          'error': 'Errore durante il caricamento del bot',
+          'message': e.toString(),
+        }),
+        headers: {'Content-Type': 'application/json'},
+      );
     }
   }
 

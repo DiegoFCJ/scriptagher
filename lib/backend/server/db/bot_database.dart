@@ -46,7 +46,7 @@ class BotDatabase {
 
     return openDatabase(
       path,
-      version: 2,
+      version: 3,
       onCreate: (db, version) async {
         logger.info('BotDatabase', "Creating database structure...");
         try {
@@ -67,6 +67,10 @@ class BotDatabase {
             logger.info(
                 'BotDatabase', "local_bots table created during upgrade.");
           }
+          if (oldVersion < 3) {
+            await _ensureOriginColumn(db, 'bots', defaultValue: 'Remoto');
+            await _ensureOriginColumn(db, 'local_bots', defaultValue: 'Locali');
+          }
           // Future upgrade logic here
         } catch (e) {
           logger.error('BotDatabase', 'Error during database upgrade: $e');
@@ -75,7 +79,10 @@ class BotDatabase {
     ).then((db) async {
       try {
         // 🛡 Verifica struttura dopo apertura, anche se onCreate/onUpgrade non chiamati
+        await _createBotsTable(db);
         await _createLocalBotsTable(db); // Sicuro grazie a IF NOT EXISTS
+        await _ensureOriginColumn(db, 'bots', defaultValue: 'Remoto');
+        await _ensureOriginColumn(db, 'local_bots', defaultValue: 'Locali');
         await _checkDatabaseStructure(db);
       } catch (e) {
         logger.error('BotDatabase', 'Error during structure verification: $e');
@@ -94,7 +101,8 @@ class BotDatabase {
           description TEXT,
           start_command TEXT,
           source_path TEXT,
-          language TEXT NOT NULL
+          language TEXT NOT NULL,
+          origin TEXT NOT NULL DEFAULT 'Remoto'
         );
       ''');
       logger.info('BotDatabase', "Bots table created successfully.");
@@ -224,7 +232,8 @@ class BotDatabase {
           description TEXT,
           start_command TEXT,
           source_path TEXT,
-          language TEXT NOT NULL
+          language TEXT NOT NULL,
+          origin TEXT NOT NULL DEFAULT 'Locali'
         );
       ''');
       logger.info('BotDatabase', "local_bots table created successfully.");
@@ -256,11 +265,32 @@ class BotDatabase {
     for (var bot in bots) {
       batch.insert(
         'local_bots',
-        bot.toMap(),
+        bot.copyWith(origin: 'Locali').toMap(),
         conflictAlgorithm: ConflictAlgorithm.replace,
       );
     }
     await batch.commit(noResult: true);
+  }
+
+  Future<void> insertOrUpdateLocalBot(Bot bot) async {
+    final db = await database;
+    await db.insert(
+      'local_bots',
+      bot.copyWith(origin: 'Locali').toMap(),
+      conflictAlgorithm: ConflictAlgorithm.replace,
+    );
+  }
+
+  Future<void> _ensureOriginColumn(Database db, String table,
+      {required String defaultValue}) async {
+    final result = await db.rawQuery("PRAGMA table_info($table);");
+    final hasOrigin = result.any((row) => row['name'] == 'origin');
+    if (!hasOrigin) {
+      await db.execute(
+          "ALTER TABLE $table ADD COLUMN origin TEXT NOT NULL DEFAULT '$defaultValue'");
+      logger.info('BotDatabase',
+          "Added origin column to $table with default $defaultValue");
+    }
   }
 
   // Cancella tutti i bot locali (se serve)

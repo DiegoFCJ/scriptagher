@@ -24,6 +24,9 @@ dependencies:
   bitsdojo_window: ^0.1.6
   carousel_slider: ^5.0.0
   url_launcher: ^6.3.1
+  file_picker: ^8.0.5
+  mime: ^1.0.5
+  http_parser: ^4.0.2
 
 flutter:
   uses-material-design: true
