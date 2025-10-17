@@ -17,6 +17,8 @@ class ExecutionService {
   final BotDatabase _botDatabase;
   final ExecutionLogManager _logManager;
   final CustomLogger _logger = CustomLogger();
+  final Map<String, _ProcessHandle> _activeProcesses = {};
+  final Map<String, int> _lastExitCodes = {};
 
   Future<Response> streamExecution(
       Request request, String language, String botName) async {
@@ -50,6 +52,20 @@ class ExecutionService {
       );
     }
 
+    final processKey = _processKey(bot.language, bot.botName);
+
+    if (_activeProcesses.containsKey(processKey)) {
+      final message =
+          'Execution already running for ${bot.language}/${bot.botName}.';
+      _logger.warn(LOGS.EXECUTION_SERVICE, message,
+          metadata: {'language': language, 'botName': botName});
+      return Response(409,
+          body: jsonEncode({'error': message}),
+          headers: {'Content-Type': 'application/json'});
+    }
+
+    _lastExitCodes.remove(processKey);
+
     final controller = StreamController<List<int>>();
     late final ExecutionLogSession session;
     try {
@@ -68,6 +84,7 @@ class ExecutionService {
       );
     }
     Process? process;
+    _ProcessHandle? processHandle;
     var closed = false;
     var finalized = false;
     StreamSubscription<String>? stdoutSub;
@@ -126,6 +143,8 @@ class ExecutionService {
           runInShell: false,
         );
 
+        processHandle = _registerProcess(processKey, process!);
+
         stdoutSub = process!.stdout
             .transform(utf8.decoder)
             .transform(const LineSplitter())
@@ -142,7 +161,7 @@ class ExecutionService {
               isError: true, emitter: (event) => addEvent(event));
         });
 
-        final exitCode = await process!.exitCode;
+        final exitCode = await processHandle!.exitCode;
 
         addEvent({
           'type': 'status',
@@ -152,6 +171,8 @@ class ExecutionService {
 
         session.logSink.writeln('[status] exit code: $exitCode');
         await finalize(exitCode);
+        _lastExitCodes[processKey] = exitCode;
+        _activeProcesses.remove(processKey);
         await closeResources();
       } catch (e, stack) {
         _logger.error(
@@ -166,6 +187,8 @@ class ExecutionService {
           'message': e.toString(),
         });
         await finalize(-1, errorMessage: e.toString());
+        _lastExitCodes[processKey] = -1;
+        _activeProcesses.remove(processKey);
         await closeResources();
       }
     });
@@ -340,5 +363,187 @@ class ExecutionService {
       // Ignored: fallback to default working directory.
     }
     return null;
+  }
+
+  ProcessControlResult stopProcess(String language, String botName) {
+    return _sendSignal(language, botName, ProcessSignal.sigterm,
+        statusWhenSuccess: ProcessControlStatus.signalSent,
+        failureMessage: 'Impossibile inviare il segnale di terminazione.');
+  }
+
+  ProcessControlResult killProcess(String language, String botName) {
+    final ProcessSignal? killSignal = Platform.isWindows
+        ? null
+        : ProcessSignal.sigkill;
+    return _sendSignal(language, botName, killSignal,
+        statusWhenSuccess: ProcessControlStatus.signalSent,
+        failureMessage: 'Impossibile forzare la terminazione del processo.');
+  }
+
+  Future<int?> getExitCode(String language, String botName,
+      {Duration? waitFor}) async {
+    final key = _processKey(language, botName);
+    final handle = _activeProcesses[key];
+    if (handle != null) {
+      if (handle.lastExitCode != null) {
+        return handle.lastExitCode;
+      }
+      if (waitFor != null) {
+        try {
+          final code = await handle.exitCode.timeout(waitFor);
+          return code;
+        } catch (_) {
+          return null;
+        }
+      }
+      return null;
+    }
+    return _lastExitCodes[key];
+  }
+
+  ProcessControlResult _sendSignal(
+    String language,
+    String botName,
+    ProcessSignal? signal, {
+    required ProcessControlStatus statusWhenSuccess,
+    required String failureMessage,
+  }) {
+    final key = _processKey(language, botName);
+    final handle = _activeProcesses[key];
+
+    if (handle == null) {
+      return ProcessControlResult(
+        status: ProcessControlStatus.notRunning,
+        wasRunning: false,
+        signalSent: false,
+        exitCode: _lastExitCodes[key],
+        message: 'Nessuna esecuzione attiva per $language/$botName.',
+      );
+    }
+
+    final bool sent;
+    try {
+      if (signal == null) {
+        sent = handle.kill();
+      } else {
+        sent = handle.sendSignal(signal);
+      }
+    } catch (e) {
+      return ProcessControlResult(
+        status: ProcessControlStatus.signalFailed,
+        wasRunning: true,
+        signalSent: false,
+        exitCode: handle.lastExitCode,
+        message: '$failureMessage Errore: $e',
+      );
+    }
+
+    if (!sent) {
+      return ProcessControlResult(
+        status: ProcessControlStatus.signalFailed,
+        wasRunning: true,
+        signalSent: false,
+        exitCode: handle.lastExitCode,
+        message: failureMessage,
+      );
+    }
+
+    return ProcessControlResult(
+      status: statusWhenSuccess,
+      wasRunning: true,
+      signalSent: true,
+      exitCode: handle.lastExitCode,
+    );
+  }
+
+  _ProcessHandle _registerProcess(String key, Process process) {
+    final handle = _ProcessHandle(process, onExit: (exitCode) {
+      _lastExitCodes[key] = exitCode;
+      _activeProcesses.remove(key);
+    });
+    _activeProcesses[key] = handle;
+    return handle;
+  }
+
+  String _processKey(String language, String botName) => '$language/$botName';
+}
+
+enum ProcessControlStatus { notRunning, signalSent, signalFailed }
+
+class ProcessControlResult {
+  ProcessControlResult({
+    required this.status,
+    required this.wasRunning,
+    required this.signalSent,
+    this.exitCode,
+    this.message,
+  });
+
+  final ProcessControlStatus status;
+  final bool wasRunning;
+  final bool signalSent;
+  final int? exitCode;
+  final String? message;
+
+  String get statusLabel {
+    switch (status) {
+      case ProcessControlStatus.notRunning:
+        return 'not_running';
+      case ProcessControlStatus.signalSent:
+        return 'signal_sent';
+      case ProcessControlStatus.signalFailed:
+        return 'signal_failed';
+    }
+  }
+
+  Map<String, dynamic> toJson() {
+    return {
+      'status': statusLabel,
+      'was_running': wasRunning,
+      'signal_sent': signalSent,
+      'exit_code': exitCode,
+      if (message != null) 'message': message,
+    };
+  }
+}
+
+class _ProcessHandle {
+  _ProcessHandle(this.process, {void Function(int exitCode)? onExit})
+      : _exitCodeCompleter = Completer<int>() {
+    process.exitCode.then((value) {
+      lastExitCode = value;
+      if (!_exitCodeCompleter.isCompleted) {
+        _exitCodeCompleter.complete(value);
+      }
+      onExit?.call(value);
+    }).catchError((error, stackTrace) {
+      if (!_exitCodeCompleter.isCompleted) {
+        _exitCodeCompleter.completeError(error, stackTrace);
+      }
+    });
+  }
+
+  final Process process;
+  final Completer<int> _exitCodeCompleter;
+  int? lastExitCode;
+
+  Future<int> get exitCode => _exitCodeCompleter.future;
+
+  bool sendSignal(ProcessSignal signal) {
+    try {
+      return process.kill(signal);
+    } on UnsupportedError {
+      if (signal == ProcessSignal.sigkill) {
+        return process.kill();
+      }
+      rethrow;
+    }
+  }
+
+  bool kill() {
+    if (Platform.isWindows) {
+      return process.kill();
+    }
+    return sendSignal(ProcessSignal.sigkill);
   }
 }

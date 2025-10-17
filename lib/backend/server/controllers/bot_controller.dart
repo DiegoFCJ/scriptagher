@@ -7,6 +7,7 @@ import 'package:mime/mime.dart';
 import '../services/bot_get_service.dart';
 import '../services/bot_download_service.dart';
 import '../services/bot_upload_service.dart';
+import '../services/execution_service.dart';
 import '../models/bot.dart';
 import '../exceptions/download_exceptions.dart';
 
@@ -15,9 +16,13 @@ class BotController {
   final BotDownloadService botDownloadService;
   final BotGetService botGetService;
   final BotUploadService botUploadService;
+  final ExecutionService executionService;
 
   BotController(
-      this.botDownloadService, this.botGetService, this.botUploadService);
+      this.botDownloadService,
+      this.botGetService,
+      this.botUploadService,
+      this.executionService);
 
   // Endpoint per ottenere la lista dei bot disponibili remoti
   Future<Response> fetchAvailableBots(Request request) async {
@@ -131,6 +136,60 @@ class BotController {
         headers: {'Content-Type': 'application/json'},
       );
     }
+  }
+
+  Future<Response> stopBotExecution(
+      Request request, String language, String botName) async {
+    logger.info(LOGS.BOT_CONTROLLER,
+        'Richiesta di stop per $language/$botName ricevuta.');
+    final result = executionService.stopProcess(language, botName);
+    final payload = result.toJson();
+
+    payload['message'] ??= result.status == ProcessControlStatus.notRunning
+        ? 'Nessuna esecuzione attiva per $language/$botName.'
+        : 'Segnale di stop inviato.';
+
+    if (payload['exit_code'] == null) {
+      payload['exit_code'] = await executionService.getExitCode(
+        language,
+        botName,
+        waitFor: const Duration(milliseconds: 200),
+      );
+    }
+
+    final statusCode =
+        result.status == ProcessControlStatus.signalFailed ? 500 : 200;
+
+    return Response(statusCode,
+        body: json.encode(payload),
+        headers: {'Content-Type': 'application/json'});
+  }
+
+  Future<Response> killBotExecution(
+      Request request, String language, String botName) async {
+    logger.info(LOGS.BOT_CONTROLLER,
+        'Richiesta di kill per $language/$botName ricevuta.');
+    final result = executionService.killProcess(language, botName);
+    final payload = result.toJson();
+
+    payload['message'] ??= result.status == ProcessControlStatus.notRunning
+        ? 'Nessuna esecuzione attiva per $language/$botName.'
+        : 'Segnale di kill inviato.';
+
+    if (payload['exit_code'] == null) {
+      payload['exit_code'] = await executionService.getExitCode(
+        language,
+        botName,
+        waitFor: const Duration(milliseconds: 200),
+      );
+    }
+
+    final statusCode =
+        result.status == ProcessControlStatus.signalFailed ? 500 : 200;
+
+    return Response(statusCode,
+        body: json.encode(payload),
+        headers: {'Content-Type': 'application/json'});
   }
 
   Future<Response> uploadBot(Request request) async {
