@@ -320,6 +320,8 @@ class _BotDetailViewState extends State<BotDetailView> {
               'Descrizione: ${widget.bot.description}',
               style: Theme.of(context).textTheme.bodyLarge,
             ),
+            const SizedBox(height: 12),
+            _buildCompatBadges(context),
             const SizedBox(height: 20),
             Row(
               children: [
@@ -430,6 +432,67 @@ class _BotDetailViewState extends State<BotDetailView> {
           ],
         ),
       ),
+    );
+  }
+
+  Widget _buildCompatBadges(BuildContext context) {
+    final compat = widget.bot.compat;
+    final List<Widget> chips = [];
+
+    if (compat.desktopStatus == 'compatible') {
+      chips.add(_compatChip(
+        context,
+        label: 'Compatibile',
+        icon: Icons.check_circle_outline,
+        color: Colors.green.shade600,
+      ));
+    } else if (compat.desktopStatus == 'missing-runner') {
+      final missing = compat.missingDesktopRuntimes.join(', ');
+      final label = missing.isEmpty
+          ? 'Runner mancante'
+          : 'Runner mancante: $missing';
+      chips.add(_compatChip(
+        context,
+        label: label,
+        icon: Icons.warning_amber_rounded,
+        color: Colors.orange.shade700,
+      ));
+    }
+
+    if (compat.browserStatus == 'unsupported') {
+      chips.add(_compatChip(
+        context,
+        label: compat.browserReason ?? 'Non supportato nel browser',
+        icon: Icons.block,
+        color: Colors.blueGrey.shade600,
+      ));
+    }
+
+    if (chips.isEmpty) {
+      return const SizedBox.shrink();
+    }
+
+    return Wrap(
+      spacing: 8,
+      runSpacing: 4,
+      children: chips,
+    );
+  }
+
+  Widget _compatChip(BuildContext context,
+      {required String label,
+      required IconData icon,
+      required Color color}) {
+    return Chip(
+      avatar: Icon(icon, size: 18, color: color),
+      label: Text(label),
+      backgroundColor: color.withOpacity(0.12),
+      labelStyle: Theme.of(context)
+          .textTheme
+          .labelMedium
+          ?.copyWith(color: color, fontWeight: FontWeight.w600),
+      side: BorderSide(color: color.withOpacity(0.4)),
+      visualDensity: VisualDensity.compact,
     );
   }
 

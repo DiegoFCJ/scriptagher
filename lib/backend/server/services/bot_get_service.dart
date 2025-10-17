@@ -4,13 +4,16 @@ import '../models/bot.dart';
 import '../db/bot_database.dart';
 import 'dart:io';
 import 'package:path/path.dart' as p;
+import 'system_runtime_service.dart';
 
 class BotGetService {
   final CustomLogger logger = CustomLogger();
   final BotDatabase botDatabase;
   final GitHubApi gitHubApi;
+  final SystemRuntimeService systemRuntimeService;
 
-  BotGetService(this.botDatabase, this.gitHubApi);
+  BotGetService(
+      this.botDatabase, this.gitHubApi, this.systemRuntimeService);
 
   /// Fetches the list of all available bots from the remote API.
   Future<List<Bot>> fetchAvailableBots() async {
@@ -75,9 +78,30 @@ class BotGetService {
       final botDetailsMap =
           await gitHubApi.fetchBotDetails(language, bot.botName);
 
+      final compat = BotCompat.fromManifest(botDetailsMap['compat']);
+      BotCompat compatWithStatus = compat;
+
+      if (compat.desktopRuntimes.isNotEmpty) {
+        final results =
+            await systemRuntimeService.ensureRuntimes(compat.desktopRuntimes);
+        final missing = results.entries
+            .where((entry) => entry.value == false)
+            .map((entry) => entry.key)
+            .toList();
+        compatWithStatus = compat.copyWith(
+          missingDesktopRuntimes: missing,
+        );
+      }
+
+      final description = botDetailsMap['description'] ?? bot.description;
+      final startCommand = botDetailsMap['startCommand'] ??
+          botDetailsMap['entrypoint'] ??
+          bot.startCommand;
+
       bot = bot.copyWith(
-        description: botDetailsMap['description'],
-        startCommand: botDetailsMap['startCommand'],
+        description: description,
+        startCommand: startCommand,
+        compat: compatWithStatus,
       );
       return bot;
     } catch (e) {

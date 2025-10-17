@@ -46,7 +46,7 @@ class BotDatabase {
 
     return openDatabase(
       path,
-      version: 2,
+      version: 3,
       onCreate: (db, version) async {
         logger.info('BotDatabase', "Creating database structure...");
         try {
@@ -67,10 +67,15 @@ class BotDatabase {
             logger.info(
                 'BotDatabase', "local_bots table created during upgrade.");
           }
-          // Future upgrade logic here
-        } catch (e) {
-          logger.error('BotDatabase', 'Error during database upgrade: $e');
-        }
+          if (oldVersion < 3) {
+            await _addCompatColumn(db, 'bots');
+            await _addCompatColumn(db, 'local_bots');
+            logger.info('BotDatabase',
+                "compat_json column added to bots and local_bots tables.");
+          }
+      } catch (e) {
+        logger.error('BotDatabase', 'Error during database upgrade: $e');
+      }
       },
     ).then((db) async {
       try {
@@ -94,7 +99,8 @@ class BotDatabase {
           description TEXT,
           start_command TEXT,
           source_path TEXT,
-          language TEXT NOT NULL
+          language TEXT NOT NULL,
+          compat_json TEXT
         );
       ''');
       logger.info('BotDatabase', "Bots table created successfully.");
@@ -214,6 +220,24 @@ class BotDatabase {
     }
   }
 
+  Future<void> _addCompatColumn(Database db, String tableName) async {
+    final columns = await db.rawQuery('PRAGMA table_info($tableName);');
+    final hasCompatColumn = columns.any(
+      (column) => column['name'] == 'compat_json',
+    );
+
+    if (!hasCompatColumn) {
+      try {
+        await db.execute('ALTER TABLE $tableName ADD COLUMN compat_json TEXT;');
+        logger.info('BotDatabase',
+            "compat_json column added to table '$tableName'.");
+      } catch (e) {
+        logger.error('BotDatabase',
+            "Error adding compat_json column to $tableName: $e");
+      }
+    }
+  }
+
   // --------------------------------------- LOCAL BOTS --------------------------------------- \\
   Future<void> _createLocalBotsTable(Database db) async {
     try {
@@ -224,7 +248,8 @@ class BotDatabase {
           description TEXT,
           start_command TEXT,
           source_path TEXT,
-          language TEXT NOT NULL
+          language TEXT NOT NULL,
+          compat_json TEXT
         );
       ''');
       logger.info('BotDatabase', "local_bots table created successfully.");
