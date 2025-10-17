@@ -8,15 +8,17 @@ import '../services/bot_get_service.dart';
 import '../services/bot_download_service.dart';
 import '../services/bot_upload_service.dart';
 import '../models/bot.dart';
+import '../services/execution_service.dart';
 
 class BotController {
   final CustomLogger logger = CustomLogger();
   final BotDownloadService botDownloadService;
   final BotGetService botGetService;
   final BotUploadService botUploadService;
+  final ExecutionService executionService;
 
-  BotController(
-      this.botDownloadService, this.botGetService, this.botUploadService);
+  BotController(this.botDownloadService, this.botGetService, this.botUploadService,
+      this.executionService);
 
   // Endpoint per ottenere la lista dei bot disponibili remoti
   Future<Response> fetchAvailableBots(Request request) async {
@@ -221,5 +223,21 @@ class BotController {
       boundary = boundary.substring(0, boundary.length - 1);
     }
     return boundary.replaceAll('"', '');
+  }
+
+  Future<Response> stopBot(
+      Request request, String language, String botName) async {
+    final result = await executionService.stopExecution(language, botName);
+    return Response(result.statusCode,
+        body: json.encode(result.toJson(action: 'stop')),
+        headers: {'Content-Type': 'application/json'});
+  }
+
+  Future<Response> killBot(
+      Request request, String language, String botName) async {
+    final result = await executionService.killExecution(language, botName);
+    return Response(result.statusCode,
+        body: json.encode(result.toJson(action: 'kill')),
+        headers: {'Content-Type': 'application/json'});
   }
 }

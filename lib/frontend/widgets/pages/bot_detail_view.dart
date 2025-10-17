@@ -35,9 +35,11 @@ class _BotDetailViewState extends State<BotDetailView> {
   StreamSubscription<BrowserRunnerEvent>? _browserSubscription;
   bool _autoScroll = true;
   bool _isRunning = false;
+  bool _isSendingSignal = false;
   bool _isLoadingLogs = false;
   String _buffer = '';
   String? _error;
+  int? _lastExitCode;
 
   void _openTutorial() {
     Navigator.pushNamed(context, '/tutorial');
@@ -73,10 +75,14 @@ class _BotDetailViewState extends State<BotDetailView> {
             .whereType<Map<String, dynamic>>()
             .map(ExecutionLog.fromJson)
             .toList();
+        final latestExitCode = logs.isNotEmpty ? logs.first.exitCode : null;
         setState(() {
           _logHistory
             ..clear()
             ..addAll(logs);
+          if (!_isRunning && latestExitCode != null) {
+            _lastExitCode = latestExitCode;
+          }
         });
       } else {
         _showSnackBar(
@@ -113,6 +119,8 @@ class _BotDetailViewState extends State<BotDetailView> {
       _entries.clear();
       _error = null;
       _isRunning = true;
+      _isSendingSignal = false;
+      _lastExitCode = null;
     });
 
     final client = http.Client();
@@ -247,6 +255,68 @@ class _BotDetailViewState extends State<BotDetailView> {
     _browserSession = null;
   }
 
+  Future<void> _sendControlCommand(String action) async {
+    if (!mounted || _isSendingSignal) {
+      return;
+    }
+
+    setState(() {
+      _isSendingSignal = true;
+    });
+
+    final uri = Uri.parse(
+        '${widget.baseUrl}/bots/${Uri.encodeComponent(widget.bot.language)}/${Uri.encodeComponent(widget.bot.botName)}/$action');
+
+    try {
+      final response = await http.post(uri);
+      Map<String, dynamic>? payload;
+      try {
+        payload = jsonDecode(response.body) as Map<String, dynamic>;
+      } catch (_) {
+        payload = null;
+      }
+
+      final exitCode = _normalizeExitCode(payload?['exitCode']);
+      final status = payload?['status']?.toString();
+      final success = response.statusCode >= 200 && response.statusCode < 300;
+      final message = payload?['message']?.toString() ??
+          (success
+              ? 'Segnale $action inviato con successo.'
+              : 'Errore durante il comando $action.');
+
+      if (mounted) {
+        setState(() {
+          if (exitCode != null) {
+            _lastExitCode = exitCode;
+          }
+          if (status == 'terminated' ||
+              status == 'not_running' ||
+              status == 'not_found') {
+            _isRunning = false;
+          }
+        });
+      }
+
+      _showSnackBar(message);
+    } catch (e) {
+      _showSnackBar('Errore durante il comando $action: $e');
+    } finally {
+      if (mounted) {
+        setState(() {
+          _isSendingSignal = false;
+        });
+      }
+    }
+  }
+
+  Future<void> _requestStopSignal() async {
+    await _sendControlCommand('stop');
+  }
+
+  Future<void> _requestKillSignal() async {
+    await _sendControlCommand('kill');
+  }
+
   bool get _shouldUseBrowserRunner =>
       kIsWeb && BrowserBotRunner.isSupported && widget.bot.compat.canRunInBrowser;
 
@@ -263,6 +333,8 @@ class _BotDetailViewState extends State<BotDetailView> {
       _entries.clear();
       _error = null;
       _isRunning = true;
+      _isSendingSignal = false;
+      _lastExitCode = null;
     });
 
     _appendEntry(
@@ -286,6 +358,7 @@ class _BotDetailViewState extends State<BotDetailView> {
           final display = event.code != null
               ? '${event.message} (code: ${event.code})'
               : event.message;
+          final exitCode = _normalizeExitCode(event.code);
           _appendEntry(
             _ConsoleEntry(
               message: display,
@@ -297,6 +370,9 @@ class _BotDetailViewState extends State<BotDetailView> {
               _isRunning = false;
               if (event.message == 'failed' && _error == null) {
                 _error = 'Esecuzione fallita nella sandbox browser.';
+              }
+              if (event.message == 'finished' && exitCode != null) {
+                _lastExitCode = exitCode;
               }
             });
           }
@@ -361,6 +437,7 @@ class _BotDetailViewState extends State<BotDetailView> {
       final type = decoded['type']?.toString() ?? 'stdout';
       final message = decoded['message']?.toString() ?? '';
       final code = decoded['code'];
+      final parsedExitCode = _normalizeExitCode(code);
 
       if (type == 'status') {
         final display =
@@ -372,6 +449,9 @@ class _BotDetailViewState extends State<BotDetailView> {
         if (message == 'finished') {
           setState(() {
             _isRunning = false;
+            if (parsedExitCode != null) {
+              _lastExitCode = parsedExitCode;
+            }
           });
           _loadLogs();
         }
@@ -383,6 +463,14 @@ class _BotDetailViewState extends State<BotDetailView> {
       _appendEntry(
           _ConsoleEntry(message: 'Evento non valido: $payload', type: 'stderr'));
     }
+  }
+
+  int? _normalizeExitCode(dynamic value) {
+    if (value == null) return null;
+    if (value is int) return value;
+    if (value is double) return value.toInt();
+    if (value is String) return int.tryParse(value);
+    return null;
   }
 
   void _appendEntry(_ConsoleEntry entry) {
@@ -507,19 +595,46 @@ class _BotDetailViewState extends State<BotDetailView> {
             _buildCompatBadges(context),
             const SizedBox(height: 20),
             Row(
+              crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                ElevatedButton(
-                  onPressed:
-                      _isRunning ? null : () => _requestExecution(),
-                  child: Text(_isRunning ? 'Esecuzione in corso...' : 'Esegui Bot'),
+                Expanded(
+                  child: Wrap(
+                    spacing: 12,
+                    runSpacing: 8,
+                    children: [
+                      ElevatedButton(
+                        onPressed:
+                            _isRunning ? null : () => _requestExecution(),
+                        child: Text(_isRunning
+                            ? 'Esecuzione in corso...'
+                            : 'Esegui Bot'),
+                      ),
+                      OutlinedButton.icon(
+                        icon: const Icon(Icons.stop_circle_outlined),
+                        label: const Text('Stop'),
+                        onPressed: (!_isRunning || _isSendingSignal)
+                            ? null
+                            : _requestStopSignal,
+                      ),
+                      OutlinedButton.icon(
+                        icon: const Icon(Icons.close_rounded),
+                        label: const Text('Kill'),
+                        onPressed: (!_isRunning || _isSendingSignal)
+                            ? null
+                            : _requestKillSignal,
+                      ),
+                      OutlinedButton(
+                        onPressed: _entries.isEmpty && _error == null
+                            ? null
+                            : _clearLog,
+                        child: const Text('Pulisci log'),
+                      ),
+                    ],
+                  ),
                 ),
                 const SizedBox(width: 16),
-                OutlinedButton(
-                  onPressed: _entries.isEmpty && _error == null ? null : _clearLog,
-                  child: const Text('Pulisci log'),
-                ),
-                const Spacer(),
                 Row(
+                  mainAxisSize: MainAxisSize.min,
                   children: [
                     const Text('Auto-scroll'),
                     Switch(
@@ -534,6 +649,8 @@ class _BotDetailViewState extends State<BotDetailView> {
                 ),
               ],
             ),
+            const SizedBox(height: 8),
+            _buildExitCodeInfo(context),
             if (_error != null) ...[
               const SizedBox(height: 12),
               Text(
@@ -718,6 +835,17 @@ class _BotDetailViewState extends State<BotDetailView> {
           ?.copyWith(color: color, fontWeight: FontWeight.w600),
       side: BorderSide(color: color.withOpacity(0.4)),
       visualDensity: VisualDensity.compact,
+    );
+  }
+
+  Widget _buildExitCodeInfo(BuildContext context) {
+    final theme = Theme.of(context);
+    final text = _isRunning
+        ? 'Codice di uscita: in esecuzione...'
+        : 'Ultimo codice di uscita: ${_lastExitCode ?? 'n/d'}';
+    return Text(
+      text,
+      style: theme.textTheme.bodyMedium,
     );
   }
 

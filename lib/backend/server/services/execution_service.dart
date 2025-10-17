@@ -17,6 +17,7 @@ class ExecutionService {
   final BotDatabase _botDatabase;
   final ExecutionLogManager _logManager;
   final CustomLogger _logger = CustomLogger();
+  final Map<String, _ExecutionHandle> _activeExecutions = {};
 
   Future<Response> streamExecution(
       Request request, String language, String botName) async {
@@ -52,6 +53,8 @@ class ExecutionService {
 
     final controller = StreamController<List<int>>();
     late final ExecutionLogSession session;
+    final executionKey = _executionKey(bot.language, bot.botName);
+    _ExecutionHandle? handle;
     try {
       session = await _logManager.startSession(bot);
     } catch (e) {
@@ -126,6 +129,19 @@ class ExecutionService {
           runInShell: false,
         );
 
+        final previousHandle = _activeExecutions[executionKey];
+        if (previousHandle != null && previousHandle.isRunning) {
+          _logger.warn(
+            LOGS.EXECUTION_SERVICE,
+            'Existing execution for ${bot.language}/${bot.botName} is still running. Overwriting handle.',
+            metadata: session.metadata.toLogMetadata(),
+          );
+        }
+
+        final newHandle = _ExecutionHandle(process!);
+        _activeExecutions[executionKey] = newHandle;
+        handle = newHandle;
+
         stdoutSub = process!.stdout
             .transform(utf8.decoder)
             .transform(const LineSplitter())
@@ -151,6 +167,7 @@ class ExecutionService {
         });
 
         session.logSink.writeln('[status] exit code: $exitCode');
+        handle?.complete(exitCode);
         await finalize(exitCode);
         await closeResources();
       } catch (e, stack) {
@@ -165,6 +182,7 @@ class ExecutionService {
           'type': 'error',
           'message': e.toString(),
         });
+        handle?.complete(-1);
         await finalize(-1, errorMessage: e.toString());
         await closeResources();
       }
@@ -177,6 +195,12 @@ class ExecutionService {
         metadata: session.metadata.toLogMetadata(),
       );
       process?.kill();
+      final currentHandle = _activeExecutions[executionKey];
+      if (currentHandle != null &&
+          identical(currentHandle, handle) &&
+          currentHandle.isRunning) {
+        currentHandle.sendSignal(ProcessSignal.sigterm);
+      }
       await closeResources();
     };
 
@@ -257,6 +281,31 @@ class ExecutionService {
         headers: {'Content-Type': 'application/json'},
       );
     }
+  }
+
+  Future<ExecutionControlResult> stopExecution(
+      String language, String botName) async {
+    return _sendSignal(language, botName, ProcessSignal.sigterm, 'stop');
+  }
+
+  Future<ExecutionControlResult> killExecution(
+      String language, String botName) async {
+    return _sendSignal(language, botName, ProcessSignal.sigkill, 'kill');
+  }
+
+  ExecutionStatus getExecutionStatus(String language, String botName) {
+    final key = _executionKey(language, botName);
+    final handle = _activeExecutions[key];
+    if (handle == null) {
+      return const ExecutionStatus(
+        isRunning: false,
+        exitCode: null,
+      );
+    }
+    return ExecutionStatus(
+      isRunning: handle.isRunning,
+      exitCode: handle.exitCode,
+    );
   }
 
   Future<List<String>> _resolvePermissions(Bot bot) async {
@@ -340,5 +389,163 @@ class ExecutionService {
       // Ignored: fallback to default working directory.
     }
     return null;
+  }
+
+  Future<ExecutionControlResult> _sendSignal(String language, String botName,
+      ProcessSignal signal, String action) async {
+    final key = _executionKey(language, botName);
+    final handle = _activeExecutions[key];
+
+    if (handle == null) {
+      final message =
+          'No execution handle found for $language/$botName to perform $action.';
+      _logger.warn(LOGS.EXECUTION_SERVICE, message,
+          metadata: {'language': language, 'botName': botName});
+      return ExecutionControlResult(
+        statusCode: 404,
+        status: 'not_found',
+        message: message,
+      );
+    }
+
+    if (!handle.isRunning) {
+      final exitCode = handle.exitCode;
+      final message = exitCode == null
+          ? 'Bot $language/$botName is not running.'
+          : 'Bot $language/$botName already finished with exit code $exitCode.';
+      return ExecutionControlResult(
+        statusCode: 200,
+        status: 'not_running',
+        message: message,
+        exitCode: exitCode,
+      );
+    }
+
+    final sent = handle.sendSignal(signal);
+    if (!sent) {
+      final message =
+          'Unable to send $action signal to $language/$botName process.';
+      _logger.warn(LOGS.EXECUTION_SERVICE, message,
+          metadata: {'language': language, 'botName': botName});
+      return ExecutionControlResult(
+        statusCode: 409,
+        status: 'signal_failed',
+        message: message,
+        wasRunning: true,
+      );
+    }
+
+    int? exitCode;
+    var timedOut = false;
+    try {
+      exitCode = await handle.exitCodeFuture
+          .timeout(const Duration(seconds: 5), onTimeout: () {
+        timedOut = true;
+        return null;
+      });
+    } catch (_) {
+      // If the future completes with an error we log and continue without exit code.
+      timedOut = true;
+    }
+
+    if (exitCode != null) {
+      final message =
+          'Execution for $language/$botName terminated with exit code $exitCode after $action signal.';
+      _logger.info(LOGS.EXECUTION_SERVICE, message,
+          metadata: {'language': language, 'botName': botName});
+      return ExecutionControlResult(
+        statusCode: 200,
+        status: 'terminated',
+        message: message,
+        exitCode: exitCode,
+        wasRunning: true,
+        signalSent: true,
+      );
+    }
+
+    final message =
+        'Signal $action sent to $language/$botName, awaiting process termination.';
+    _logger.info(LOGS.EXECUTION_SERVICE, message,
+        metadata: {'language': language, 'botName': botName});
+    return ExecutionControlResult(
+      statusCode: 202,
+      status: 'pending_exit',
+      message: message,
+      exitCode: handle.exitCode,
+      wasRunning: true,
+      signalSent: true,
+      timedOut: timedOut,
+    );
+  }
+
+  String _executionKey(String language, String botName) {
+    return '${language.toLowerCase()}::${botName.toLowerCase()}';
+  }
+}
+
+class ExecutionStatus {
+  const ExecutionStatus({required this.isRunning, required this.exitCode});
+
+  final bool isRunning;
+  final int? exitCode;
+}
+
+class ExecutionControlResult {
+  ExecutionControlResult({
+    required this.statusCode,
+    required this.status,
+    required this.message,
+    this.exitCode,
+    this.wasRunning = false,
+    this.signalSent = false,
+    this.timedOut = false,
+  });
+
+  final int statusCode;
+  final String status;
+  final String message;
+  final int? exitCode;
+  final bool wasRunning;
+  final bool signalSent;
+  final bool timedOut;
+
+  Map<String, dynamic> toJson({String? action}) {
+    return {
+      if (action != null) 'action': action,
+      'status': status,
+      'message': message,
+      'exitCode': exitCode,
+      'wasRunning': wasRunning,
+      'signalSent': signalSent,
+      'timedOut': timedOut,
+    };
+  }
+}
+
+class _ExecutionHandle {
+  _ExecutionHandle(this._process);
+
+  Process? _process;
+  int? exitCode;
+  final Completer<int> _exitCodeCompleter = Completer<int>();
+
+  bool get isRunning => _process != null;
+
+  Future<int> get exitCodeFuture => _exitCodeCompleter.future;
+
+  bool sendSignal(ProcessSignal signal) {
+    final process = _process;
+    if (process == null) {
+      return false;
+    }
+    return process.kill(signal);
+  }
+
+  void complete(int code) {
+    exitCode = code;
+    _process = null;
+    if (!_exitCodeCompleter.isCompleted) {
+      _exitCodeCompleter.complete(code);
+    }
   }
 }
