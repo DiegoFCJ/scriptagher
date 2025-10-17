@@ -110,30 +110,15 @@
         "deploy": {
           "builder": "angular-cli-ghpages:deploy",
           "options": {
-            "outputPath": "dist",
             "baseHref": "/scriptagher/",
-            "index": "src/index.html",
-            "polyfills": [
-              "zone.js"
-            ],
-            "assets": [
-              {
-                "glob": "**/*",
-                "input": "public"
-              }
-            ],
-            "styles": [
-              "src/styles.scss"
-            ],
-            "scripts": []
+            "dir": "dist"
           },
           "configurations": {
             "production": {
-              "optimization": true,
-              "sourceMap": false,
-              "outputHashing": "all"
+              "browserTarget": "bot-list:build:production"
             }
-          }
+          },
+          "defaultConfiguration": "production"
         }
       }
     }
