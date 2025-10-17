@@ -97,11 +97,18 @@ class BotGetService {
       final startCommand = botDetailsMap['startCommand'] ??
           botDetailsMap['entrypoint'] ??
           bot.startCommand;
+      final permissions = (botDetailsMap['permissions'] as List?)
+              ?.whereType<String>()
+              .toList() ??
+          const <String>[];
+      final archiveSha256 = botDetailsMap['archiveSha256'] as String?;
 
       bot = bot.copyWith(
         description: description,
         startCommand: startCommand,
         compat: compatWithStatus,
+        permissions: permissions,
+        archiveSha256: archiveSha256,
       );
       return bot;
     } catch (e) {

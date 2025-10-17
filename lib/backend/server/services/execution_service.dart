@@ -9,6 +9,7 @@ import 'package:scriptagher/shared/custom_logger.dart';
 import '../db/bot_database.dart';
 import '../models/bot.dart';
 import 'execution_log_service.dart';
+import 'package:scriptagher/shared/utils/BotUtils.dart';
 
 class ExecutionService {
   ExecutionService(this._botDatabase, this._logManager);
@@ -27,6 +28,26 @@ class ExecutionService {
       _logger.error(LOGS.EXECUTION_SERVICE, errorMessage,
           metadata: {'language': language, 'botName': botName});
       return Response.notFound(jsonEncode({'error': errorMessage}));
+    }
+
+    final requiredPermissions = await _resolvePermissions(bot);
+    final grantedPermissions = _parseGrantedPermissions(request);
+    final missingPermissions = requiredPermissions
+        .where((perm) => !grantedPermissions.contains(perm))
+        .toList();
+
+    if (missingPermissions.isNotEmpty) {
+      final message =
+          'Missing permissions for ${bot.language}/${bot.botName}: ${missingPermissions.join(', ')}';
+      _logger.warn(LOGS.EXECUTION_SERVICE, message,
+          metadata: {'language': language, 'botName': botName});
+      return Response.forbidden(
+        jsonEncode({
+          'error': 'permissions_denied',
+          'missing_permissions': missingPermissions,
+        }),
+        headers: {'Content-Type': 'application/json'},
+      );
     }
 
     final controller = StreamController<List<int>>();
@@ -236,6 +257,54 @@ class ExecutionService {
         headers: {'Content-Type': 'application/json'},
       );
     }
+  }
+
+  Future<List<String>> _resolvePermissions(Bot bot) async {
+    if (bot.permissions.isNotEmpty) {
+      return bot.permissions;
+    }
+
+    try {
+      final manifest = await BotUtils.fetchBotDetails(bot.sourcePath,
+          expectedSha256: bot.archiveSha256);
+      final permissions = (manifest['permissions'] as List?)
+              ?.whereType<String>()
+              .map((p) => p.trim())
+              .where((p) => p.isNotEmpty)
+              .toList() ??
+          const <String>[];
+      return permissions;
+    } catch (e) {
+      _logger.warn(
+        LOGS.EXECUTION_SERVICE,
+        'Unable to resolve permissions for ${bot.language}/${bot.botName}: $e',
+        metadata: {'language': bot.language, 'botName': bot.botName},
+      );
+      return const <String>[];
+    }
+  }
+
+  Set<String> _parseGrantedPermissions(Request request) {
+    final values = <String>{};
+    final multi = request.url.queryParametersAll['grantedPermissions'];
+    if (multi != null) {
+      for (final entry in multi) {
+        values.addAll(_splitPermissions(entry));
+      }
+    } else {
+      final single = request.url.queryParameters['grantedPermissions'];
+      if (single != null) {
+        values.addAll(_splitPermissions(single));
+      }
+    }
+    return values;
+  }
+
+  Iterable<String> _splitPermissions(String raw) {
+    return raw
+        .split(',')
+        .map((value) => value.trim())
+        .where((value) => value.isNotEmpty);
   }
 
   void _handleLine(ExecutionLogSession session, String line,
