@@ -1,1 +1,0 @@
-body{background-color:#181818}button,.custom-button{background-color:var(--button-bg, #007acc);color:var(--button-text, #fff);border:none;padding:.5rem 1rem;border-radius:4px;cursor:pointer;margin:3px}button:hover,.custom-button:hover{background-color:var(--button-hover, #005fa3)}
