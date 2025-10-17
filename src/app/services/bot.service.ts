@@ -1,22 +1,47 @@
-import { Injectable } from '@angular/core';
+import { Inject, Injectable, Optional } from '@angular/core';
 import { HttpClient } from '@angular/common/http';
 import { Observable } from 'rxjs';
+import { APP_BASE_HREF, DOCUMENT } from '@angular/common';
 
 @Injectable({
   providedIn: 'root'
 })
 export class BotService {
-  private readonly APP_NAME = 'scriptagher';
-  private readonly BASE_PATH = `https://raw.githubusercontent.com/diegofcj/${this.APP_NAME}/gh-pages/bots`;
-  private readonly BASE_SOURCE = `https://github.com/diegofcj/${this.APP_NAME}/tree/gh-pages/bots`;
+  private readonly botsBaseUrl: URL;
+  private readonly botsSourceBaseUrl: URL;
 
-  constructor(private http: HttpClient) { }
+  constructor(
+    private http: HttpClient,
+    @Optional() @Inject(DOCUMENT) private readonly documentRef: Document | null,
+    @Optional() @Inject(APP_BASE_HREF) private readonly appBaseHref?: string
+  ) {
+    const baseUrl = this.resolveBaseUrl();
+    this.botsBaseUrl = new URL('bots/', baseUrl);
+    this.botsSourceBaseUrl = new URL('bots/', baseUrl);
+  }
+
+  private resolveBaseUrl(): string {
+    const documentBase = this.documentRef?.baseURI;
+    if (documentBase) {
+      return this.ensureTrailingSlash(documentBase);
+    }
+
+    const locationHref = typeof location !== 'undefined' ? location.href : undefined;
+
+    const origin = locationHref ? new URL('.', locationHref).toString() : 'http://localhost/';
+    const base = new URL(this.appBaseHref ?? '/', origin).toString();
+    return this.ensureTrailingSlash(base);
+  }
+
+  private ensureTrailingSlash(url: string): string {
+    return url.endsWith('/') ? url : `${url}/`;
+  }
 
   /**
    * Fetch the bots configuration from bots.json.
    */
   getBotsConfig(): Observable<any> {
-    const botsJsonPath = `${this.BASE_PATH}/bots.json`;
+    const botsJsonPath = new URL('bots.json', this.botsBaseUrl).toString();
     return this.http.get(botsJsonPath);
   }
 
@@ -26,7 +51,7 @@ export class BotService {
    * @param bot - The bot's name.
    */
   getBotDetails(bot: any): Observable<any> {
-    const botJsonPath = `${this.BASE_PATH}/${bot.language}/${bot.botName}/Bot.json`;
+    const botJsonPath = new URL(`${bot.language}/${bot.botName}/Bot.json`, this.botsBaseUrl).toString();
     return this.http.get(botJsonPath);
   }
 
@@ -35,7 +60,8 @@ export class BotService {
    * @param bot - The bot's name.
    */
   downloadBot(bot: any): Observable<Blob> {
-    const zipPath = `${this.BASE_PATH}/${bot.language}/${bot.botName}/${bot.botName}.zip`;
+    const assetName = bot.path || `${bot.botName}.zip`;
+    const zipPath = new URL(`${bot.language}/${bot.botName}/${assetName}`, this.botsBaseUrl).toString();
     return this.http.get(zipPath, { responseType: 'blob' });
   }
 
@@ -44,7 +70,8 @@ export class BotService {
    * @param bot - Bot object containing language and name.
    */
   openBot(bot: any): void {
-    const sourcePath = `${this.BASE_SOURCE}/${bot.language}/${bot.botName}`;
+    const assetName = bot.path || `${bot.botName}.zip`;
+    const sourcePath = new URL(`${bot.language}/${bot.botName}/${assetName}`, this.botsSourceBaseUrl).toString();
     window.open(sourcePath, '_blank');
   }
 }
