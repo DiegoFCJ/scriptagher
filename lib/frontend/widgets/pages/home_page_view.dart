@@ -80,6 +80,10 @@ class _HomePageState extends State<HomePage>
     );
   }
 
+  void _openTutorial() {
+    Navigator.pushNamed(context, '/tutorial');
+  }
+
   Widget _buildCategoryContent(_Category category) {
     return Padding(
       key: ValueKey(category.category),
@@ -137,6 +141,64 @@ class _HomePageState extends State<HomePage>
                 fontSize: 26,
                 fontWeight: FontWeight.bold,
                 color: Colors.black87,
+              ),
+            ),
+            const SizedBox(height: 16),
+            Card(
+              elevation: 2,
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(12),
+              ),
+              child: InkWell(
+                borderRadius: BorderRadius.circular(12),
+                onTap: _openTutorial,
+                child: Padding(
+                  padding: const EdgeInsets.all(20),
+                  child: Row(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      const Icon(Icons.school_outlined,
+                          color: Colors.blueAccent, size: 32),
+                      const SizedBox(width: 16),
+                      Expanded(
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            const Text(
+                              'Crea il tuo bot',
+                              style: TextStyle(
+                                fontSize: 20,
+                                fontWeight: FontWeight.bold,
+                              ),
+                            ),
+                            const SizedBox(height: 8),
+                            Text(
+                              'Segui il tutorial passo-passo per creare un bot sicuro compatibile con Scriptagher.',
+                              style: TextStyle(
+                                fontSize: 15,
+                                color: Colors.grey.shade700,
+                              ),
+                            ),
+                            const SizedBox(height: 12),
+                            Row(
+                              children: const [
+                                Text(
+                                  'Apri tutorial',
+                                  style: TextStyle(
+                                    fontSize: 15,
+                                    fontWeight: FontWeight.w600,
+                                  ),
+                                ),
+                                SizedBox(width: 4),
+                                Icon(Icons.arrow_forward, size: 18),
+                              ],
+                            ),
+                          ],
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
               ),
             ),
             const SizedBox(height: 24),
