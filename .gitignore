@@ -82,5 +82,11 @@ flutter/.plugin/
 # Additional Dart-related artifacts
 .dart_tool/
 *.dart_tool/
-node_modules
+
+# Ignore angular build artifacts
+.angular/
+dist/
+node_modules/
+
+# Ignore local bots directory
 /localbots
