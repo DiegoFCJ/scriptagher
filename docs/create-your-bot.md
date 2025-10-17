@@ -43,7 +43,16 @@ my-awesome-bot/
   "permissions": [
     "network",
     "filesystem:read"
-  ]
+  ],
+  "compat": {
+    "desktop": {
+      "runtimes": ["python"]
+    },
+    "browser": {
+      "supported": false,
+      "reason": "Richiede un interprete Python locale"
+    }
+  }
 }
 ```
 
@@ -58,6 +67,10 @@ Campi principali:
 * **environment** – variabili d'ambiente aggiuntive.
 * **postInstall** – comandi eseguiti dopo il download per preparare il bot.
 * **permissions** – elenco dichiarativo delle risorse richieste.
+* **compat** – compatibilità dichiarativa: elenca i runtime desktop necessari
+  (`runtimes`) e indica se il bot è eseguibile nel browser (`browser.supported`).
+  Specifica un motivo opzionale (`browser.reason`) quando il supporto non è
+  disponibile.
 
 ## Flusso di download ed esecuzione
 

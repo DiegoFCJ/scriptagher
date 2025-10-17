@@ -12,6 +12,7 @@ import 'services/execution_log_service.dart';
 import 'db/bot_database.dart';
 import 'routes.dart';
 import 'package:scriptagher/backend/server/api_integration/github_api.dart';
+import 'services/system_runtime_service.dart';
 
 Future<void> startServer() async {
   // Crea un'istanza del CustomLogger
@@ -19,8 +20,10 @@ Future<void> startServer() async {
 
   final botDatabase = BotDatabase();
   final GitHubApi gitHubApi = GitHubApi();
+  final systemRuntimeService = SystemRuntimeService();
   // Istanzia il BotService e BotController
-  final botGetService = BotGetService(botDatabase, gitHubApi);
+  final botGetService =
+      BotGetService(botDatabase, gitHubApi, systemRuntimeService);
   final botDownloadService = BotDownloadService();
   final executionLogManager = ExecutionLogManager();
   final executionService = ExecutionService(botDatabase, executionLogManager);

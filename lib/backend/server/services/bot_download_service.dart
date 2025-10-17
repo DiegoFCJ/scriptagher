@@ -43,12 +43,17 @@ class BotDownloadService {
       final botJsonPath = '${botDir.path}/${APIS.BOT_FILE_CONFIG}';
       final botDetails = await BotUtils.fetchBotDetails(botJsonPath);
 
+      final compat = BotCompat.fromManifest(botDetails['compat']);
+      final startCommand = botDetails['startCommand'] ??
+          botDetails['entrypoint'] ??
+          '';
       final bot = Bot(
         botName: botDetails['botName'],
         description: botDetails['description'],
-        startCommand: botDetails['startCommand'],
+        startCommand: startCommand,
         sourcePath: botJsonPath,
         language: language,
+        compat: compat,
       );
       await botDatabase.insertBot(bot);
       await botZip.delete();

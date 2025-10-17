@@ -5,6 +5,7 @@ class Bot {
   final String startCommand;
   final String sourcePath;
   final String language;
+  final BotCompat compat;
 
   Bot({
     this.id,
@@ -13,12 +14,14 @@ class Bot {
     required this.startCommand,
     required this.sourcePath,
     required this.language,
+    this.compat = const BotCompat(),
   });
 
   // Metodo factory per creare una nuova versione di Bot con dettagli aggiornati
   Bot copyWith({
     String? description,
     String? startCommand,
+    BotCompat? compat,
   }) {
     return Bot(
       id: id,
@@ -27,6 +30,7 @@ class Bot {
       startCommand: startCommand ?? this.startCommand,
       sourcePath: sourcePath,
       language: language,
+      compat: compat ?? this.compat,
     );
   }
 
@@ -38,6 +42,7 @@ class Bot {
       'start_command': startCommand,
       'source_path': sourcePath,
       'language': language,
+      'compat': compat.toJson(),
     };
   }
 
@@ -49,6 +54,7 @@ class Bot {
       startCommand: map['start_command'] ?? '',
       sourcePath: map['source_path'],
       language: map['language'],
+      compat: BotCompat.fromJson(map['compat']),
     );
   }
 
@@ -59,6 +65,114 @@ class Bot {
       startCommand: json['start_command'] ?? '',
       sourcePath: json['source_path'] ?? '',
       language: json['language'] ?? '',
+      compat: BotCompat.fromJson(json['compat']),
+    );
+  }
+}
+
+class BotCompat {
+  final List<String> desktopRuntimes;
+  final List<String> missingDesktopRuntimes;
+  final bool? browserSupported;
+  final String? browserReason;
+
+  const BotCompat({
+    this.desktopRuntimes = const [],
+    this.missingDesktopRuntimes = const [],
+    this.browserSupported,
+    this.browserReason,
+  });
+
+  String get desktopStatus {
+    if (desktopRuntimes.isEmpty) {
+      return 'unknown';
+    }
+    return missingDesktopRuntimes.isEmpty ? 'compatible' : 'missing-runner';
+  }
+
+  String get browserStatus {
+    if (browserSupported == null) {
+      return 'unknown';
+    }
+    return browserSupported! ? 'supported' : 'unsupported';
+  }
+
+  bool get isDesktopCompatible => desktopStatus == 'compatible';
+  bool get isDesktopRunnerMissing => desktopStatus == 'missing-runner';
+  bool get isBrowserUnsupported => browserStatus == 'unsupported';
+
+  BotCompat copyWith({
+    List<String>? desktopRuntimes,
+    List<String>? missingDesktopRuntimes,
+    bool? browserSupported,
+    String? browserReason,
+  }) {
+    return BotCompat(
+      desktopRuntimes: desktopRuntimes ?? this.desktopRuntimes,
+      missingDesktopRuntimes:
+          missingDesktopRuntimes ?? this.missingDesktopRuntimes,
+      browserSupported: browserSupported ?? this.browserSupported,
+      browserReason: browserReason ?? this.browserReason,
+    );
+  }
+
+  Map<String, dynamic> toJson() {
+    return {
+      'desktop': {
+        'runtimes': desktopRuntimes,
+        'missingRuntimes': missingDesktopRuntimes,
+        'status': desktopStatus,
+      },
+      'browser': {
+        'supported': browserSupported,
+        'status': browserStatus,
+        if (browserReason != null) 'reason': browserReason,
+      },
+    };
+  }
+
+  factory BotCompat.fromJson(dynamic json) {
+    if (json is! Map<String, dynamic>) {
+      return const BotCompat();
+    }
+
+    final desktop = json['desktop'];
+    final browser = json['browser'];
+
+    List<String> runtimes = const [];
+    List<String> missing = const [];
+    bool? browserSupported;
+    String? browserReason;
+
+    if (desktop is Map<String, dynamic>) {
+      final runtimeList = desktop['runtimes'] ?? desktop['requires'];
+      if (runtimeList is List) {
+        runtimes = runtimeList.whereType<String>().toList();
+      }
+      final missingList = desktop['missingRuntimes'];
+      if (missingList is List) {
+        missing = missingList.whereType<String>().toList();
+      }
+    }
+
+    if (browser is Map<String, dynamic>) {
+      final supported = browser['supported'];
+      if (supported is bool) {
+        browserSupported = supported;
+      }
+      final reason = browser['reason'];
+      if (reason is String) {
+        browserReason = reason;
+      }
+    } else if (browser is bool) {
+      browserSupported = browser;
+    }
+
+    return BotCompat(
+      desktopRuntimes: runtimes,
+      missingDesktopRuntimes: missing,
+      browserSupported: browserSupported,
+      browserReason: browserReason,
     );
   }
 }
