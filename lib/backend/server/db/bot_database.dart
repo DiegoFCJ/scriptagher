@@ -46,7 +46,7 @@ class BotDatabase {
 
     return openDatabase(
       path,
-      version: 2,
+      version: 3,
       onCreate: (db, version) async {
         logger.info('BotDatabase', "Creating database structure...");
         try {
@@ -67,7 +67,11 @@ class BotDatabase {
             logger.info(
                 'BotDatabase', "local_bots table created during upgrade.");
           }
-          // Future upgrade logic here
+          if (oldVersion < 3) {
+            await _migrateBotsMetadata(db);
+            logger.info(
+                'BotDatabase', "Metadata columns added during upgrade.");
+          }
         } catch (e) {
           logger.error('BotDatabase', 'Error during database upgrade: $e');
         }
@@ -94,7 +98,10 @@ class BotDatabase {
           description TEXT,
           start_command TEXT,
           source_path TEXT,
-          language TEXT NOT NULL
+          language TEXT NOT NULL,
+          tags TEXT,
+          author TEXT,
+          version TEXT
         );
       ''');
       logger.info('BotDatabase', "Bots table created successfully.");
@@ -113,7 +120,7 @@ class BotDatabase {
       final db = await database;
       await db.insert(
         'bots',
-        bot.toMap(),
+        bot.toDbMap(),
         conflictAlgorithm: ConflictAlgorithm.replace,
       );
       logger.info('BotDatabase', 'Bot ${bot.botName} inserted into DB.');
@@ -135,7 +142,7 @@ class BotDatabase {
       final List<Map<String, dynamic>> maps = await db.query('bots');
       logger.info('BotDatabase', 'Data fetched from database: $maps');
       return List.generate(maps.length, (i) {
-        return Bot.fromMap(maps[i]);
+        return Bot.fromDbMap(maps[i]);
       });
     } catch (e) {
       logger.error('BotDatabase', 'Error fetching bots: $e');
@@ -150,7 +157,7 @@ class BotDatabase {
     try {
       await db.update(
         'bots',
-        bot.toMap(),
+        bot.toDbMap(),
         where: 'bot_name = ? AND language = ?',
         whereArgs: [bot.botName, bot.language],
       );
@@ -214,6 +221,32 @@ class BotDatabase {
     }
   }
 
+  Future<void> _migrateBotsMetadata(Database db) async {
+    try {
+      await _addColumnIfMissing(db, 'bots', 'tags TEXT');
+      await _addColumnIfMissing(db, 'bots', 'author TEXT');
+      await _addColumnIfMissing(db, 'bots', 'version TEXT');
+      await _addColumnIfMissing(db, 'local_bots', 'tags TEXT');
+      await _addColumnIfMissing(db, 'local_bots', 'author TEXT');
+      await _addColumnIfMissing(db, 'local_bots', 'version TEXT');
+    } catch (e) {
+      logger.error('BotDatabase', 'Error migrating metadata columns: $e');
+    }
+  }
+
+  Future<void> _addColumnIfMissing(
+      Database db, String table, String columnDefinition) async {
+    final columnName = columnDefinition.split(' ').first.toLowerCase();
+    final existingColumns =
+        await db.rawQuery("PRAGMA table_info($table);");
+    final hasColumn = existingColumns.any(
+        (column) => column['name']?.toString().toLowerCase() == columnName);
+
+    if (!hasColumn) {
+      await db.execute('ALTER TABLE $table ADD COLUMN $columnDefinition;');
+    }
+  }
+
   // --------------------------------------- LOCAL BOTS --------------------------------------- \\
   Future<void> _createLocalBotsTable(Database db) async {
     try {
@@ -224,7 +257,10 @@ class BotDatabase {
           description TEXT,
           start_command TEXT,
           source_path TEXT,
-          language TEXT NOT NULL
+          language TEXT NOT NULL,
+          tags TEXT,
+          author TEXT,
+          version TEXT
         );
       ''');
       logger.info('BotDatabase', "local_bots table created successfully.");
@@ -237,7 +273,7 @@ class BotDatabase {
   Future<List<Bot>> getLocalBots() async {
     final db = await database;
     final List<Map<String, dynamic>> maps = await db.query('local_bots');
-    return List.generate(maps.length, (i) => Bot.fromMap(maps[i]));
+    return List.generate(maps.length, (i) => Bot.fromDbMap(maps[i]));
   }
 
   // Controlla se local_bots ha almeno un bot
@@ -256,7 +292,7 @@ class BotDatabase {
     for (var bot in bots) {
       batch.insert(
         'local_bots',
-        bot.toMap(),
+        bot.toDbMap(),
         conflictAlgorithm: ConflictAlgorithm.replace,
       );
     }
