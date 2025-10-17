@@ -46,12 +46,13 @@ class BotDatabase {
 
     return openDatabase(
       path,
-      version: 2,
+      version: 3,
       onCreate: (db, version) async {
         logger.info('BotDatabase', "Creating database structure...");
         try {
           await _createBotsTable(db);
           await _createLocalBotsTable(db);
+          await _createMetadataTable(db);
           logger.info('BotDatabase', "Database structure created.");
         } catch (e) {
           logger.error(
@@ -67,6 +68,11 @@ class BotDatabase {
             logger.info(
                 'BotDatabase', "local_bots table created during upgrade.");
           }
+          if (oldVersion < 3) {
+            await _createMetadataTable(db);
+            logger.info('BotDatabase',
+                "fetch_metadata table created during upgrade to v3.");
+          }
           // Future upgrade logic here
         } catch (e) {
           logger.error('BotDatabase', 'Error during database upgrade: $e');
@@ -76,6 +82,7 @@ class BotDatabase {
       try {
         // 🛡 Verifica struttura dopo apertura, anche se onCreate/onUpgrade non chiamati
         await _createLocalBotsTable(db); // Sicuro grazie a IF NOT EXISTS
+        await _createMetadataTable(db); // Assicura tabella metadata
         await _checkDatabaseStructure(db);
       } catch (e) {
         logger.error('BotDatabase', 'Error during structure verification: $e');
@@ -100,6 +107,20 @@ class BotDatabase {
       logger.info('BotDatabase', "Bots table created successfully.");
     } catch (e) {
       logger.error('BotDatabase', "Error creating 'bots' table: $e");
+    }
+  }
+
+  Future<void> _createMetadataTable(Database db) async {
+    try {
+      await db.execute('''
+        CREATE TABLE IF NOT EXISTS fetch_metadata (
+          key TEXT PRIMARY KEY,
+          value TEXT
+        );
+      ''');
+      logger.info('BotDatabase', "fetch_metadata table created successfully.");
+    } catch (e) {
+      logger.error('BotDatabase', "Error creating 'fetch_metadata' table: $e");
     }
   }
 
@@ -141,6 +162,14 @@ class BotDatabase {
       logger.error('BotDatabase', 'Error fetching bots: $e');
       throw Exception('Error during fetching');
     }
+  }
+
+  Future<bool> hasRemoteBots() async {
+    final db = await database;
+    final count = Sqflite.firstIntValue(
+      await db.rawQuery('SELECT COUNT(*) FROM bots'),
+    );
+    return (count ?? 0) > 0;
   }
 
   /// Aggiorna il bot esistente
@@ -211,6 +240,52 @@ class BotDatabase {
           'BotDatabase', "Table 'bots' does NOT exist. Something went wrong.");
     } else {
       logger.info('BotDatabase', "Table 'bots' exists and is ready.");
+    }
+  }
+
+  Future<void> updateLastRemoteFetch(DateTime timestamp) async {
+    final db = await database;
+    try {
+      await db.insert(
+        'fetch_metadata',
+        {
+          'key': 'last_remote_fetch',
+          'value': timestamp.toIso8601String(),
+        },
+        conflictAlgorithm: ConflictAlgorithm.replace,
+      );
+      logger.info('BotDatabase',
+          'Updated last_remote_fetch to ${timestamp.toIso8601String()}');
+    } catch (e) {
+      logger.error('BotDatabase',
+          "Error updating 'last_remote_fetch' in fetch_metadata: $e");
+    }
+  }
+
+  Future<DateTime?> getLastRemoteFetch() async {
+    final db = await database;
+    try {
+      final result = await db.query(
+        'fetch_metadata',
+        where: 'key = ?',
+        whereArgs: ['last_remote_fetch'],
+        limit: 1,
+      );
+
+      if (result.isEmpty) {
+        return null;
+      }
+
+      final value = result.first['value'] as String?;
+      if (value == null) {
+        return null;
+      }
+
+      return DateTime.tryParse(value);
+    } catch (e) {
+      logger.error('BotDatabase',
+          "Error retrieving 'last_remote_fetch' from fetch_metadata: $e");
+      return null;
     }
   }
 

@@ -12,6 +12,7 @@ class BotList extends StatefulWidget {
 class _BotListState extends State<BotList> {
   late Future<Map<String, List<Bot>>> _remoteBots;
   late Future<List<Bot>> _localBots;
+  bool _isRefreshing = false;
 
   final BotGetService _botGetService = BotGetService();
 
@@ -22,10 +23,58 @@ class _BotListState extends State<BotList> {
     _localBots = _botGetService.fetchLocalBotsFlat();
   }
 
+  Future<void> _loadData({bool forceRefresh = false}) async {
+    final remoteFuture = _botGetService.fetchBots(forceRefresh: forceRefresh);
+    final localFuture = _botGetService.fetchLocalBotsFlat();
+
+    setState(() {
+      _remoteBots = remoteFuture;
+      _localBots = localFuture;
+      _isRefreshing = forceRefresh;
+    });
+
+    if (forceRefresh) {
+      try {
+        await Future.wait([remoteFuture, localFuture]);
+      } finally {
+        if (mounted) {
+          setState(() {
+            _isRefreshing = false;
+          });
+        }
+      }
+    }
+  }
+
+  Future<void> _handleRefresh() async {
+    await _loadData(forceRefresh: true);
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(title: Text('Lista dei Bot')),
+      appBar: AppBar(
+        title: Text('Lista dei Bot'),
+        actions: [
+          if (_isRefreshing)
+            Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 16.0),
+              child: Center(
+                child: SizedBox(
+                  width: 18,
+                  height: 18,
+                  child: CircularProgressIndicator(strokeWidth: 2),
+                ),
+              ),
+            )
+          else
+            IconButton(
+              icon: Icon(Icons.refresh),
+              tooltip: 'Aggiorna',
+              onPressed: _handleRefresh,
+            ),
+        ],
+      ),
       body: FutureBuilder<Map<String, List<Bot>>>(
         future: _remoteBots,
         builder: (context, remoteSnapshot) {

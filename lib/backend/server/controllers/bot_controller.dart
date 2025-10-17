@@ -14,11 +14,18 @@ class BotController {
   BotController(this.botDownloadService, this.botGetService);
 
   // Endpoint per ottenere la lista dei bot disponibili remoti
-  Future<Response> fetchAvailableBots(Request request) async {
+  Future<Response> fetchAvailableBots(Request request,
+      {bool forceRefreshOverride = false}) async {
     try {
       logger.info(LOGS.BOT_SERVICE, 'Fetching list of available bots...');
-      final List<Bot> availableBots = await botGetService
-          .fetchAvailableBots(); // Restituisce una lista di bot con tutti i dettagli
+      final queryRefresh = request.url.queryParameters['refresh'];
+      final bool queryWantsRefresh =
+          queryRefresh != null && queryRefresh.toLowerCase() == 'true';
+      final bool forceRefresh = forceRefreshOverride || queryWantsRefresh;
+
+      final List<Bot> availableBots = await botGetService.fetchAvailableBots(
+          forceRefresh:
+              forceRefresh); // Restituisce una lista di bot con tutti i dettagli
 
       // Logga i dettagli della risposta
       logger.info(LOGS.BOT_SERVICE, 'Fetched ${availableBots.length} bots.');
@@ -38,6 +45,10 @@ class BotController {
           }),
           headers: {'Content-Type': 'application/json'});
     }
+  }
+
+  Future<Response> refreshAvailableBots(Request request) {
+    return fetchAvailableBots(request, forceRefreshOverride: true);
   }
 
   // Endpoint per scaricare un bot specifico

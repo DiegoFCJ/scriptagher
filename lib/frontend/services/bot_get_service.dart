@@ -7,8 +7,9 @@ class BotGetService {
 
   BotGetService({this.baseUrl = 'http://localhost:8080'});
 
-  Future<Map<String, List<Bot>>> fetchBots() async {
-    final url = Uri.parse('$baseUrl/bots');
+  Future<Map<String, List<Bot>>> fetchBots({bool forceRefresh = false}) async {
+    final String path = forceRefresh ? '$baseUrl/bots?refresh=true' : '$baseUrl/bots';
+    final url = Uri.parse(path);
 
     try {
       final response = await http.get(url);
