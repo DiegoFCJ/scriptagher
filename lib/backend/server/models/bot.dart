@@ -90,12 +90,16 @@ class BotCompat {
   final List<String> missingDesktopRuntimes;
   final bool? browserSupported;
   final String? browserReason;
+  final String? browserRunner;
+  final BrowserPayloads browserPayloads;
 
   const BotCompat({
     this.desktopRuntimes = const [],
     this.missingDesktopRuntimes = const [],
     this.browserSupported,
     this.browserReason,
+    this.browserRunner,
+    this.browserPayloads = const BrowserPayloads(),
   });
 
   BotCompat copyWith({
@@ -105,6 +109,8 @@ class BotCompat {
     bool setBrowserSupportedNull = false,
     String? browserReason,
     bool setBrowserReasonNull = false,
+    String? browserRunner,
+    BrowserPayloads? browserPayloads,
   }) {
     return BotCompat(
       desktopRuntimes: desktopRuntimes ?? this.desktopRuntimes,
@@ -116,6 +122,8 @@ class BotCompat {
       browserReason: setBrowserReasonNull
           ? null
           : (browserReason ?? this.browserReason),
+      browserRunner: browserRunner ?? this.browserRunner,
+      browserPayloads: browserPayloads ?? this.browserPayloads,
     );
   }
 
@@ -144,6 +152,8 @@ class BotCompat {
         'supported': browserSupported,
         'status': browserStatus,
         if (browserReason != null) 'reason': browserReason,
+        if (browserRunner != null) 'runner': browserRunner,
+        if (!browserPayloads.isEmpty) 'payloads': browserPayloads.toJson(),
       },
     };
   }
@@ -160,6 +170,8 @@ class BotCompat {
     List<String> missing = const [];
     bool? browserSupported;
     String? browserReason;
+    String? browserRunner;
+    BrowserPayloads payloads = const BrowserPayloads();
 
     if (desktop is Map<String, dynamic>) {
       final runtimeList = desktop['runtimes'] ?? desktop['requires'];
@@ -181,6 +193,16 @@ class BotCompat {
       if (reason is String) {
         browserReason = reason;
       }
+      final runner = browser['runner'];
+      if (runner is String && runner.isNotEmpty) {
+        browserRunner = runner;
+      }
+      final payloadJson = browser['payloads'] ?? browser['artifacts'];
+      if (payloadJson != null) {
+        payloads = BrowserPayloads.fromJson(payloadJson);
+      }
+    } else if (browser is bool) {
+      browserSupported = browser;
     }
 
     return BotCompat(
@@ -188,6 +210,8 @@ class BotCompat {
       missingDesktopRuntimes: missing,
       browserSupported: browserSupported,
       browserReason: browserReason,
+      browserRunner: browserRunner,
+      browserPayloads: payloads,
     );
   }
 
@@ -201,6 +225,8 @@ class BotCompat {
     List<String> runtimes = const [];
     bool? browserSupported;
     String? browserReason;
+    String? browserRunner;
+    BrowserPayloads payloads = const BrowserPayloads();
 
     if (desktop is Map<String, dynamic>) {
       final runtimeList = desktop['runtimes'] ?? desktop['requires'];
@@ -218,6 +244,14 @@ class BotCompat {
       if (reason is String) {
         browserReason = reason;
       }
+      final runner = browser['runner'];
+      if (runner is String && runner.isNotEmpty) {
+        browserRunner = runner;
+      }
+      final payloadJson = browser['payloads'] ?? browser['artifacts'];
+      if (payloadJson != null) {
+        payloads = BrowserPayloads.fromJson(payloadJson);
+      }
     } else if (browser is bool) {
       browserSupported = browser;
     }
@@ -226,6 +260,120 @@ class BotCompat {
       desktopRuntimes: runtimes,
       browserSupported: browserSupported,
       browserReason: browserReason,
+      browserRunner: browserRunner,
+      browserPayloads: payloads,
+    );
+  }
+}
+
+class BrowserPayloads {
+  const BrowserPayloads({
+    this.javascript,
+    this.wasm,
+    Map<String, dynamic>? metadata,
+  }) : metadata = metadata ?? const {};
+
+  final BrowserPayload? javascript;
+  final BrowserPayload? wasm;
+  final Map<String, dynamic> metadata;
+
+  bool get hasJavaScript => javascript?.hasData ?? false;
+  bool get hasWasm => wasm?.hasData ?? false;
+  bool get isEmpty => !hasJavaScript && !hasWasm && metadata.isEmpty;
+
+  Map<String, dynamic> toJson() {
+    final map = <String, dynamic>{};
+    if (javascript != null && javascript!.hasData) {
+      map['javascript'] = javascript!.toJson();
+    }
+    if (wasm != null && wasm!.hasData) {
+      map['wasm'] = wasm!.toJson();
+    }
+    if (metadata.isNotEmpty) {
+      map['metadata'] = metadata;
+    }
+    return map;
+  }
+
+  static BrowserPayloads fromJson(dynamic json) {
+    if (json is! Map<String, dynamic>) {
+      return const BrowserPayloads();
+    }
+
+    BrowserPayload? jsPayload;
+    BrowserPayload? wasmPayload;
+    final jsJson = json['javascript'] ?? json['js'];
+    if (jsJson != null) {
+      jsPayload = BrowserPayload.fromJson(jsJson);
+    }
+    final wasmJson = json['wasm'];
+    if (wasmJson != null) {
+      wasmPayload = BrowserPayload.fromJson(wasmJson);
+    }
+    final metadataJson = json['metadata'];
+    Map<String, dynamic>? metadata;
+    if (metadataJson is Map<String, dynamic>) {
+      metadata = metadataJson;
+    }
+
+    return BrowserPayloads(
+      javascript: jsPayload,
+      wasm: wasmPayload,
+      metadata: metadata ?? const {},
+    );
+  }
+}
+
+class BrowserPayload {
+  const BrowserPayload({
+    this.inline,
+    this.url,
+    this.base64,
+  });
+
+  final String? inline;
+  final String? url;
+  final String? base64;
+
+  bool get hasData =>
+      (inline != null && inline!.isNotEmpty) ||
+      (url != null && url!.isNotEmpty) ||
+      (base64 != null && base64!.isNotEmpty);
+
+  Map<String, dynamic> toJson() {
+    final map = <String, dynamic>{};
+    if (inline != null && inline!.isNotEmpty) {
+      map['inline'] = inline;
+    }
+    if (url != null && url!.isNotEmpty) {
+      map['url'] = url;
+    }
+    if (base64 != null && base64!.isNotEmpty) {
+      map['base64'] = base64;
+    }
+    return map;
+  }
+
+  static BrowserPayload fromJson(dynamic json) {
+    if (json is String) {
+      if (json.trim().startsWith('http')) {
+        return BrowserPayload(url: json.trim());
+      }
+      return BrowserPayload(inline: json);
+    }
+
+    if (json is! Map<String, dynamic>) {
+      return const BrowserPayload();
+    }
+
+    final inline = json['inline'] ?? json['code'] ?? json['script'];
+    final url = json['url'] ?? json['href'];
+    final base64 = json['base64'] ?? json['b64'];
+
+    return BrowserPayload(
+      inline: inline is String ? inline : null,
+      url: url is String ? url : null,
+      base64: base64 is String ? base64 : null,
     );
   }
 }
