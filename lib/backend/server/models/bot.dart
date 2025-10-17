@@ -151,8 +151,16 @@ class Bot {
       tags = (map['tags'] as List).whereType<String>().toList();
     }
 
+    int? id;
+    final idValue = map['id'];
+    if (idValue is int) {
+      id = idValue;
+    } else if (idValue is String) {
+      id = int.tryParse(idValue);
+    }
+
     return Bot(
-      id: map['id'],
+      id: id,
       botName: map['bot_name'],
       description: map['description'] ?? '',
       startCommand: map['start_command'] ?? '',
@@ -166,6 +174,27 @@ class Bot {
       tags: tags,
     );
   }
+
+  Map<String, dynamic> toJson() => {
+        if (id != null) 'id': id,
+        'bot_name': botName,
+        'description': description,
+        'start_command': startCommand,
+        'source_path': sourcePath,
+        'language': language,
+        'compat': compat.toJson(),
+        'permissions': permissions,
+        if (archiveSha256 != null) 'archive_sha256': archiveSha256,
+        'version': version,
+        if (author != null) 'author': author,
+        'tags': tags,
+      };
+
+  bool get isDownloaded =>
+      sourcePath.contains('data/remote') || sourcePath.contains('data\\remote');
+
+  bool get isLocal =>
+      sourcePath.contains('data/local') || sourcePath.contains('data\\local');
 }
 
 class BotCompat {

@@ -93,7 +93,16 @@ class Bot {
   }
 
   factory Bot.fromJson(Map<String, dynamic> json) {
+    final dynamic idValue = json['id'];
+    int? parsedId;
+    if (idValue is int) {
+      parsedId = idValue;
+    } else if (idValue is String) {
+      parsedId = int.tryParse(idValue);
+    }
+
     return Bot(
+      id: parsedId,
       botName: json['bot_name'] ?? '',
       description: json['description'] ?? '',
       startCommand: json['start_command'] ?? '',
@@ -108,6 +117,27 @@ class Bot {
       tags: (json['tags'] as List?)?.whereType<String>().toList() ?? const [],
     );
   }
+
+  Map<String, dynamic> toJson() => {
+        if (id != null) 'id': id,
+        'bot_name': botName,
+        'description': description,
+        'start_command': startCommand,
+        'source_path': sourcePath,
+        'language': language,
+        'compat': compat.toJson(),
+        'permissions': permissions,
+        if (archiveSha256 != null) 'archive_sha256': archiveSha256,
+        'version': version,
+        if (author != null) 'author': author,
+        'tags': tags,
+      };
+
+  bool get isDownloaded =>
+      sourcePath.contains('data/remote') || sourcePath.contains('data\\remote');
+
+  bool get isLocal =>
+      sourcePath.contains('data/local') || sourcePath.contains('data\\local');
 }
 
 class BotCompat {
