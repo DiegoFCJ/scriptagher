@@ -37,6 +37,11 @@ class _HomePageState extends State<HomePage> {
       description: 'Gestisci e configura i tuoi bot',
       routeName: '/test3',
     ),
+    _Section(
+      title: 'Impostazioni',
+      description: 'Gestisci preferenze, privacy e telemetria',
+      routeName: '/settings',
+    ),
   ];
 
   int _currentIndex = 0;
