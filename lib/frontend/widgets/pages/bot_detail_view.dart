@@ -35,10 +35,13 @@ class _BotDetailViewState extends State<BotDetailView> {
   StreamSubscription<BrowserRunnerEvent>? _browserSubscription;
   bool _autoScroll = true;
   bool _isRunning = false;
+  bool _isTerminating = false;
   bool _isLoadingLogs = false;
   String _buffer = '';
   String? _error;
   String? _startStatus;
+  String? _activeProcessId;
+  int? _lastExitCode;
 
   void _openTutorial() {
     Navigator.pushNamed(context, '/tutorial');
@@ -78,6 +81,7 @@ class _BotDetailViewState extends State<BotDetailView> {
           _logHistory
             ..clear()
             ..addAll(logs);
+          _lastExitCode = logs.isNotEmpty ? logs.first.exitCode : null;
         });
       } else {
         _showSnackBar(
@@ -129,6 +133,8 @@ class _BotDetailViewState extends State<BotDetailView> {
       _error = null;
       _startStatus = null;
       _isRunning = true;
+      _activeProcessId = null;
+      _lastExitCode = null;
     });
 
     final baseUri = Uri.parse(
@@ -166,6 +172,8 @@ class _BotDetailViewState extends State<BotDetailView> {
 
         setState(() {
           _startStatus = message;
+          _activeProcessId = processId;
+          _lastExitCode = null;
         });
 
         _appendEntry(_ConsoleEntry(message: message, type: 'status'));
@@ -224,6 +232,8 @@ class _BotDetailViewState extends State<BotDetailView> {
       _error = null;
       _startStatus = null;
       _isRunning = true;
+      _activeProcessId = null;
+      _lastExitCode = null;
     });
 
     final client = http.Client();
@@ -281,12 +291,14 @@ class _BotDetailViewState extends State<BotDetailView> {
         setState(() {
           _error = 'Errore di connessione: $error';
           _isRunning = false;
+          _activeProcessId = null;
         });
         _stopExecution();
       }, onDone: () {
         if (!mounted) return;
         setState(() {
           _isRunning = false;
+          _activeProcessId = null;
         });
         _stopExecution();
         _loadLogs();
@@ -296,6 +308,7 @@ class _BotDetailViewState extends State<BotDetailView> {
       setState(() {
         _error = 'Errore durante l\'avvio: $e';
         _isRunning = false;
+        _activeProcessId = null;
       });
       _stopExecution();
     }
@@ -358,6 +371,82 @@ class _BotDetailViewState extends State<BotDetailView> {
     _browserSession = null;
   }
 
+  Future<void> _sendSignal(String action) async {
+    final processId = _activeProcessId;
+    if (processId == null) {
+      _showSnackBar('Nessun processo attivo da controllare.');
+      return;
+    }
+
+    setState(() {
+      _isTerminating = true;
+    });
+
+    final uri = Uri.parse(
+            '${widget.baseUrl}/bots/${Uri.encodeComponent(widget.bot.language)}/${Uri.encodeComponent(widget.bot.botName)}/$action')
+        .replace(queryParameters: {'processId': processId});
+
+    try {
+      final response = await http.post(uri);
+      if (response.statusCode != 200) {
+        String message =
+            'Impossibile completare l\'operazione ($action). Codice ${response.statusCode}.';
+        if (response.body.isNotEmpty) {
+          try {
+            final decoded = jsonDecode(response.body) as Map<String, dynamic>;
+            final error = decoded['message'] ?? decoded['error'];
+            if (error is String && error.isNotEmpty) {
+              message = error;
+            }
+          } catch (_) {}
+        }
+        _showSnackBar(message);
+        return;
+      }
+
+      Map<String, dynamic> data = <String, dynamic>{};
+      if (response.body.isNotEmpty) {
+        try {
+          data = jsonDecode(response.body) as Map<String, dynamic>;
+        } catch (_) {}
+      }
+
+      final exitCode = data['exitCode'];
+      final status = data['status']?.toString();
+
+      setState(() {
+        if (exitCode is int) {
+          _lastExitCode = exitCode;
+        }
+        if (status == 'terminated' || exitCode is int) {
+          _activeProcessId = null;
+        }
+      });
+
+      if (status == 'terminated') {
+        _showSnackBar('Processo terminato (exit code: ${exitCode ?? 'n/d'}).');
+        await _loadLogs();
+      } else if (status == 'not_running') {
+        _showSnackBar('Nessun processo attivo. Exit code: ${exitCode ?? 'n/d'}');
+        await _loadLogs();
+      } else {
+        _showSnackBar('Segnale "$action" inviato al processo.');
+      }
+    } catch (e) {
+      _showSnackBar('Errore durante l\'invio del segnale: $e');
+    } finally {
+      if (mounted) {
+        setState(() {
+          _isTerminating = false;
+        });
+      }
+    }
+  }
+
+  Future<void> _stopBot() => _sendSignal('stop');
+
+  Future<void> _killBot() => _sendSignal('kill');
+
   bool get _shouldUseBrowserRunner =>
       kIsWeb && BrowserBotRunner.isSupported && widget.bot.compat.canRunInBrowser;
 
@@ -374,6 +463,8 @@ class _BotDetailViewState extends State<BotDetailView> {
       _entries.clear();
       _error = null;
       _isRunning = true;
+      _activeProcessId = null;
+      _lastExitCode = null;
     });
 
     _appendEntry(
@@ -406,6 +497,10 @@ class _BotDetailViewState extends State<BotDetailView> {
           if (event.message == 'finished' || event.message == 'failed') {
             setState(() {
               _isRunning = false;
+              _activeProcessId = null;
+              if (event.code is int) {
+                _lastExitCode = event.code as int;
+              }
               if (event.message == 'failed' && _error == null) {
                 _error = 'Esecuzione fallita nella sandbox browser.';
               }
@@ -425,11 +520,13 @@ class _BotDetailViewState extends State<BotDetailView> {
         setState(() {
           _error = 'Errore sandbox: $error';
           _isRunning = false;
+          _activeProcessId = null;
         });
       }, onDone: () {
         if (!mounted) return;
         setState(() {
           _isRunning = false;
+          _activeProcessId = null;
         });
       });
     } catch (error) {
@@ -437,6 +534,7 @@ class _BotDetailViewState extends State<BotDetailView> {
       setState(() {
         _error = 'Impossibile avviare nel browser: $error';
         _isRunning = false;
+        _activeProcessId = null;
       });
       _browserSession?.stop();
       _browserSession = null;
@@ -621,11 +719,38 @@ class _BotDetailViewState extends State<BotDetailView> {
             Row(
               children: [
                 ElevatedButton(
-                  onPressed:
-                      _isRunning ? null : () => _requestExecution(),
-                  child: Text(_isRunning ? 'Esecuzione in corso...' : 'Esegui Bot'),
+                  onPressed: (_isRunning || _isTerminating || _activeProcessId != null)
+                      ? null
+                      : () => _requestExecution(),
+                  child: Text(_isRunning
+                      ? 'Esecuzione in corso...'
+                      : _isTerminating
+                          ? 'Terminazione in corso...'
+                          : _activeProcessId != null
+                              ? 'Processo attivo'
+                              : 'Esegui Bot'),
                 ),
-                const SizedBox(width: 16),
+                const SizedBox(width: 12),
+                OutlinedButton.icon(
+                  onPressed: (_isTerminating || _activeProcessId == null)
+                      ? null
+                      : _stopBot,
+                  icon: const Icon(Icons.stop_circle_outlined),
+                  label: const Text('Stop'),
+                ),
+                const SizedBox(width: 12),
+                ElevatedButton.icon(
+                  onPressed: (_isTerminating || _activeProcessId == null)
+                      ? null
+                      : _killBot,
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: Theme.of(context).colorScheme.error,
+                    foregroundColor: Theme.of(context).colorScheme.onError,
+                  ),
+                  icon: const Icon(Icons.cancel_presentation_outlined),
+                  label: const Text('Kill'),
+                ),
+                const SizedBox(width: 12),
                 OutlinedButton(
                   onPressed: _entries.isEmpty && _error == null ? null : _clearLog,
                   child: const Text('Pulisci log'),
@@ -663,6 +788,18 @@ class _BotDetailViewState extends State<BotDetailView> {
                 ),
               ),
             ],
+            if (_activeProcessId != null) ...[
+              const SizedBox(height: 8),
+              Text(
+                'Processo attivo: $_activeProcessId',
+                style: Theme.of(context).textTheme.bodyMedium,
+              ),
+            ],
+            const SizedBox(height: 8),
+            Text(
+              'Ultimo exit code: ${_lastExitCode?.toString() ?? 'n/d'}',
+              style: Theme.of(context).textTheme.bodyMedium,
+            ),
             if (kIsWeb && !_shouldUseBrowserRunner) ...[
               const SizedBox(height: 12),
               Text(

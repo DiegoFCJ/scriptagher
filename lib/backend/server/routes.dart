@@ -29,6 +29,16 @@ class BotRoutes {
         (Request request, String language, String botName) =>
             botController.startBot(request, language, botName));
 
+    router.post(
+        '/bots/<language>/<botName>/stop',
+        (Request request, String language, String botName) =>
+            botController.stopBot(request, language, botName));
+
+    router.post(
+        '/bots/<language>/<botName>/kill',
+        (Request request, String language, String botName) =>
+            botController.killBot(request, language, botName));
+
     return router;
   }
 }

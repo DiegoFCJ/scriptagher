@@ -19,6 +19,8 @@ class ExecutionService {
   final ExecutionLogManager _logManager;
   final CustomLogger _logger = CustomLogger();
   final Map<String, _ManagedProcess> _runningProcesses = {};
+  final Map<String, _CompletedProcess> _completedProcesses = {};
+  final List<String> _completedOrder = [];
 
   Future<Response> startBot(
       Request request, String language, String botName) async {
@@ -112,6 +114,7 @@ class ExecutionService {
         session: session,
         stdoutSub: stdoutSub,
         stderrSub: stderrSub,
+        startedAt: DateTime.now().toUtc(),
       );
       _runningProcesses[processId] = managedProcess;
 
@@ -680,8 +683,152 @@ class ExecutionService {
       await managed.stderrSub.cancel();
       await managed.session.dispose();
       _runningProcesses.remove(managed.id);
+      _storeCompletedProcess(managed, exitCode);
     }
   }
+
+  Future<Response> stopBot(
+      Request request, String language, String botName) async {
+    return _handleSignal(request, language, botName,
+        signal: ProcessSignal.sigterm, action: 'stop');
+  }
+
+  Future<Response> killBot(
+      Request request, String language, String botName) async {
+    final signal = _supportsSigKill ? ProcessSignal.sigkill : ProcessSignal.sigterm;
+    return _handleSignal(request, language, botName,
+        signal: signal, action: 'kill');
+  }
+
+  Future<Response> _handleSignal(Request request, String language, String botName,
+      {required ProcessSignal signal, required String action}) async {
+    final processId = _extractProcessId(request);
+
+    _logger.info(
+      LOGS.EXECUTION_SERVICE,
+      'Received $action request for $language/$botName (processId: ${processId ?? 'auto'}).',
+      metadata: {'language': language, 'botName': botName, if (processId != null) 'processId': processId},
+    );
+
+    _ManagedProcess? managed;
+    try {
+      managed = _resolveManagedProcess(language, botName, processId: processId);
+    } on _AmbiguousProcessException catch (e) {
+      return Response(400,
+          body: jsonEncode({
+            'error': 'multiple_processes',
+            'message':
+                'Più processi attivi per $language/$botName. Specifica processId.',
+            'processes': e.processIds,
+          }),
+          headers: {'Content-Type': 'application/json'});
+    }
+
+    if (managed == null) {
+      if (processId != null) {
+        final completed = _completedProcesses[processId];
+        if (completed != null) {
+          return Response.ok(
+            jsonEncode({
+              'status': 'not_running',
+              'processId': processId,
+              'exitCode': completed.exitCode,
+            }),
+            headers: {'Content-Type': 'application/json'},
+          );
+        }
+      }
+
+      return Response.notFound(
+        jsonEncode({
+          'error': 'process_not_found',
+          'message': processId == null
+              ? 'Nessun processo attivo per $language/$botName.'
+              : 'Processo $processId non trovato per $language/$botName.',
+        }),
+        headers: {'Content-Type': 'application/json'},
+      );
+    }
+
+    final success = managed.process.kill(signal);
+
+    final exitCode = await _awaitExitCode(managed);
+
+    if (!success && exitCode == null) {
+      return Response.internalServerError(
+        body: jsonEncode({
+          'error': 'signal_failed',
+          'message':
+              'Impossibile inviare il segnale $signal al processo ${managed.id}.',
+        }),
+        headers: {'Content-Type': 'application/json'},
+      );
+    }
+
+    return Response.ok(
+      jsonEncode({
+        'status': exitCode != null ? 'terminated' : 'signal_sent',
+        'processId': managed.id,
+        'exitCode': exitCode,
+      }),
+      headers: {'Content-Type': 'application/json'},
+    );
+  }
+
+  _ManagedProcess? _resolveManagedProcess(String language, String botName,
+      {String? processId}) {
+    if (processId != null) {
+      return _runningProcesses[processId];
+    }
+
+    final matches = _runningProcesses.values
+        .where((proc) =>
+            proc.bot.language == language && proc.bot.botName == botName)
+        .toList();
+
+    if (matches.length == 1) {
+      return matches.first;
+    }
+
+    if (matches.isEmpty) {
+      return null;
+    }
+
+    throw _AmbiguousProcessException(matches.map((p) => p.id).toList());
+  }
+
+  String? _extractProcessId(Request request) {
+    final qp = request.url.queryParameters;
+    return qp['processId'] ?? qp['process_id'];
+  }
+
+  Future<int?> _awaitExitCode(_ManagedProcess managed) async {
+    try {
+      return await managed.process.exitCode
+          .timeout(const Duration(seconds: 5));
+    } on TimeoutException {
+      return null;
+    } catch (_) {
+      return null;
+    }
+  }
+
+  void _storeCompletedProcess(_ManagedProcess managed, int exitCode) {
+    _completedProcesses[managed.id] = _CompletedProcess(
+      bot: managed.bot,
+      exitCode: exitCode,
+      finishedAt: DateTime.now().toUtc(),
+    );
+    _completedOrder.add(managed.id);
+
+    const maxCompleted = 50;
+    while (_completedOrder.length > maxCompleted) {
+      final oldest = _completedOrder.removeAt(0);
+      _completedProcesses.remove(oldest);
+    }
+  }
+
+  bool get _supportsSigKill => !Platform.isWindows;
 }
 
 class _ManagedProcess {
@@ -692,6 +839,7 @@ class _ManagedProcess {
     required this.session,
     required this.stdoutSub,
     required this.stderrSub,
+    required this.startedAt,
   });
 
   final String id;
@@ -700,4 +848,27 @@ class _ManagedProcess {
   final ExecutionLogSession session;
   final StreamSubscription<String> stdoutSub;
   final StreamSubscription<String> stderrSub;
+  final DateTime startedAt;
+}
+
+class _CompletedProcess {
+  _CompletedProcess({
+    required this.bot,
+    required this.exitCode,
+    required this.finishedAt,
+  });
+
+  final Bot bot;
+  final int exitCode;
+  final DateTime finishedAt;
+}
+
+class _AmbiguousProcessException implements Exception {
+  _AmbiguousProcessException(this.processIds);
+
+  final List<String> processIds;
+
+  @override
+  String toString() =>
+      'Multiple processes match the criteria: ${processIds.join(', ')}';
 }
