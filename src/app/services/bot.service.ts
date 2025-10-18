@@ -455,14 +455,23 @@ export class BotService {
   private mergeManifestMetadata(
     ...metadatas: (InstallerMetadata | undefined)[]
   ): InstallerMetadata | undefined {
-    const merged = metadatas.reduce((acc, metadata) => {
+    const merged = metadatas.reduce<InstallerMetadata | undefined>((acc, metadata) => {
       if (!metadata) {
         return acc;
       }
-      return { ...acc, ...metadata };
-    }, {} as InstallerMetadata);
 
-    return Object.keys(merged).length ? merged : undefined;
+      if (!acc) {
+        return { ...metadata };
+      }
+
+      return { ...acc, ...metadata };
+    }, undefined);
+
+    if (!merged || Object.keys(merged).length === 0) {
+      return undefined;
+    }
+
+    return merged;
   }
 
   private buildMetadataOverrides(entry: ManifestFileEntry): InstallerMetadata | undefined {
