@@ -1,14 +1,16 @@
-<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 256 256">
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" role="img" aria-labelledby="title desc">
+  <title id="title">Scriptagher Favicon</title>
+  <desc id="desc">Gradient tile with stylised S</desc>
   <defs>
-    <linearGradient id="scriptagher-gradient" x1="0%" y1="0%" x2="100%" y2="100%">
-      <stop offset="0%" stop-color="#4338CA" />
-      <stop offset="50%" stop-color="#6366F1" />
-      <stop offset="100%" stop-color="#06B6D4" />
+    <linearGradient id="fav-gradient" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#0F172A" />
+      <stop offset="50%" stop-color="#1E3A8A" />
+      <stop offset="100%" stop-color="#0EA5E9" />
     </linearGradient>
   </defs>
-  <rect width="256" height="256" rx="56" fill="url(#scriptagher-gradient)" />
+  <rect width="64" height="64" rx="14" fill="url(#fav-gradient)" />
   <path
     fill="#F8FAFC"
-    d="M186 74c-15-18-37-28-63-28-46 0-80 29-80 68 0 32 21 48 52 58 25 7 35 14 35 27 0 13-13 21-32 21-21 0-39-9-52-24l-20 25c19 21 48 34 79 34 48 0 83-29 83-68 0-32-21-49-54-58-24-7-34-14-34-26 0-12 12-21 30-21 17 0 32 6 43 18z"
+    d="M19 19c6-7 17-9 26-7 7 2 12 6 14 11 3 9-3 16-16 19-11 3-14 6-12 10 1 4 7 6 13 6 6 0 11-2 14-6l8 7c-6 7-13 11-23 12-16 1-30-8-31-22-1-9 5-16 17-19 10-3 14-6 12-10s-7-5-11-4c-5 1-9 4-12 8z"
   />
 </svg>
