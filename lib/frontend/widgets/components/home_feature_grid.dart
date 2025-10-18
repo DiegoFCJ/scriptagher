@@ -10,31 +10,45 @@ class HomeFeatureGrid extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return SliverLayoutBuilder(
-      builder: (context, constraints) {
-        final width = constraints.crossAxisExtent;
-        final crossAxisCount = _crossAxisCountFor(width);
-        final childAspectRatio = crossAxisCount == 1 ? 16 / 9 : 4 / 3;
+    return SliverPadding(
+      padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
+      sliver: SliverToBoxAdapter(
+        child: LayoutBuilder(
+          builder: (context, constraints) {
+            final maxWidth = constraints.maxWidth;
+            final mediaQueryWidth = MediaQuery.of(context).size.width;
+            final width = (maxWidth.isFinite && maxWidth > 0)
+                ? maxWidth
+                : mediaQueryWidth;
+            final crossAxisCount = _crossAxisCountFor(width);
+            const spacing = 24.0;
+            final gaps = crossAxisCount > 1
+                ? (crossAxisCount - 1) * spacing
+                : 0.0;
+            final availableWidth = (width - gaps).clamp(0.0, width);
+            final tileWidth = crossAxisCount == 1
+                ? width
+                : availableWidth / crossAxisCount;
 
-        return SliverPadding(
-          padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
-          sliver: SliverGrid(
-            gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
-              crossAxisCount: crossAxisCount,
-              mainAxisSpacing: 24,
-              crossAxisSpacing: 24,
-              childAspectRatio: childAspectRatio,
-            ),
-            delegate: SliverChildBuilderDelegate(
-              (context, index) {
-                final feature = features[index];
-                return _FeatureCard(feature: feature);
-              },
-              childCount: features.length,
-            ),
-          ),
-        );
-      },
+            final aspectRatio = crossAxisCount == 1 ? 16 / 9 : 4 / 3;
+            final tileHeight = tileWidth / aspectRatio;
+
+            return Wrap(
+              alignment: WrapAlignment.start,
+              spacing: spacing,
+              runSpacing: spacing,
+              children: [
+                for (final feature in features)
+                  SizedBox(
+                    width: tileWidth,
+                    height: tileHeight,
+                    child: _FeatureCard(feature: feature),
+                  ),
+              ],
+            );
+          },
+        ),
+      ),
     );
   }
 
