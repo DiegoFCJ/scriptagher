@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:url_launcher/url_launcher.dart';
 
+import '../components/app_gradient_background.dart';
+
 const String _tutorialDocsUrl =
     'https://github.com/scriptagher/scriptagher/blob/main/docs/create-your-bot.md';
 
@@ -31,21 +33,27 @@ class TutorialPage extends StatelessWidget {
       appBar: AppBar(
         title: const Text('Crea il tuo bot'),
         actions: [
-          IconButton(
-            tooltip: 'Apri la guida completa',
-            icon: const Icon(Icons.open_in_new),
+          FilledButton.tonalIcon(
             onPressed: () => _openDocs(context),
+            icon: const Icon(Icons.open_in_new_rounded),
+            label: const Text('Documentazione'),
           ),
+          const SizedBox(width: 16),
         ],
       ),
-      body: SingleChildScrollView(
-        padding: const EdgeInsets.all(24),
-        child: Column(
+      body: AppGradientBackground(
+        applyTopSafeArea: false,
+        padding: EdgeInsets.zero,
+        child: SingleChildScrollView(
+          padding: const EdgeInsets.fromLTRB(24, 28, 24, 48),
+          child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             Text(
               'Panoramica',
-              style: theme.textTheme.headlineSmall,
+              style: theme.textTheme.headlineMedium?.copyWith(
+                fontWeight: FontWeight.bold,
+              ),
             ),
             const SizedBox(height: 8),
             const Text(
@@ -53,27 +61,17 @@ class TutorialPage extends StatelessWidget {
               'metadati, runtime e permessi. Segui i passaggi sotto per crearne uno nuovo.',
             ),
             const SizedBox(height: 24),
-            Text(
-              'Struttura del progetto',
-              style: theme.textTheme.titleLarge,
+            _SectionHeading(
+              icon: Icons.layers_rounded,
+              title: 'Struttura del progetto',
             ),
             const SizedBox(height: 8),
-            Container(
-              width: double.infinity,
-              padding: const EdgeInsets.all(16),
-              decoration: BoxDecoration(
-                color: Colors.grey.shade100,
-                borderRadius: BorderRadius.circular(8),
-                border: Border.all(color: Colors.grey.shade300),
-              ),
-              child: const SelectableText(
-                'my-awesome-bot/\n'
-                '├── Bot.json\n'
-                '├── main.py\n'
-                '├── requirements.txt\n'
-                '└── resources/\n',
-                style: TextStyle(fontFamily: 'monospace'),
-              ),
+            _CodeBlock(
+              content: 'my-awesome-bot/\n'
+                  '├── Bot.json\n'
+                  '├── main.py\n'
+                  '├── requirements.txt\n'
+                  '└── resources/\n',
             ),
             const SizedBox(height: 16),
             const Text(
@@ -82,47 +80,37 @@ class TutorialPage extends StatelessWidget {
               'dipendenze dichiarate nei comandi di post installazione.',
             ),
             const SizedBox(height: 24),
-            Text(
-              'Esempio di Bot.json',
-              style: theme.textTheme.titleLarge,
+            _SectionHeading(
+              icon: Icons.code_rounded,
+              title: 'Esempio di Bot.json',
             ),
             const SizedBox(height: 8),
-            Container(
-              width: double.infinity,
-              padding: const EdgeInsets.all(16),
-              decoration: BoxDecoration(
-                color: Colors.grey.shade100,
-                borderRadius: BorderRadius.circular(8),
-                border: Border.all(color: Colors.grey.shade300),
-              ),
-              child: const SelectableText(
-                '{\n'
-                '  "botName": "MyAwesomeBot",\n'
-                '  "version": "1.0.0",\n'
-                '  "archiveSha256": "0123456789abcdef...",\n'
-                '  "description": "Esempio di bot che stampa un messaggio",\n'
-                '  "author": "Jane Doe",\n'
-                '  "language": "python",\n'
-                '  "entrypoint": "main.py",\n'
-                '  "args": ["--verbose"],\n'
-                '  "environment": {\n'
-                '    "PYTHONPATH": "./"\n'
-                '  },\n'
-                '  "postInstall": [\n'
-                '    "pip install -r requirements.txt"\n'
-                '  ],\n'
-                '  "permissions": [\n'
-                '    "network",\n'
-                '    "filesystem:read"\n'
-                '  ]\n'
-                '}\n',
-                style: TextStyle(fontFamily: 'monospace'),
-              ),
+            const _CodeBlock(
+              content: '{\n'
+                  '  "botName": "MyAwesomeBot",\n'
+                  '  "version": "1.0.0",\n'
+                  '  "archiveSha256": "0123456789abcdef...",\n'
+                  '  "description": "Esempio di bot che stampa un messaggio",\n'
+                  '  "author": "Jane Doe",\n'
+                  '  "language": "python",\n'
+                  '  "entrypoint": "main.py",\n'
+                  '  "args": ["--verbose"],\n'
+                  '  "environment": {\n'
+                  '    "PYTHONPATH": "./"\n'
+                  '  },\n'
+                  '  "postInstall": [\n'
+                  '    "pip install -r requirements.txt"\n'
+                  '  ],\n'
+                  '  "permissions": [\n'
+                  '    "network",\n'
+                  '    "filesystem:read"\n'
+                  '  ]\n'
+                  '}\n',
             ),
             const SizedBox(height: 24),
-            Text(
-              'Flusso di lavoro',
-              style: theme.textTheme.titleLarge,
+            _SectionHeading(
+              icon: Icons.route_rounded,
+              title: 'Flusso di lavoro',
             ),
             const SizedBox(height: 8),
             const _NumberedList(
@@ -135,9 +123,9 @@ class TutorialPage extends StatelessWidget {
               ],
             ),
             const SizedBox(height: 24),
-            Text(
-              'Best practice di sicurezza',
-              style: theme.textTheme.titleLarge,
+            _SectionHeading(
+              icon: Icons.verified_user_rounded,
+              title: 'Best practice di sicurezza',
             ),
             const SizedBox(height: 8),
             const _BulletList(
@@ -150,9 +138,9 @@ class TutorialPage extends StatelessWidget {
               ],
             ),
             const SizedBox(height: 24),
-            Text(
-              'Risorse aggiuntive',
-              style: theme.textTheme.titleLarge,
+            _SectionHeading(
+              icon: Icons.link_rounded,
+              title: 'Risorse aggiuntive',
             ),
             const SizedBox(height: 8),
             Text.rich(
@@ -179,6 +167,65 @@ class TutorialPage extends StatelessWidget {
             ),
           ],
         ),
+      ),
+    );
+  }
+}
+
+class _SectionHeading extends StatelessWidget {
+  const _SectionHeading({required this.icon, required this.title});
+
+  final IconData icon;
+  final String title;
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    final colorScheme = theme.colorScheme;
+
+    return Row(
+      children: [
+        Container(
+          padding: const EdgeInsets.all(10),
+          decoration: BoxDecoration(
+            color: colorScheme.primaryContainer.withOpacity(0.6),
+            borderRadius: BorderRadius.circular(16),
+          ),
+          child: Icon(icon, color: colorScheme.onPrimaryContainer, size: 20),
+        ),
+        const SizedBox(width: 12),
+        Text(
+          title,
+          style: theme.textTheme.titleLarge?.copyWith(
+            fontWeight: FontWeight.w700,
+          ),
+        ),
+      ],
+    );
+  }
+}
+
+class _CodeBlock extends StatelessWidget {
+  const _CodeBlock({required this.content});
+
+  final String content;
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    return Container(
+      width: double.infinity,
+      padding: const EdgeInsets.all(20),
+      decoration: BoxDecoration(
+        color: theme.colorScheme.surfaceVariant.withOpacity(0.8),
+        borderRadius: BorderRadius.circular(16),
+        border: Border.all(
+          color: theme.colorScheme.outlineVariant.withOpacity(0.4),
+        ),
+      ),
+      child: SelectableText(
+        content,
+        style: const TextStyle(fontFamily: 'monospace'),
       ),
     );
   }
