@@ -1,7 +1,7 @@
 <!DOCTYPE html>
 <html>
   <head>
-    <base href="$FLUTTER_BASE_HREF">
+    <base href="./">
     <meta charset="UTF-8">
     <meta content="IE=Edge" http-equiv="X-UA-Compatible">
     <meta name="description" content="Scriptagher web experience">
@@ -51,6 +51,29 @@
             window.__flutterServiceWorkerUrl || 'flutter_service_worker.js';
           navigator.serviceWorker.register(serviceWorkerUrl);
         }
+
+        if (!window._flutter || !window._flutter.loader) {
+          console.error('Flutter loader non disponibile: controlla flutter.js');
+          return;
+        }
+
+        window._flutter.loader
+          .loadEntrypoint({
+            serviceWorker: {
+              serviceWorkerVersion:
+                window.flutterConfiguration?.serviceWorkerVersion,
+            },
+            onEntrypointLoaded: function (engineInitializer) {
+              engineInitializer
+                .initializeEngine()
+                .then(function (appRunner) {
+                  return appRunner.runApp();
+                });
+            },
+          })
+          .catch(function (error) {
+            console.error('Impossibile inizializzare Flutter', error);
+          });
       });
     </script>
   </body>
