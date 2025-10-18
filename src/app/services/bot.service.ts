@@ -185,7 +185,7 @@ export class BotService {
         try {
           const metadata = JSON.parse(decoded) as InstallerMetadata;
           const key = this.getMetadataKey(file.name);
-          return [key, metadata];
+          return [key, metadata] as [string, InstallerMetadata];
         } catch (error) {
           console.error(`Invalid installer metadata in ${file.path}`, error);
           return null;
