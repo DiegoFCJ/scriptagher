@@ -32,10 +32,6 @@ class HomePage extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final colorScheme = Theme.of(context).colorScheme;
-    final viewportHeight = MediaQuery.of(context).size.height;
-    final precacheExtent = viewportHeight.isFinite && viewportHeight > 0
-        ? viewportHeight * 1.5
-        : 1200.0;
 
     final features = [
       HomeFeatureItem(
@@ -75,30 +71,40 @@ class HomePage extends StatelessWidget {
     return Scaffold(
       body: AppGradientBackground(
         padding: EdgeInsets.zero,
-        child: CustomScrollView(
-          // Precache slivers beyond the first fold so widget tests can access
-          // the navigation cards without requiring an explicit scroll.
-          cacheExtent: precacheExtent,
-          slivers: [
-            SliverPadding(
-              padding: const EdgeInsets.fromLTRB(24, 32, 24, 16),
-              sliver: SliverToBoxAdapter(
-                child: HomeHeroSection(
-                  onExploreBots: () => _openBots(context, BotCategory.online),
-                  onOpenDocs: () => _openDocs(context),
+        child: LayoutBuilder(
+          builder: (context, constraints) {
+            final horizontalPadding = constraints.maxWidth >= 1200 ? 48.0 : 24.0;
+
+            return Align(
+              alignment: Alignment.topCenter,
+              child: SingleChildScrollView(
+                padding: EdgeInsets.fromLTRB(
+                  horizontalPadding,
+                  32,
+                  horizontalPadding,
+                  48,
+                ),
+                child: ConstrainedBox(
+                  constraints: const BoxConstraints(maxWidth: 1200),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.stretch,
+                    children: [
+                      HomeHeroSection(
+                        onExploreBots: () => _openBots(context, BotCategory.online),
+                        onOpenDocs: () => _openDocs(context),
+                      ),
+                      const SizedBox(height: 32),
+                      HomeFeatureGrid(features: features),
+                      const SizedBox(height: 32),
+                      HomeCallToActionSection(
+                        onPressed: () => _openTutorial(context),
+                      ),
+                    ],
+                  ),
                 ),
               ),
-            ),
-            HomeFeatureGrid(features: features),
-            SliverPadding(
-              padding: const EdgeInsets.fromLTRB(24, 24, 24, 48),
-              sliver: SliverToBoxAdapter(
-                child: HomeCallToActionSection(
-                  onPressed: () => _openTutorial(context),
-                ),
-              ),
-            ),
-          ],
+            );
+          },
         ),
       ),
     );

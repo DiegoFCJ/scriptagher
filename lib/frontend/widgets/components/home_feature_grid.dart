@@ -10,48 +10,45 @@ class HomeFeatureGrid extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return SliverToBoxAdapter(
-      child: Padding(
-        padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
-        child: LayoutBuilder(
-          builder: (context, constraints) {
-            final mediaQueryWidth = MediaQuery.of(context).size.width;
-            final maxWidth = constraints.maxWidth.isFinite && constraints.maxWidth > 0
-                ? constraints.maxWidth
-                : mediaQueryWidth;
+    return Padding(
+      padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
+      child: LayoutBuilder(
+        builder: (context, constraints) {
+          final mediaQueryWidth = MediaQuery.of(context).size.width;
+          final maxWidth = constraints.maxWidth.isFinite && constraints.maxWidth > 0
+              ? constraints.maxWidth
+              : mediaQueryWidth;
 
-            final crossAxisCount = _crossAxisCountFor(maxWidth);
-            final spacing = crossAxisCount > 1 ? 24.0 : 20.0;
-            final horizontalGaps = crossAxisCount > 1
-                ? (crossAxisCount - 1) * spacing
-                : 0.0;
-            final availableWidth = (maxWidth - horizontalGaps)
-                .clamp(0.0, maxWidth);
-            final tileWidth = crossAxisCount == 1
-                ? maxWidth
-                : availableWidth / crossAxisCount;
+          final crossAxisCount = _crossAxisCountFor(maxWidth);
+          final spacing = crossAxisCount > 1 ? 24.0 : 20.0;
+          final horizontalGaps = crossAxisCount > 1
+              ? (crossAxisCount - 1) * spacing
+              : 0.0;
+          final availableWidth = (maxWidth - horizontalGaps).clamp(0.0, maxWidth);
+          final tileWidth = crossAxisCount == 1
+              ? maxWidth
+              : availableWidth / crossAxisCount;
 
-            final aspectRatio = crossAxisCount == 1 ? 16 / 9 : 4 / 3;
+          final aspectRatio = crossAxisCount == 1 ? 16 / 9 : 4 / 3;
 
-            return Wrap(
-              spacing: spacing,
-              runSpacing: spacing,
-              children: [
-                for (final feature in features)
-                  ConstrainedBox(
-                    constraints: BoxConstraints(
-                      maxWidth: tileWidth,
-                      minWidth: tileWidth,
-                    ),
-                    child: AspectRatio(
-                      aspectRatio: aspectRatio,
-                      child: _FeatureCard(feature: feature),
-                    ),
+          return Wrap(
+            spacing: spacing,
+            runSpacing: spacing,
+            children: [
+              for (final feature in features)
+                ConstrainedBox(
+                  constraints: BoxConstraints(
+                    maxWidth: tileWidth,
+                    minWidth: tileWidth,
                   ),
-              ],
-            );
-          },
-        ),
+                  child: AspectRatio(
+                    aspectRatio: aspectRatio,
+                    child: _FeatureCard(feature: feature),
+                  ),
+                ),
+            ],
+          );
+        },
       ),
     );
   }
