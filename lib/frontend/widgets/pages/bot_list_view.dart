@@ -11,6 +11,7 @@ import '../../models/bot_filter.dart';
 import '../../models/bot_navigation.dart';
 import '../../services/bot_get_service.dart';
 import '../../services/bot_upload_service.dart';
+import '../components/app_gradient_background.dart';
 import '../components/bot_card_component.dart';
 import '../components/search_component.dart';
 import 'bot_detail_view.dart';
@@ -177,7 +178,7 @@ class _BotListState extends State<BotList>
           if (_selectedCategory == BotCategory.online)
             Padding(
               padding: const EdgeInsets.symmetric(horizontal: 8.0),
-              child: TextButton.icon(
+              child: FilledButton.tonalIcon(
                 onPressed:
                     _isRefreshingOnline ? null : () => _refreshOnlineBots(),
                 icon: _isRefreshingOnline
@@ -186,7 +187,7 @@ class _BotListState extends State<BotList>
                         height: 16,
                         child: CircularProgressIndicator(strokeWidth: 2),
                       )
-                    : const Icon(Icons.refresh),
+                    : const Icon(Icons.refresh_rounded),
                 label: Text(
                     _isRefreshingOnline ? 'Aggiornamento...' : 'Aggiorna'),
               ),
@@ -199,26 +200,50 @@ class _BotListState extends State<BotList>
               .toList(),
         ),
       ),
-      body: Column(
-        children: [
-          Padding(
-            padding:
-                const EdgeInsets.symmetric(horizontal: 16.0, vertical: 12.0),
-            child: SearchView(
-              onFilterChanged: _handleFilterChanged,
-              hintText:
-                  'Cerca per nome, tag, lingua o usa filtri (es. lang:python #utility)',
+      body: AppGradientBackground(
+        applyTopSafeArea: false,
+        padding: EdgeInsets.zero,
+        child: Column(
+          children: [
+            Padding(
+              padding:
+                  const EdgeInsets.symmetric(horizontal: 16.0, vertical: 16.0),
+              child: DecoratedBox(
+                decoration: BoxDecoration(
+                  color: Theme.of(context)
+                      .colorScheme
+                      .surfaceVariant
+                      .withOpacity(0.6),
+                  borderRadius: BorderRadius.circular(20),
+                ),
+                child: Padding(
+                  padding:
+                      const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+                  child: SearchView(
+                    onFilterChanged: _handleFilterChanged,
+                    hintText:
+                        'Cerca per nome, tag, lingua o usa filtri (es. lang:python #utility)',
+                  ),
+                ),
+              ),
             ),
-          ),
-          Expanded(
-            child: TabBarView(
-              controller: _tabController,
-              children: BotCategory.values
-                  .map(_buildCategoryView)
-                  .toList(growable: false),
+            Expanded(
+              child: Card(
+                margin: const EdgeInsets.fromLTRB(16, 0, 16, 24),
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(24),
+                ),
+                clipBehavior: Clip.antiAlias,
+                child: TabBarView(
+                  controller: _tabController,
+                  children: BotCategory.values
+                      .map(_buildCategoryView)
+                      .toList(growable: false),
+                ),
+              ),
             ),
-          ),
-        ],
+          ],
+        ),
       ),
       floatingActionButton: _selectedCategory == BotCategory.local
           ? FloatingActionButton.extended(
@@ -232,7 +257,8 @@ class _BotListState extends State<BotList>
                         height: 20,
                         child: CircularProgressIndicator(strokeWidth: 2),
                       )
-                    : const Icon(Icons.upload_file, key: ValueKey('icon')),
+                    : const Icon(Icons.upload_file_rounded,
+                        key: ValueKey('icon')),
               ),
               label: Text(_isUploading ? 'Caricamento...' : 'Importa bot'),
             )
