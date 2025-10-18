@@ -1,10 +1,12 @@
-name: Build and Publish Installers
+name: Build Installers PR Preview
 
 on:
-  push:
-    branches:
-      - main
-  workflow_dispatch:
+  pull_request:
+    types:
+      - opened
+      - synchronize
+      - reopened
+      - ready_for_review
 
 permissions:
   contents: write
@@ -13,9 +15,48 @@ env:
   FLUTTER_CHANNEL: stable
 
 jobs:
+  backup-gh-pages:
+    name: Backup existing installers
+    runs-on: ubuntu-latest
+    outputs:
+      has_backup: ${{ steps.backup.outputs.has_backup }}
+    steps:
+      - name: Checkout gh-pages
+        uses: actions/checkout@v4
+        with:
+          ref: gh-pages
+          persist-credentials: false
+
+      - name: Backup installers directory
+        id: backup
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          PR_NUMBER: ${{ github.event.number }}
+        run: |
+          if [ -d installers ]; then
+            mkdir -p installers-backups
+            rm -rf "installers-backups/pr-${PR_NUMBER}"
+            rsync -a installers/ "installers-backups/pr-${PR_NUMBER}/"
+
+            git config user.name "github-actions[bot]"
+            git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+            git remote set-url origin "https://x-access-token:${GITHUB_TOKEN}@github.com/${GITHUB_REPOSITORY}.git"
+            git add "installers-backups/pr-${PR_NUMBER}"
+            if git diff --cached --quiet; then
+              echo "has_backup=true" >> "$GITHUB_OUTPUT"
+            else
+              git commit -m "Backup installers for PR #${PR_NUMBER}"
+              git push origin gh-pages
+              echo "has_backup=true" >> "$GITHUB_OUTPUT"
+            fi
+          else
+            echo "has_backup=false" >> "$GITHUB_OUTPUT"
+          fi
+
   build-android:
     name: Build Android APK
     runs-on: ubuntu-latest
+    needs: backup-gh-pages
     steps:
       - name: Checkout
         uses: actions/checkout@v4
@@ -61,6 +102,7 @@ jobs:
   build-linux:
     name: Build Linux bundle
     runs-on: ubuntu-latest
+    needs: backup-gh-pages
     steps:
       - name: Checkout
         uses: actions/checkout@v4
@@ -99,6 +141,7 @@ jobs:
   build-windows:
     name: Build Windows installer
     runs-on: windows-latest
+    needs: backup-gh-pages
     steps:
       - name: Checkout
         uses: actions/checkout@v4
@@ -158,6 +201,7 @@ jobs:
   build-macos:
     name: Build macOS disk image
     runs-on: macos-latest
+    needs: backup-gh-pages
     steps:
       - name: Checkout
         uses: actions/checkout@v4
@@ -198,6 +242,7 @@ jobs:
   build-ios:
     name: Build iOS archive
     runs-on: macos-latest
+    needs: backup-gh-pages
     steps:
       - name: Checkout
         uses: actions/checkout@v4
@@ -237,20 +282,22 @@ jobs:
           name: ios-ipa
           path: installers/ios
 
-  deploy-gh-pages:
-    name: Publish installers to GitHub Pages
+  deploy-pr-installers:
+    name: Publish PR installers to GitHub Pages
+    runs-on: ubuntu-latest
     needs:
       - build-android
       - build-linux
       - build-windows
       - build-macos
       - build-ios
-    runs-on: ubuntu-latest
     steps:
-      - name: Checkout repository
+      - name: Checkout gh-pages
         uses: actions/checkout@v4
         with:
+          ref: gh-pages
           fetch-depth: 0
+          persist-credentials: false
 
       - name: Prepare installers directory
         run: |
@@ -291,6 +338,50 @@ jobs:
         run: touch installers/.nojekyll
 
       - name: Deploy to GitHub Pages
+        uses: peaceiris/actions-gh-pages@v3
+        with:
+          github_token: ${{ secrets.GITHUB_TOKEN }}
+          publish_dir: installers
+          destination_dir: installers
+          keep_files: true
+          user_name: github-actions[bot]
+          user_email: 41898282+github-actions[bot]@users.noreply.github.com
+
+  restore-on-failure:
+    name: Restore installers on failure
+    runs-on: ubuntu-latest
+    needs:
+      - deploy-pr-installers
+      - backup-gh-pages
+    if: failure() && needs.backup-gh-pages.outputs.has_backup == 'true'
+    steps:
+      - name: Checkout gh-pages
+        uses: actions/checkout@v4
+        with:
+          ref: gh-pages
+          fetch-depth: 0
+          persist-credentials: false
+
+      - name: Restore installers from backup
+        env:
+          PR_NUMBER: ${{ github.event.number }}
+        run: |
+          BACKUP_DIR="installers-backups/pr-${PR_NUMBER}"
+          if [ ! -d "$BACKUP_DIR" ]; then
+            echo "Backup directory $BACKUP_DIR not found" >&2
+            exit 1
+          fi
+          rm -rf installers
+          mkdir -p installers
+          rsync -a "$BACKUP_DIR"/ installers/
+
+      - name: Ensure .nojekyll marker
+        run: |
+          if [ ! -f installers/.nojekyll ]; then
+            touch installers/.nojekyll
+          fi
+
+      - name: Redeploy previous installers
         uses: peaceiris/actions-gh-pages@v3
         with:
           github_token: ${{ secrets.GITHUB_TOKEN }}
