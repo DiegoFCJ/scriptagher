@@ -47,8 +47,8 @@ class TutorialPage extends StatelessWidget {
         child: SingleChildScrollView(
           padding: const EdgeInsets.fromLTRB(24, 28, 24, 48),
           child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
             Text(
               'Panoramica',
               style: theme.textTheme.headlineMedium?.copyWith(

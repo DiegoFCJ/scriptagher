@@ -42,7 +42,7 @@ class HomeHeroSection extends StatelessWidget {
             Wrap(
               spacing: 12,
               runSpacing: 12,
-              children: const [
+              children: [
                 _HeroHighlight(
                   icon: Icons.shield_rounded,
                   label: 'Runtime isolati',
