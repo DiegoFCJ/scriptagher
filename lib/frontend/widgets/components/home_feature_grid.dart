@@ -10,39 +10,43 @@ class HomeFeatureGrid extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return SliverPadding(
-      padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
-      sliver: SliverToBoxAdapter(
+    return SliverToBoxAdapter(
+      child: Padding(
+        padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
         child: LayoutBuilder(
           builder: (context, constraints) {
-            final maxWidth = constraints.maxWidth;
             final mediaQueryWidth = MediaQuery.of(context).size.width;
-            final width = (maxWidth.isFinite && maxWidth > 0)
-                ? maxWidth
+            final maxWidth = constraints.maxWidth.isFinite && constraints.maxWidth > 0
+                ? constraints.maxWidth
                 : mediaQueryWidth;
-            final crossAxisCount = _crossAxisCountFor(width);
-            const spacing = 24.0;
-            final gaps = crossAxisCount > 1
+
+            final crossAxisCount = _crossAxisCountFor(maxWidth);
+            final spacing = crossAxisCount > 1 ? 24.0 : 20.0;
+            final horizontalGaps = crossAxisCount > 1
                 ? (crossAxisCount - 1) * spacing
                 : 0.0;
-            final availableWidth = (width - gaps).clamp(0.0, width);
+            final availableWidth = (maxWidth - horizontalGaps)
+                .clamp(0.0, maxWidth);
             final tileWidth = crossAxisCount == 1
-                ? width
+                ? maxWidth
                 : availableWidth / crossAxisCount;
 
             final aspectRatio = crossAxisCount == 1 ? 16 / 9 : 4 / 3;
-            final tileHeight = tileWidth / aspectRatio;
 
             return Wrap(
-              alignment: WrapAlignment.start,
               spacing: spacing,
               runSpacing: spacing,
               children: [
                 for (final feature in features)
-                  SizedBox(
-                    width: tileWidth,
-                    height: tileHeight,
-                    child: _FeatureCard(feature: feature),
+                  ConstrainedBox(
+                    constraints: BoxConstraints(
+                      maxWidth: tileWidth,
+                      minWidth: tileWidth,
+                    ),
+                    child: AspectRatio(
+                      aspectRatio: aspectRatio,
+                      child: _FeatureCard(feature: feature),
+                    ),
                   ),
               ],
             );
