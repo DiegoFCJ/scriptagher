@@ -33,6 +33,11 @@ jobs:
       - name: Build Flutter web preview
         run: flutter build web --base-href /prev-software/pr-${{ github.event.number }}/
 
+      - name: Prepare GitHub Pages artifacts
+        run: |
+          cp build/web/index.html build/web/404.html
+          touch build/web/.nojekyll
+
       - name: Deploy preview to GitHub Pages
         uses: peaceiris/actions-gh-pages@v3
         with:

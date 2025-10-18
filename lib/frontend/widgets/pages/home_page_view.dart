@@ -2,6 +2,8 @@ import 'package:flutter/material.dart';
 import '../../models/bot_navigation.dart';
 
 class HomePage extends StatefulWidget {
+  const HomePage({super.key});
+
   @override
   State<HomePage> createState() => _HomePageState();
 }
