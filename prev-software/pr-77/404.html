@@ -1,0 +1,57 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <base href="/prev-software/pr-77/">
+    <meta charset="UTF-8">
+    <meta content="IE=Edge" http-equiv="X-UA-Compatible">
+    <meta name="description" content="Scriptagher web experience">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Scriptagher</title>
+    <link rel="manifest" href="manifest.json">
+    <link rel="icon" type="image/svg+xml" href="favicon.svg">
+    <meta name="theme-color" content="#0175C2">
+  </head>
+  <body>
+    <script>
+      (function () {
+        const baseElement = document.querySelector('base');
+        if (!baseElement) {
+          return;
+        }
+
+        let baseHref = baseElement.getAttribute('href') || '';
+        if (!baseHref || baseHref === '/prev-software/pr-77/') {
+          baseHref = new URL('./', window.location.href).pathname;
+        } else {
+          baseHref = new URL(baseHref, window.location.href).pathname;
+        }
+
+        if (!baseHref.endsWith('/')) {
+          baseHref = `${baseHref}/`;
+        }
+
+        baseElement.setAttribute('href', baseHref);
+
+        window.flutterConfiguration = window.flutterConfiguration || {};
+        if (!window.flutterConfiguration.assetBase) {
+          window.flutterConfiguration.assetBase = baseHref;
+        }
+
+        window.__flutterServiceWorkerUrl = new URL(
+          'flutter_service_worker.js',
+          `${window.location.origin}${baseHref}`
+        ).toString();
+      })();
+    </script>
+    <script src="flutter.js" defer></script>
+    <script>
+      window.addEventListener('load', function () {
+        if ('serviceWorker' in navigator) {
+          const serviceWorkerUrl =
+            window.__flutterServiceWorkerUrl || 'flutter_service_worker.js';
+          navigator.serviceWorker.register(serviceWorkerUrl);
+        }
+      });
+    </script>
+  </body>
+</html>
