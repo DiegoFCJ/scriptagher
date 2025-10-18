@@ -1,0 +1,380 @@
+name: Build Installers PR Preview
+
+on:
+  pull_request:
+    types:
+      - opened
+      - synchronize
+      - reopened
+      - ready_for_review
+
+permissions:
+  contents: write
+
+env:
+  FLUTTER_CHANNEL: stable
+
+jobs:
+  backup-gh-pages:
+    name: Backup existing installers
+    runs-on: ubuntu-latest
+    outputs:
+      has_backup: ${{ steps.backup.outputs.has_backup }}
+    steps:
+      - name: Checkout gh-pages
+        uses: actions/checkout@v4
+        with:
+          ref: gh-pages
+          persist-credentials: false
+
+      - name: Backup installers directory
+        id: backup
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          PR_NUMBER: ${{ github.event.number }}
+        run: |
+          if [ -d installers ]; then
+            mkdir -p installers-backups
+            rm -rf "installers-backups/pr-${PR_NUMBER}"
+            rsync -a installers/ "installers-backups/pr-${PR_NUMBER}/"
+
+            git config user.name "github-actions[bot]"
+            git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+            git remote set-url origin "https://x-access-token:${GITHUB_TOKEN}@github.com/${GITHUB_REPOSITORY}.git"
+            git add "installers-backups/pr-${PR_NUMBER}"
+            if git diff --cached --quiet; then
+              echo "has_backup=true" >> "$GITHUB_OUTPUT"
+            else
+              git commit -m "Backup installers for PR #${PR_NUMBER}"
+              git push origin gh-pages
+              echo "has_backup=true" >> "$GITHUB_OUTPUT"
+            fi
+          else
+            echo "has_backup=false" >> "$GITHUB_OUTPUT"
+          fi
+
+  build-android:
+    name: Build Android APK
+    runs-on: ubuntu-latest
+    needs: backup-gh-pages
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up Flutter
+        uses: subosito/flutter-action@v2
+        with:
+          channel: ${{ env.FLUTTER_CHANNEL }}
+          cache: true
+
+      - name: Generate Android platform project
+        run: flutter create . --platforms=android
+
+      - name: Install dependencies
+        run: flutter pub get
+
+      - name: Build debug APK
+        run: flutter build apk --debug
+
+      - name: Collect artifact
+        run: |
+          mkdir -p installers/android
+          cp build/app/outputs/flutter-apk/app-debug.apk installers/android/scriptagher-debug.apk
+
+      - name: Upload Android artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: android-apk
+          path: installers/android
+
+  build-linux:
+    name: Build Linux bundle
+    runs-on: ubuntu-latest
+    needs: backup-gh-pages
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Install Linux build prerequisites
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y clang cmake ninja-build pkg-config libgtk-3-dev liblzma-dev
+
+      - name: Set up Flutter
+        uses: subosito/flutter-action@v2
+        with:
+          channel: ${{ env.FLUTTER_CHANNEL }}
+          cache: true
+
+      - name: Generate Linux platform project
+        run: flutter create . --platforms=linux
+
+      - name: Install dependencies
+        run: flutter pub get
+
+      - name: Build release bundle
+        run: flutter build linux --release
+
+      - name: Package Linux artifact
+        run: |
+          mkdir -p installers/linux
+          tar -czf installers/linux/scriptagher-linux-x64.tar.gz -C build/linux/x64/release bundle
+
+      - name: Upload Linux artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: linux-bundle
+          path: installers/linux
+
+  build-windows:
+    name: Build Windows installer
+    runs-on: windows-latest
+    needs: backup-gh-pages
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up Flutter
+        uses: subosito/flutter-action@v2
+        with:
+          channel: ${{ env.FLUTTER_CHANNEL }}
+          cache: true
+
+      - name: Generate Windows platform project
+        run: flutter create . --platforms=windows
+
+      - name: Install dependencies
+        run: flutter pub get
+        shell: pwsh
+
+      - name: Build release binaries
+        run: flutter build windows --release
+        shell: pwsh
+
+      - name: Install Inno Setup
+        run: choco install innosetup --no-progress -y
+        shell: pwsh
+
+      - name: Extract version
+        id: version
+        shell: pwsh
+        run: |
+          $pattern = '^version:\s*(.+)$'
+          $match = Select-String -Path pubspec.yaml -Pattern $pattern | Select-Object -First 1
+          if (-not $match) {
+            throw 'Unable to determine version from pubspec.yaml'
+          }
+          $version = $match.Matches[0].Groups[1].Value.Trim()
+          "app_version=$version" | Out-File -FilePath $env:GITHUB_OUTPUT -Encoding utf8 -Append
+
+      - name: Prepare installer output directory
+        shell: pwsh
+        run: |
+          New-Item -ItemType Directory -Force -Path installers/windows | Out-Null
+
+      - name: Build Windows installer
+        shell: pwsh
+        run: |
+          $sourceDir = Resolve-Path 'build/windows/x64/runner/Release'
+          $outputDir = Resolve-Path 'installers/windows'
+          $iscc = Resolve-Path "${env:ProgramFiles(x86)}\Inno Setup 6\ISCC.exe"
+          & $iscc "/DAPP_VERSION=${{ steps.version.outputs.app_version }}" "/DSOURCE_DIR=$sourceDir" "/DOUTPUT_DIR=$outputDir" "tool/windows-installer.iss"
+
+      - name: Upload Windows artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: windows-installer
+          path: installers/windows
+
+  build-macos:
+    name: Build macOS disk image
+    runs-on: macos-latest
+    needs: backup-gh-pages
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up Flutter
+        uses: subosito/flutter-action@v2
+        with:
+          channel: ${{ env.FLUTTER_CHANNEL }}
+          cache: true
+
+      - name: Generate macOS platform project
+        run: flutter create . --platforms=macos
+
+      - name: Install dependencies
+        run: flutter pub get
+
+      - name: Build release app
+        run: flutter build macos --release
+
+      - name: Package DMG
+        run: |
+          mkdir -p installers/macos
+          APP_PATH="build/macos/Build/Products/Release/Scriptagher.app"
+          if [ ! -d "$APP_PATH" ]; then
+            echo "macOS app bundle not found at $APP_PATH" >&2
+            exit 1
+          fi
+          mkdir -p dist-dmg
+          cp -R "$APP_PATH" dist-dmg/
+          hdiutil create installers/macos/Scriptagher-macos.dmg -volname "Scriptagher" -srcfolder dist-dmg -ov -format UDZO
+
+      - name: Upload macOS artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: macos-dmg
+          path: installers/macos
+
+  build-ios:
+    name: Build iOS archive
+    runs-on: macos-latest
+    needs: backup-gh-pages
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up Flutter
+        uses: subosito/flutter-action@v2
+        with:
+          channel: ${{ env.FLUTTER_CHANNEL }}
+          cache: true
+
+      - name: Generate iOS platform project
+        run: flutter create . --platforms=ios
+
+      - name: Install dependencies
+        run: flutter pub get
+
+      - name: Build unsigned iOS app
+        run: flutter build ios --release --no-codesign
+
+      - name: Package IPA
+        run: |
+          mkdir -p installers/ios
+          APP_PATH="build/ios/iphoneos/Runner.app"
+          if [ ! -d "$APP_PATH" ]; then
+            echo "iOS app bundle not found at $APP_PATH" >&2
+            exit 1
+          fi
+          WORK_DIR="Payload"
+          rm -rf "$WORK_DIR"
+          mkdir -p "$WORK_DIR"
+          cp -R "$APP_PATH" "$WORK_DIR/"
+          zip -r installers/ios/Scriptagher-ios.ipa "$WORK_DIR"
+
+      - name: Upload iOS artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: ios-ipa
+          path: installers/ios
+
+  deploy-pr-installers:
+    name: Publish PR installers to GitHub Pages
+    runs-on: ubuntu-latest
+    needs:
+      - build-android
+      - build-linux
+      - build-windows
+      - build-macos
+      - build-ios
+    steps:
+      - name: Checkout gh-pages
+        uses: actions/checkout@v4
+        with:
+          ref: gh-pages
+          fetch-depth: 0
+          persist-credentials: false
+
+      - name: Prepare installers directory
+        run: |
+          rm -rf installers
+          mkdir -p installers
+
+      - name: Download Android artifact
+        uses: actions/download-artifact@v4
+        with:
+          name: android-apk
+          path: installers/android
+
+      - name: Download Linux artifact
+        uses: actions/download-artifact@v4
+        with:
+          name: linux-bundle
+          path: installers/linux
+
+      - name: Download Windows artifact
+        uses: actions/download-artifact@v4
+        with:
+          name: windows-installer
+          path: installers/windows
+
+      - name: Download macOS artifact
+        uses: actions/download-artifact@v4
+        with:
+          name: macos-dmg
+          path: installers/macos
+
+      - name: Download iOS artifact
+        uses: actions/download-artifact@v4
+        with:
+          name: ios-ipa
+          path: installers/ios
+
+      - name: Create .nojekyll marker
+        run: touch installers/.nojekyll
+
+      - name: Deploy to GitHub Pages
+        uses: peaceiris/actions-gh-pages@v3
+        with:
+          github_token: ${{ secrets.GITHUB_TOKEN }}
+          publish_dir: installers
+          destination_dir: installers
+          keep_files: true
+          user_name: github-actions[bot]
+          user_email: 41898282+github-actions[bot]@users.noreply.github.com
+
+  restore-on-failure:
+    name: Restore installers on failure
+    runs-on: ubuntu-latest
+    needs:
+      - deploy-pr-installers
+      - backup-gh-pages
+    if: failure() && needs.backup-gh-pages.outputs.has_backup == 'true'
+    steps:
+      - name: Checkout gh-pages
+        uses: actions/checkout@v4
+        with:
+          ref: gh-pages
+          fetch-depth: 0
+          persist-credentials: false
+
+      - name: Restore installers from backup
+        env:
+          PR_NUMBER: ${{ github.event.number }}
+        run: |
+          BACKUP_DIR="installers-backups/pr-${PR_NUMBER}"
+          if [ ! -d "$BACKUP_DIR" ]; then
+            echo "Backup directory $BACKUP_DIR not found" >&2
+            exit 1
+          fi
+          rm -rf installers
+          mkdir -p installers
+          rsync -a "$BACKUP_DIR"/ installers/
+
+      - name: Ensure .nojekyll marker
+        run: |
+          if [ ! -f installers/.nojekyll ]; then
+            touch installers/.nojekyll
+          fi
+
+      - name: Redeploy previous installers
+        uses: peaceiris/actions-gh-pages@v3
+        with:
+          github_token: ${{ secrets.GITHUB_TOKEN }}
+          publish_dir: installers
+          destination_dir: installers
+          keep_files: true
+          user_name: github-actions[bot]
+          user_email: 41898282+github-actions[bot]@users.noreply.github.com
