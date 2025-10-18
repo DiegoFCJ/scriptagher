@@ -1,11 +1,14 @@
 import 'dart:convert';
-import 'dart:io';
+import 'package:flutter/foundation.dart';
 import 'package:logging/logging.dart';
-import 'package:path_provider/path_provider.dart';
 import 'package:intl/intl.dart';
+
+import 'custom_logger_io.dart'
+    if (dart.library.html) 'custom_logger_web.dart';
 
 class CustomLogger {
   final Logger _logger = Logger('CustomLogger'); // Non statico
+  final LogWriter _logWriter = LogWriter(todayDate);
 
   // Formato data
   static final DateFormat dateFormatter = DateFormat('yyyy-MM-dd');
@@ -27,26 +30,12 @@ class CustomLogger {
 
   // Scrive il log su file
   Future<void> _writeToFile(String logMessage, String level) async {
-    final directory = await getApplicationDocumentsDirectory();
-    final logDirectory = Directory('${directory.path}/.scriptagher/logs/$todayDate');
-
-    // Crea la cartella se non esiste
-    if (!await logDirectory.exists()) {
-      await logDirectory.create(recursive: true);
+    if (kIsWeb) {
+      return;
     }
 
-    // Determina il componente in base al livello o al tipo di operazione
     final component = _getComponent(level);
-    final logFile = File('${logDirectory.path}/$component.log');
-
-    // Controlla la dimensione del file e ruota se necessario
-    final fileSize = await logFile.exists() ? await logFile.length() : 0;
-    if (fileSize > 10 * 1024 * 1024) {
-      await _rotateLogFile(logFile);
-    }
-
-    // Scrive il messaggio nel file
-    await logFile.writeAsString('$logMessage\n', mode: FileMode.append);
+    await _logWriter.write(logMessage, component);
   }
 
   // Determina il componente in base al livello (può essere personalizzato)
@@ -63,16 +52,6 @@ class CustomLogger {
       default:
         return 'general';
     }
-  }
-
-  // Ruota i log se il file supera una certa dimensione
-  Future<void> _rotateLogFile(File logFile) async {
-    final now = DateTime.now();
-    final archiveName = '${logFile.path}_${now.toIso8601String()}.log';
-
-    // Rinomina il file esistente per archiviarlo
-    await logFile.rename(archiveName);
-    await logFile.create();
   }
 
   // Formatta il messaggio di log
