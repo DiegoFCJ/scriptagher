@@ -1,0 +1,12 @@
+{
+    "python": [
+        {
+            "botName": "Zipper",
+            "path": "Zipper.zip"
+        },
+        {
+            "botName": "facebook-images-remover",
+            "path": "facebook-images-remover.zip"
+        }
+    ]
+}
