@@ -1,3 +1,5 @@
+import 'dart:io' show Platform;
+
 import 'package:sqflite_common_ffi/sqflite_ffi.dart';
 
 import '../../shared/constants/LOGS.dart';
@@ -15,16 +17,20 @@ Future<void> initializeBackend(
 }
 
 Future<void> _startDB(CustomLogger logger) async {
-  databaseFactory = databaseFactoryFfi;
   final botDatabase = BotDatabase();
 
   try {
     logger.info(LOGS.serverStart, 'Attempting to initialize database...');
+    if (Platform.isWindows || Platform.isLinux || Platform.isMacOS) {
+      databaseFactory = databaseFactoryFfi;
+    }
     await botDatabase.database;
     logger.info(LOGS.serverStart, 'Database initialized successfully');
   } catch (e) {
     logger.error(LOGS.serverError, 'Error initializing database: $e');
-    rethrow;
+    if (!(Platform.isAndroid || Platform.isIOS)) {
+      rethrow;
+    }
   }
 }
 
