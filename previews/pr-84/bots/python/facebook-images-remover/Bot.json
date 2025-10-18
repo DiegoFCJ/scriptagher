@@ -1,0 +1,6 @@
+{
+    "botName": "facebook-images-remover",
+    "startCommand": "./image-remover.sh",
+    "description": "A Python bot that automates the process of deleting Facebook photos by interacting with the web interface using Selenium.",
+    "language": "Python"
+}
