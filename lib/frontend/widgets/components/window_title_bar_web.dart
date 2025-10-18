@@ -26,8 +26,14 @@ class WindowTitleBar extends StatelessWidget {
             icon: const Icon(Icons.menu, color: Colors.white),
             onSelected: (opt) {
               switch (opt) {
-                case _MenuOption.portfolio:
-                  Navigator.pushNamed(context, '/portfolio');
+                case _MenuOption.tutorial:
+                  Navigator.pushNamed(context, '/tutorial');
+                  break;
+                case _MenuOption.marketplace:
+                  Navigator.pushNamed(context, '/marketplace');
+                  break;
+                case _MenuOption.settings:
+                  Navigator.pushNamed(context, '/settings');
                   break;
                 case _MenuOption.botsList:
                   Navigator.pushNamed(context, '/bots');
@@ -35,13 +41,21 @@ class WindowTitleBar extends StatelessWidget {
               }
             },
             itemBuilder: (ctx) => const [
-              const PopupMenuItem<_MenuOption>(
-                value: _MenuOption.portfolio,
-                child: const Text('Portfolio'),
+              PopupMenuItem<_MenuOption>(
+                value: _MenuOption.tutorial,
+                child: Text('Tutorial'),
               ),
-              const PopupMenuItem<_MenuOption>(
+              PopupMenuItem<_MenuOption>(
+                value: _MenuOption.marketplace,
+                child: Text('Marketplace'),
+              ),
+              PopupMenuItem<_MenuOption>(
+                value: _MenuOption.settings,
+                child: Text('Impostazioni'),
+              ),
+              PopupMenuItem<_MenuOption>(
                 value: _MenuOption.botsList,
-                child: const Text('Bots List'),
+                child: Text('Bots List'),
               ),
             ],
           ),
@@ -51,4 +65,4 @@ class WindowTitleBar extends StatelessWidget {
   }
 }
 
-enum _MenuOption { portfolio, botsList }
+enum _MenuOption { tutorial, marketplace, settings, botsList }

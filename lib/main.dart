@@ -3,13 +3,13 @@ import 'package:flutter/material.dart';
 
 import 'frontend/widgets/layout/home_shell.dart';
 import 'frontend/widgets/pages/home_page_view.dart';
-import 'frontend/widgets/pages/portfolio_view.dart';
 import 'frontend/widgets/pages/bot_list_view.dart';
 import 'frontend/widgets/pages/test1.dart';
 import 'frontend/widgets/pages/test2.dart';
 import 'frontend/widgets/pages/test3.dart';
 import 'frontend/widgets/pages/settings_page.dart';
 import 'frontend/widgets/pages/tutorial_page.dart';
+import 'frontend/widgets/pages/marketplace_page.dart';
 import 'shared/custom_logger.dart';
 import 'shared/services/telemetry_service.dart';
 import 'backend/setup/backend_initializer_desktop.dart'
@@ -42,13 +42,13 @@ class MyApp extends StatelessWidget {
     return MaterialApp(
       routes: {
         '/home': (_) => const HomePage(),
-        '/portfolio': (_) => Portfolio(),
         '/bots': (_) => BotList(),
         '/test1': (_) => test1(),
         '/test2': (_) => test2(),
         '/test3': (_) => test3(),
         '/settings': (_) => SettingsPage(telemetryService: telemetryService),
         '/tutorial': (_) => const TutorialPage(),
+        '/marketplace': (_) => const MarketplacePage(),
       },
       debugShowCheckedModeBanner: false,
       theme: ThemeData(primarySwatch: Colors.blue),
