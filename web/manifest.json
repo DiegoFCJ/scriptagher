@@ -9,14 +9,19 @@
   "icons": [
     {
       "src": "icons/app-icon.svg",
-      "sizes": "any",
-      "type": "image/svg+xml"
+      "type": "image/svg+xml",
+      "sizes": "any"
     },
     {
       "src": "icons/app-icon.svg",
-      "sizes": "any",
       "type": "image/svg+xml",
+      "sizes": "any",
       "purpose": "maskable"
+    },
+    {
+      "src": "favicon.svg",
+      "type": "image/svg+xml",
+      "sizes": "any"
     }
   ]
 }
