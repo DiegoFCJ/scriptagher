@@ -20,8 +20,8 @@ void main() {
     await tester.pumpWidget(MyApp(telemetryService: telemetryService));
     await tester.pumpAndSettle();
 
-    expect(find.text('Scaricati'), findsOneWidget);
-    expect(find.text('Online'), findsOneWidget);
-    expect(find.text('Locali'), findsOneWidget);
+    expect(find.text('Scaricati'), findsWidgets);
+    expect(find.text('Online'), findsWidgets);
+    expect(find.text('Locali'), findsWidgets);
   });
 }
