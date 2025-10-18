@@ -9,6 +9,8 @@ import '../../models/bot.dart';
 import 'browser_bot_runner_stub.dart';
 import 'browser_runner_models.dart';
 
+export 'browser_bot_runner_stub.dart' show BrowserBotRunnerDelegate;
+
 class BrowserBotRunnerWeb implements BrowserBotRunnerDelegate {
   BrowserBotRunnerWeb({http.Client? httpClient})
       : _httpClient = httpClient ?? http.Client(),
