@@ -1,0 +1,73 @@
+<section class="pdf-wrapper">
+  <div class="intro-card">
+    <span class="eyebrow">Utility</span>
+    <h1>Converti PDF in testo, senza complicazioni</h1>
+    <p>
+      Carica il tuo documento PDF per estrarne il testo in pochi secondi. Nessun upload verso server remoti:
+      tutta l'elaborazione avviene direttamente nel tuo browser.
+    </p>
+    <div class="highlights">
+      <div class="highlight">
+        <span class="icon">⚡</span>
+        <span>Conversione rapida</span>
+      </div>
+      <div class="highlight">
+        <span class="icon">🔒</span>
+        <span>Privacy garantita</span>
+      </div>
+      <div class="highlight">
+        <span class="icon">📝</span>
+        <span>Testo pronto da copiare</span>
+      </div>
+    </div>
+  </div>
+
+  <div class="conversion-area" [class.has-file]="selectedFile()">
+    <div class="dropzone" (click)="fileInput.click()">
+      <input #fileInput type="file" accept="application/pdf" (change)="onFileSelected($event)" hidden>
+      <div class="dropzone-visual">
+        <div class="badge">PDF</div>
+        <h2>Trascina qui il tuo PDF</h2>
+        <p>Oppure clicca per selezionarlo dal tuo dispositivo</p>
+      </div>
+      <button type="button" class="btn btn-secondary">Scegli un file</button>
+    </div>
+
+    <div class="status" *ngIf="selectedFile() || isProcessing() || errorMessage()">
+      <div class="file-info" *ngIf="selectedFile()">
+        <div class="file-meta">
+          <h3>{{ selectedFile()?.name }}</h3>
+          <span>{{ (selectedFile()?.size || 0) / 1024 | number:'1.0-0' }} KB</span>
+        </div>
+        <button type="button" class="link" (click)="clearSelection()">Sostituisci file</button>
+      </div>
+
+      <div class="progress" *ngIf="isProcessing()">
+        <div class="progress-bar">
+          <div class="progress-value" [style.width.%]="(processedPages() / (totalPages() || 1)) * 100"></div>
+        </div>
+        <span class="progress-label">{{ progressLabel() }}</span>
+      </div>
+
+      <p class="error" *ngIf="!isProcessing() && errorMessage()">{{ errorMessage() }}</p>
+    </div>
+  </div>
+
+  <div class="result" *ngIf="hasText() && !errorMessage()">
+    <div class="result-header">
+      <h2>Testo estratto</h2>
+      <button type="button" class="btn btn-ghost" (click)="copyExtractedText()">
+        Copia tutto
+      </button>
+    </div>
+    <textarea readonly [value]="extractedText()"></textarea>
+  </div>
+
+  <div class="fallback" *ngIf="!isProcessing() && !selectedFile() && !hasText() && !errorMessage()">
+    <h3>Nessun PDF selezionato</h3>
+    <p>
+      Carica un documento per iniziare. Se la pagina non dovesse più essere disponibile, il pulsante nella barra in alto verrà
+      nascosto automaticamente per evitare confusione.
+    </p>
+  </div>
+</section>
