@@ -1,0 +1,50 @@
+<section class="installer-section" *ngIf="installers?.length">
+  <h2 class="installer-section__title">Installers</h2>
+  <ul class="installer-section__list">
+    <li
+      class="installer-section__item"
+      *ngFor="let installer of installers; trackBy: trackByPath"
+    >
+      <div class="installer-section__header">
+        <div class="installer-section__name-group">
+          <span class="installer-section__name">{{ getDisplayName(installer) }}</span>
+          <span class="installer-section__platform">{{ installer.platform }}</span>
+        </div>
+        <a
+          class="installer-section__download"
+          [href]="installer.downloadUrl"
+          target="_blank"
+          rel="noopener"
+          [attr.download]="installer.filename"
+        >
+          Download
+        </a>
+      </div>
+      <p class="installer-section__description" *ngIf="installer.metadata?.description">
+        {{ installer.metadata?.description }}
+      </p>
+      <dl class="installer-section__meta">
+        <div *ngIf="installer.size" class="installer-section__meta-item">
+          <dt>Size</dt>
+          <dd>{{ installer.size | number }} bytes</dd>
+        </div>
+        <div *ngIf="installer.metadata?.checksum" class="installer-section__meta-item">
+          <dt>Checksum</dt>
+          <dd>{{ installer.metadata?.checksum }}</dd>
+        </div>
+        <div *ngIf="installer.metadata?.releaseNotesUrl" class="installer-section__meta-item">
+          <dt>Release notes</dt>
+          <dd>
+            <a
+              [href]="installer.metadata?.releaseNotesUrl"
+              target="_blank"
+              rel="noopener"
+            >
+              View
+            </a>
+          </dd>
+        </div>
+      </dl>
+    </li>
+  </ul>
+</section>

@@ -109,3 +109,40 @@ bots/
 
 ### 🛡 License
 By contributing, you agree that your bot will be open-sourced under the same license as this repository. Ensure you have the rights to share the bot.
+
+## ⚙️ GitHub installer configuration
+
+The application now fetches installer binaries directly from the `installers/` directory of a GitHub repository (default branch: `gh-pages`).
+Configure the runtime environment with the following variables so the Angular app can call the GitHub Contents API:
+
+| Variable | Purpose | Default |
+| --- | --- | --- |
+| `NG_APP_GITHUB_OWNER` | Repository owner or organization. | – |
+| `NG_APP_GITHUB_REPO` | Repository name that hosts the installers. | – |
+| `NG_APP_GITHUB_TOKEN` | **Optional.** Personal access token used for authenticated requests. Required for private repositories and recommended to avoid unauthenticated rate limits. | – |
+| `NG_APP_GITHUB_API_URL` | Base URL for the GitHub API. Override when using GitHub Enterprise. | `https://api.github.com` |
+| `NG_APP_GITHUB_API_VERSION` | Custom `X-GitHub-Api-Version` header value. | GitHub default |
+| `NG_APP_GITHUB_INSTALLERS_BRANCH` | Branch where the `installers/` directory lives. | `gh-pages` |
+| `NG_APP_GITHUB_INSTALLERS_PATH` | Directory path containing installer binaries. | `installers` |
+
+> ℹ️ The service also checks for the same variables without the `NG_APP_` prefix (e.g. `GITHUB_OWNER`) to support hosting platforms that expose only unprefixed environment variables.
+
+### Authentication and rate limits
+
+* Public repositories can be queried without a token, but the GitHub REST API enforces a limit of **60 requests per hour** for unauthenticated traffic. Provide a token to raise the limit to the authenticated quota (typically 5,000 requests per hour).
+* The token only needs the `public_repo` scope for public repositories and the `repo` scope for private repositories. Store it securely (for example by injecting it at runtime through a server-rendered `window.__env = { ... }` script).
+* Private repositories require either a fine-grained personal access token or a GitHub App installation token with `contents:read` permission because the installers are retrieved via the [Contents API](https://docs.github.com/en/rest/repos/contents?apiVersion=2022-11-28#list-repository-contents).
+* When using GitHub Enterprise Server, set `NG_APP_GITHUB_API_URL` to your enterprise API endpoint (e.g. `https://ghe.example.com/api/v3`).
+
+Example runtime configuration snippet to inject from the hosting platform:
+
+```html
+<script>
+  window.__env = {
+    NG_APP_GITHUB_OWNER: 'my-org',
+    NG_APP_GITHUB_REPO: 'my-repo',
+    NG_APP_GITHUB_TOKEN: '<token-with-contents-read>',
+    NG_APP_GITHUB_INSTALLERS_BRANCH: 'gh-pages'
+  };
+</script>
+```
