@@ -1,11 +1,12 @@
 name: Flutter Web Preview
 
 on:
-  pull_request:
+  pull_request_target:
     types: [opened, reopened, synchronize, closed]
 
 permissions:
   contents: write
+  deployments: write
 
 concurrency:
   group: preview-${{ github.event.pull_request.number }}
@@ -16,10 +17,14 @@ jobs:
     if: github.event.action != 'closed'
     runs-on: ubuntu-latest
     steps:
-      - name: Checkout repository
+      - name: Checkout pull request contents
         uses: actions/checkout@v4
         with:
-          ref: ${{ github.event.pull_request.head.sha }}
+          repository: ${{ github.event.pull_request.head.repo.full_name }}
+          ref: ${{ github.event.pull_request.head.ref }}
+          token: ${{ secrets.GITHUB_TOKEN }}
+          fetch-depth: 0
+          persist-credentials: false
 
       - name: Set up Flutter
         uses: subosito/flutter-action@v2
@@ -48,6 +53,45 @@ jobs:
           force: true
           user_name: github-actions[bot]
           user_email: 41898282+github-actions[bot]@users.noreply.github.com
+
+      - name: Create preview deployment record
+        id: create_deployment
+        uses: actions/github-script@v7
+        with:
+          github-token: ${{ secrets.GITHUB_TOKEN }}
+          script: |
+            const environment = `preview/pr-${context.payload.pull_request.number}`;
+            const deployment = await github.rest.repos.createDeployment({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              ref: context.payload.pull_request.head.sha,
+              environment,
+              transient_environment: true,
+              production_environment: false,
+              auto_merge: false,
+              required_contexts: [],
+              description: `Preview for PR #${context.payload.pull_request.number}`
+            });
+            core.setOutput('deployment_id', deployment.data.id.toString());
+
+      - name: Publish deployment status
+        if: steps.create_deployment.outputs.deployment_id != ''
+        uses: actions/github-script@v7
+        env:
+          DEPLOYMENT_ID: ${{ steps.create_deployment.outputs.deployment_id }}
+          PREVIEW_URL: https://${{ github.repository_owner }}.github.io/${{ github.event.repository.name }}/prev-software/pr-${{ github.event.number }}/
+        with:
+          github-token: ${{ secrets.GITHUB_TOKEN }}
+          script: |
+            await github.rest.repos.createDeploymentStatus({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              deployment_id: Number(process.env.DEPLOYMENT_ID),
+              state: 'success',
+              environment_url: process.env.PREVIEW_URL,
+              log_url: `https://github.com/${context.repo.owner}/${context.repo.repo}/actions/runs/${context.runId}`,
+              description: `Preview available at ${process.env.PREVIEW_URL}`
+            });
 
   cleanup:
     if: github.event.action == 'closed'
@@ -90,3 +134,28 @@ jobs:
           else
             echo "Preview directory not found, skipping."
           fi
+
+      - name: Mark deployment as inactive
+        uses: actions/github-script@v7
+        with:
+          github-token: ${{ secrets.GITHUB_TOKEN }}
+          script: |
+            const environment = `preview/pr-${context.payload.pull_request.number}`;
+            const deployments = await github.rest.repos.listDeployments({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              environment,
+              per_page: 1
+            });
+            if (!deployments.data.length) {
+              core.info(`No deployments found for ${environment}`);
+              return;
+            }
+            await github.rest.repos.createDeploymentStatus({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              deployment_id: deployments.data[0].id,
+              state: 'inactive',
+              log_url: `https://github.com/${context.repo.owner}/${context.repo.repo}/actions/runs/${context.runId}`,
+              description: 'Preview environment cleaned up'
+            });

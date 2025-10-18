@@ -19,20 +19,38 @@
           return;
         }
 
-        const href = baseElement.getAttribute('href');
-        if (!href || href === '$FLUTTER_BASE_HREF') {
-          baseElement.setAttribute('href', '/');
+        let baseHref = baseElement.getAttribute('href') || '';
+        if (!baseHref || baseHref === '$FLUTTER_BASE_HREF') {
+          baseHref = new URL('./', window.location.href).pathname;
+        } else {
+          baseHref = new URL(baseHref, window.location.href).pathname;
         }
+
+        if (!baseHref.endsWith('/')) {
+          baseHref = `${baseHref}/`;
+        }
+
+        baseElement.setAttribute('href', baseHref);
+
+        window.flutterConfiguration = window.flutterConfiguration || {};
+        if (!window.flutterConfiguration.assetBase) {
+          window.flutterConfiguration.assetBase = baseHref;
+        }
+
+        window.__flutterServiceWorkerUrl = new URL(
+          'flutter_service_worker.js',
+          `${window.location.origin}${baseHref}`
+        ).toString();
       })();
     </script>
     <script src="flutter.js" defer></script>
     <script>
       window.addEventListener('load', function () {
         if ('serviceWorker' in navigator) {
-          navigator.serviceWorker.register('flutter_service_worker.js');
+          const serviceWorkerUrl =
+            window.__flutterServiceWorkerUrl || 'flutter_service_worker.js';
+          navigator.serviceWorker.register(serviceWorkerUrl);
         }
-        window.flutterConfiguration = window.flutterConfiguration || {};
-        window.flutterConfiguration.assetBase = window.flutterConfiguration.assetBase || '';
       });
     </script>
   </body>
