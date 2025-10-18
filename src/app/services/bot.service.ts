@@ -265,6 +265,8 @@ export class BotService {
       platform: this.normalizePlatform(metadata?.platform ?? inferredPlatform),
       contentType: metadata?.contentType ?? this.inferContentType(item.name),
       metadata: metadata ?? undefined,
+      directories: this.getInstallerDirectories(item.path),
+      relativePath: this.getRelativeInstallerPath(item.path),
     };
   }
 
@@ -442,6 +444,34 @@ export class BotService {
     return pathOrName.replace(/\\/g, '/').toLowerCase();
   }
 
+  private getInstallerDirectories(fullPath: string): string[] {
+    const segments = fullPath.split('/').filter(Boolean);
+    if (!segments.length) {
+      return [];
+    }
+
+    const baseSegments = this.githubInstallersPath.split('/').filter(Boolean);
+    let offset = 0;
+    while (
+      offset < baseSegments.length &&
+      offset < segments.length &&
+      baseSegments[offset].toLowerCase() === segments[offset].toLowerCase()
+    ) {
+      offset++;
+    }
+
+    return segments.slice(offset, -1);
+  }
+
+  private getRelativeInstallerPath(fullPath: string): string {
+    const segments = fullPath.split('/').filter(Boolean);
+    if (!segments.length) {
+      return fullPath;
+    }
+    const directories = this.getInstallerDirectories(fullPath);
+    return [...directories, segments[segments.length - 1]].join('/');
+  }
+
   private getEnvironmentValue(key: string): string | undefined {
     if (!key) {
       return undefined;
@@ -512,6 +542,8 @@ export interface InstallerAsset {
   platform: string;
   contentType?: string;
   metadata?: InstallerMetadata;
+  directories: string[];
+  relativePath: string;
 }
 
 interface InstallerMetadataEntry {
