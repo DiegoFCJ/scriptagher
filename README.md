@@ -32,6 +32,10 @@ Il file `Bot.json` contiene i metadati (nome, descrizione, versione), l'entrypoi
 
 > **Sicurezza:** sviluppa bot in ambienti isolati, dichiara solo le permission indispensabili e controlla l'origine dei pacchetti. Altri suggerimenti sono disponibili nella guida dedicata.
 
+### Backend API e CORS
+
+Il server backend Shelf esposto su `http://localhost:8080` gestisce automaticamente le richieste `OPTIONS` e applica gli header CORS `Access-Control-Allow-Origin`, `Access-Control-Allow-Methods` e `Access-Control-Allow-Headers` a tutte le risposte, inclusi gli stream SSE. Assicurati che qualsiasi client personalizzato invii le richieste con gli header previsti (ad esempio `Content-Type` o `Authorization`) per sfruttare correttamente il supporto CORS fornito dal backend.
+
 ## Struttura del Progetto
 La struttura di base di un'app Flutter è la seguente:
 
