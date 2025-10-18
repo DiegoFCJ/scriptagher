@@ -38,15 +38,15 @@ class HomePage extends StatelessWidget {
       ),
       FeatureGridItem(
         icon: Icons.cloud_rounded,
-        title: 'Marketplace Online',
+        title: 'Online',
         description:
-            'Scopri le ultime novità dalla libreria remota e installa nuovi bot.',
+            'Scopri le ultime novità dal marketplace remoto e installa nuovi bot.',
         accentColor: const Color(0xFF5AC8FA),
         onTap: () => _openBots(context, BotCategory.online),
       ),
       FeatureGridItem(
         icon: Icons.folder_rounded,
-        title: 'Bot Locali',
+        title: 'Locali',
         description:
             'Gestisci i bot presenti sul filesystem con strumenti di import rapido.',
         accentColor: const Color(0xFFFFB74D),
