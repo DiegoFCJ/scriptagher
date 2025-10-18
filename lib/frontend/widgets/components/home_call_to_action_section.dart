@@ -36,6 +36,7 @@ class HomeCallToActionSection extends StatelessWidget {
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Row(
+            crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               Container(
                 padding: const EdgeInsets.all(12),
@@ -50,11 +51,13 @@ class HomeCallToActionSection extends StatelessWidget {
                 ),
               ),
               const SizedBox(width: 16),
-              Text(
-                'Costruisci il tuo primo bot',
-                style: theme.textTheme.headlineSmall?.copyWith(
-                  color: foreground,
-                  fontWeight: FontWeight.w700,
+              Expanded(
+                child: Text(
+                  'Costruisci il tuo primo bot',
+                  style: theme.textTheme.headlineSmall?.copyWith(
+                    color: foreground,
+                    fontWeight: FontWeight.w700,
+                  ),
                 ),
               ),
             ],
