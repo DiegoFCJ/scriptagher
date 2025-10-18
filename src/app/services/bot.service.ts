@@ -9,6 +9,7 @@ import { APP_BASE_HREF, DOCUMENT } from '@angular/common';
 export class BotService {
   private readonly botsBaseUrl: URL;
   private readonly botsSourceBaseUrl: URL;
+  private readonly installersBaseUrl: URL;
   private readonly githubApiBaseUrl: string;
   private readonly githubRepoOwner: string;
   private readonly githubRepoName: string;
@@ -25,6 +26,7 @@ export class BotService {
     const baseUrl = this.resolveBaseUrl();
     this.botsBaseUrl = new URL('bots/', baseUrl);
     this.botsSourceBaseUrl = new URL('bots/', baseUrl);
+    this.installersBaseUrl = new URL('installers/', baseUrl);
     this.githubApiBaseUrl = this.getEnvironmentValue('NG_APP_GITHUB_API_URL')
       || this.getEnvironmentValue('GITHUB_API_URL')
       || 'https://api.github.com';
@@ -254,19 +256,20 @@ export class BotService {
     } as InstallerMetadata;
     const metadata = Object.keys(mergedMetadata).length ? mergedMetadata : undefined;
 
+    const relativePath = this.getRelativeInstallerPath(item.path);
+    const directories = this.getInstallerDirectories(item.path);
+
     return {
       name: metadata?.displayName ?? metadata?.name ?? item.name,
       filename: item.name,
       path: item.path,
-      downloadUrl: metadata?.downloadUrl
-        ?? item.download_url
-        ?? `${this.buildContentsUrl(item.path)}?ref=${encodeURIComponent(this.githubInstallersBranch)}`,
+      downloadUrl: this.getInstallerDownloadUrl(item.path, relativePath, item.download_url, metadata),
       size: item.size,
       platform: this.normalizePlatform(metadata?.platform ?? inferredPlatform),
       contentType: metadata?.contentType ?? this.inferContentType(item.name),
       metadata: metadata ?? undefined,
-      directories: this.getInstallerDirectories(item.path),
-      relativePath: this.getRelativeInstallerPath(item.path),
+      directories,
+      relativePath,
     };
   }
 
@@ -449,18 +452,8 @@ export class BotService {
     if (!segments.length) {
       return [];
     }
-
-    const baseSegments = this.githubInstallersPath.split('/').filter(Boolean);
-    let offset = 0;
-    while (
-      offset < baseSegments.length &&
-      offset < segments.length &&
-      baseSegments[offset].toLowerCase() === segments[offset].toLowerCase()
-    ) {
-      offset++;
-    }
-
-    return segments.slice(offset, -1);
+    const normalizedSegments = this.stripBaseInstallerSegments(segments);
+    return normalizedSegments.slice(0, -1);
   }
 
   private getRelativeInstallerPath(fullPath: string): string {
@@ -468,8 +461,67 @@ export class BotService {
     if (!segments.length) {
       return fullPath;
     }
-    const directories = this.getInstallerDirectories(fullPath);
-    return [...directories, segments[segments.length - 1]].join('/');
+    const normalizedSegments = this.stripBaseInstallerSegments(segments);
+    if (!normalizedSegments.length) {
+      return segments[segments.length - 1];
+    }
+    return normalizedSegments.join('/');
+  }
+
+  private stripBaseInstallerSegments(segments: string[]): string[] {
+    if (!segments.length) {
+      return segments;
+    }
+
+    const baseSegments = this.githubInstallersPath.split('/').filter(Boolean);
+    if (!baseSegments.length) {
+      return segments;
+    }
+
+    const normalizedBase = baseSegments.map((segment) => segment.toLowerCase());
+    const normalizedSegments = segments.map((segment) => segment.toLowerCase());
+
+    for (let index = 0; index <= normalizedSegments.length - normalizedBase.length; index++) {
+      const windowMatches = normalizedBase.every(
+        (baseSegment, baseIndex) => normalizedSegments[index + baseIndex] === baseSegment
+      );
+
+      if (windowMatches) {
+        return segments.slice(index + normalizedBase.length);
+      }
+    }
+
+    const prPrefixPattern = /^pr-\d+$/i;
+    if (segments.length && prPrefixPattern.test(segments[0])) {
+      return segments.slice(1);
+    }
+
+    return segments;
+  }
+
+  private getInstallerDownloadUrl(
+    fullPath: string,
+    relativePath: string,
+    githubDownloadUrl: string | null,
+    metadata?: InstallerMetadata
+  ): string {
+    if (metadata?.downloadUrl) {
+      return metadata.downloadUrl;
+    }
+
+    if (relativePath) {
+      try {
+        return new URL(relativePath, this.installersBaseUrl).toString();
+      } catch {
+        // fall through to GitHub URLs
+      }
+    }
+
+    if (githubDownloadUrl) {
+      return githubDownloadUrl;
+    }
+
+    return `${this.buildContentsUrl(fullPath)}?ref=${encodeURIComponent(this.githubInstallersBranch)}`;
   }
 
   private getEnvironmentValue(key: string): string | undefined {
