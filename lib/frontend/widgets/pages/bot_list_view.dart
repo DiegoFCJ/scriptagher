@@ -530,7 +530,34 @@ class _BotListState extends State<BotList>
         setState(() {
           _isUploading = false;
         });
+      }
     }
+  }
+ 
+  void _refreshCategory(BotCategory category) {
+    setState(() {
+      switch (category) {
+        case BotCategory.downloaded:
+          _categoryFutures[category] = _botGetService.fetchDownloadedBots();
+          break;
+        case BotCategory.online:
+          _categoryFutures[category] = _botGetService.fetchOnlineBots();
+          break;
+        case BotCategory.local:
+          _categoryFutures[category] = _botGetService.fetchLocalBots();
+          break;
+      }
+    });
+  }
+
+  void _showSnackBar(String message, {bool isError = false}) {
+    if (!mounted) return;
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: Text(message),
+        backgroundColor: isError ? Theme.of(context).colorScheme.error : null,
+      ),
+    );
   }
 }
 
@@ -564,7 +591,8 @@ class _BotTabBarHeaderDelegate extends SliverPersistentHeaderDelegate {
       ),
       child: DecoratedBox(
         decoration: BoxDecoration(
-          color: Theme.of(context).colorScheme.surfaceVariant.withOpacity(0.35),
+          color:
+              Theme.of(context).colorScheme.surfaceVariant.withOpacity(0.35),
           borderRadius: BorderRadius.circular(18),
         ),
         child: tabBar,
@@ -577,32 +605,5 @@ class _BotTabBarHeaderDelegate extends SliverPersistentHeaderDelegate {
     return oldDelegate.tabBar != tabBar ||
         oldDelegate.horizontalPadding != horizontalPadding ||
         oldDelegate.backgroundColor != backgroundColor;
-  }
-}
-
-  void _refreshCategory(BotCategory category) {
-    setState(() {
-      switch (category) {
-        case BotCategory.downloaded:
-          _categoryFutures[category] = _botGetService.fetchDownloadedBots();
-          break;
-        case BotCategory.online:
-          _categoryFutures[category] = _botGetService.fetchOnlineBots();
-          break;
-        case BotCategory.local:
-          _categoryFutures[category] = _botGetService.fetchLocalBots();
-          break;
-      }
-    });
-  }
-
-  void _showSnackBar(String message, {bool isError = false}) {
-    if (!mounted) return;
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(
-        content: Text(message),
-        backgroundColor: isError ? Theme.of(context).colorScheme.error : null,
-      ),
-    );
   }
 }
