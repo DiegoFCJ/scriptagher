@@ -11,7 +11,7 @@ import { BotService } from '../../services/bot.service';
     BotCardComponent
   ],
   templateUrl: './bot-section.component.html',
-  styleUrl: './bot-section.component.scss'
+  styleUrls: ['./bot-section.component.scss']
 })
 export class BotSectionComponent{
   @Input() language: string = '';
