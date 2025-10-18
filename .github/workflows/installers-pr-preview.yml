@@ -334,6 +334,20 @@ jobs:
           name: ios-ipa
           path: installers/ios
 
+      - name: Checkout repository for metadata script
+        uses: actions/checkout@v4
+        with:
+          path: repo
+          persist-credentials: false
+          ref: ${{ github.event.pull_request.head.sha }}
+
+      - name: Generate installer metadata
+        run: |
+          python repo/tool/generate_installer_metadata.py \
+            --installers-dir installers \
+            --repository "${{ github.repository }}" \
+            --pubspec repo/pubspec.yaml
+
       - name: Create .nojekyll marker
         run: touch installers/.nojekyll
 
