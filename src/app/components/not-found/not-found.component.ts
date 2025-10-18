@@ -6,7 +6,7 @@ import { Router, NavigationEnd } from '@angular/router';
   standalone: true,
   imports: [],
   templateUrl: './not-found.component.html',
-  styleUrl: './not-found.component.scss'
+  styleUrls: ['./not-found.component.scss']
 })
 export class NotFoundComponent {
 

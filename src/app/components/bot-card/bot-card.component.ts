@@ -8,7 +8,7 @@ import { BotService } from '../../services/bot.service';
   standalone: true,
   imports: [CommonModule],
   templateUrl: './bot-card.component.html',
-  styleUrl: './bot-card.component.scss'
+  styleUrls: ['./bot-card.component.scss']
 })
 export class BotCardComponent {
   @Input() bot: any;
