@@ -1,7 +1,7 @@
 import 'dart:convert';
 
 import 'package:flutter_test/flutter_test.dart';
-import 'package:shelf/shelf.dart';
+import 'package:shelf/shelf.dart' hide createMiddleware;
 
 import 'package:scriptagher/backend/server/server.dart';
 
