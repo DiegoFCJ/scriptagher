@@ -27,9 +27,13 @@ jobs:
       - name: Remove backup after merge
         if: ${{ github.event.pull_request.merged }}
         run: |
-          set -e
+          set -euo pipefail
           BACKUP_DIR="installers-backups/pr-${{ github.event.number }}"
           if [ -d "$BACKUP_DIR" ]; then
+            if [ ! -d installers ]; then
+              echo "installers directory is missing on gh-pages; refusing to delete the backup." >&2
+              exit 1
+            fi
             echo "Removing backup directory $BACKUP_DIR because the PR was merged."
             rm -rf "$BACKUP_DIR"
           else
@@ -39,16 +43,14 @@ jobs:
       - name: Restore installers from backup
         if: ${{ !github.event.pull_request.merged }}
         run: |
-          set -e
+          set -euo pipefail
           BACKUP_DIR="installers-backups/pr-${{ github.event.number }}"
           if [ -d "$BACKUP_DIR" ]; then
             echo "Restoring installers from $BACKUP_DIR because the PR was closed without merge."
-            rm -rf installers
-            if [ -d "$BACKUP_DIR/installers" ]; then
-              cp -a "$BACKUP_DIR/installers" ./
-            else
-              mkdir -p installers
-              cp -a "$BACKUP_DIR"/. installers/
+            mkdir -p installers
+            rsync -a --delete "$BACKUP_DIR"/ installers/
+            if [ ! -f installers/.nojekyll ]; then
+              touch installers/.nojekyll
             fi
             rm -rf "$BACKUP_DIR"
           else
