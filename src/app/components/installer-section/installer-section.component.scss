@@ -1,0 +1,95 @@
+.installer-section {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  gap: clamp(2rem, 5vw, 2.6rem);
+  padding: clamp(2.4rem, 5vw, 3.4rem);
+  border-radius: 36px;
+  background: linear-gradient(160deg, rgba(10, 18, 36, 0.9), rgba(30, 41, 59, 0.62));
+  border: 1px solid rgba(148, 163, 184, 0.2);
+  box-shadow: var(--shadow-strong);
+  backdrop-filter: blur(20px);
+  overflow: hidden;
+
+  &::before,
+  &::after {
+    content: '';
+    position: absolute;
+    inset: 0;
+    pointer-events: none;
+  }
+
+  &::before {
+    background: radial-gradient(circle at top left, rgba(192, 132, 252, 0.2), transparent 55%);
+  }
+
+  &::after {
+    border-radius: inherit;
+    border: 1px solid rgba(129, 140, 248, 0.25);
+    opacity: 0.35;
+  }
+
+  .section-header {
+    position: relative;
+    z-index: 1;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    flex-wrap: wrap;
+    gap: 1rem;
+  }
+
+  .section-badge {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 0.78rem;
+    letter-spacing: 0.26em;
+    text-transform: uppercase;
+    color: rgba(226, 232, 240, 0.85);
+    background: rgba(79, 70, 229, 0.25);
+    padding: 0.38rem 1rem;
+    border-radius: 999px;
+    border: 1px solid rgba(129, 140, 248, 0.35);
+    box-shadow: inset 0 0 20px rgba(129, 140, 248, 0.12);
+  }
+
+  h2 {
+    margin: 0;
+    font-size: clamp(1.7rem, 4vw, 2.1rem);
+    font-weight: 600;
+    letter-spacing: 0.05em;
+    text-transform: capitalize;
+    background: linear-gradient(120deg, #818cf8 0%, #c084fc 50%, #38bdf8 100%);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+  }
+
+  .installer-grid {
+    position: relative;
+    z-index: 1;
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
+    gap: clamp(1.4rem, 4vw, 1.8rem);
+  }
+
+  &--empty {
+    align-items: flex-start;
+  }
+
+  .installer-message {
+    position: relative;
+    z-index: 1;
+    margin: 0;
+    color: rgba(226, 232, 240, 0.7);
+  }
+}
+
+@media (max-width: 640px) {
+  .installer-section {
+    .section-header {
+      flex-direction: column;
+      align-items: flex-start;
+    }
+  }
+}

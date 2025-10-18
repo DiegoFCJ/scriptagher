@@ -1,12 +1,21 @@
 <app-header></app-header>
-<main class="bot-list" id="bots" *ngIf="botSections.length; else errorTemplate">
-  <app-bot-section *ngFor="let section of botSections" [language]="section.language"
-    [bots]="section.botDetails"></app-bot-section>
+<main class="bot-list" id="bots" *ngIf="botSections.length || installers.length; else errorTemplate">
+  <app-bot-section
+    *ngFor="let section of botSections"
+    [language]="section.language"
+    [bots]="section.botDetails"
+  ></app-bot-section>
+
+  <app-installer-section
+    *ngIf="installers.length || installersError"
+    [installers]="installers"
+    [errorMessage]="installers.length ? '' : installersError"
+  ></app-installer-section>
 </main>
 <ng-template #errorTemplate>
   <div class="error-state">
     <h2>Ops, qualcosa è andato storto.</h2>
-    <p>{{ errorMessage || 'No bots available.' }}</p>
+    <p>{{ errorMessage || installersError || 'No bots or installers available.' }}</p>
   </div>
 </ng-template>
 <app-footer></app-footer>
