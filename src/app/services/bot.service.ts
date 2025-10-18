@@ -24,6 +24,8 @@ export class BotService {
     @Optional() @Inject(APP_BASE_HREF) private readonly appBaseHref?: string
   ) {
     const baseUrl = this.resolveBaseUrl();
+    const inferredRepoInfo = this.detectGithubRepoInfo(baseUrl);
+
     this.botsBaseUrl = new URL('bots/', baseUrl);
     this.botsSourceBaseUrl = new URL('bots/', baseUrl);
     this.installersBaseUrl = new URL('installers/', baseUrl);
@@ -32,9 +34,11 @@ export class BotService {
       || 'https://api.github.com';
     this.githubRepoOwner = this.getEnvironmentValue('NG_APP_GITHUB_OWNER')
       || this.getEnvironmentValue('GITHUB_OWNER')
+      || inferredRepoInfo.owner
       || '';
     this.githubRepoName = this.getEnvironmentValue('NG_APP_GITHUB_REPO')
       || this.getEnvironmentValue('GITHUB_REPO')
+      || inferredRepoInfo.repo
       || '';
     this.githubToken = this.getEnvironmentValue('NG_APP_GITHUB_TOKEN')
       || this.getEnvironmentValue('GITHUB_TOKEN');
@@ -63,6 +67,30 @@ export class BotService {
 
   private ensureTrailingSlash(url: string): string {
     return url.endsWith('/') ? url : `${url}/`;
+  }
+
+  private detectGithubRepoInfo(baseUrl: string): { owner?: string; repo?: string } {
+    try {
+      const parsedUrl = new URL(baseUrl);
+      const host = parsedUrl.hostname.toLowerCase();
+      if (!host.endsWith('github.io')) {
+        return {};
+      }
+
+      const owner = host.replace(/\.github\.io$/, '');
+      const pathSegments = parsedUrl.pathname.split('/').filter(Boolean);
+      if (pathSegments.length) {
+        return { owner, repo: pathSegments[0] };
+      }
+
+      if (owner) {
+        return { owner, repo: `${owner}.github.io` };
+      }
+
+      return {};
+    } catch {
+      return {};
+    }
   }
 
   listInstallerAssets(): Observable<InstallerAsset[]> {
