@@ -1,0 +1,86 @@
+name: Flutter Web Preview
+
+on:
+  pull_request:
+    types: [opened, reopened, synchronize, closed]
+
+permissions:
+  contents: write
+
+concurrency:
+  group: preview-${{ github.event.pull_request.number }}
+  cancel-in-progress: true
+
+jobs:
+  build-and-deploy:
+    if: github.event.action != 'closed'
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event.pull_request.head.sha }}
+
+      - name: Set up Flutter
+        uses: subosito/flutter-action@v2
+        with:
+          channel: stable
+          cache: true
+
+      - name: Flutter pub get
+        run: flutter pub get
+
+      - name: Build Flutter web preview
+        run: flutter build web --base-href /prev-software/pr-${{ github.event.number }}/
+
+      - name: Deploy preview to GitHub Pages
+        uses: peaceiris/actions-gh-pages@v3
+        with:
+          github_token: ${{ secrets.GITHUB_TOKEN }}
+          publish_dir: build/web
+          destination_dir: prev-software/pr-${{ github.event.number }}
+          keep_files: true
+          user_name: github-actions[bot]
+          user_email: 41898282+github-actions[bot]@users.noreply.github.com
+
+  cleanup:
+    if: github.event.action == 'closed'
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Check for gh-pages branch
+        id: check-gh-pages
+        run: |
+          if git ls-remote --exit-code origin gh-pages; then
+            echo "exists=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "exists=false" >> "$GITHUB_OUTPUT"
+          fi
+
+      - name: Fetch gh-pages branch
+        if: steps.check-gh-pages.outputs.exists == 'true'
+        run: |
+          git fetch origin gh-pages
+          git checkout gh-pages
+
+      - name: Remove preview directory
+        if: steps.check-gh-pages.outputs.exists == 'true'
+        run: |
+          set -e
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          if [ -d "prev-software/pr-${{ github.event.number }}" ]; then
+            git rm -r "prev-software/pr-${{ github.event.number }}"
+            if git status --porcelain | grep .; then
+              git commit -m "Remove preview for PR #${{ github.event.number }}"
+              git push origin gh-pages
+            else
+              echo "No changes to commit."
+            fi
+          else
+            echo "Preview directory not found, skipping."
+          fi
