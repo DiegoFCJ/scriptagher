@@ -1,29 +1,54 @@
 import 'package:flutter/material.dart';
+import 'package:scriptagher/shared/theme/theme_controller.dart';
 
 class WindowTitleBar extends StatelessWidget {
   const WindowTitleBar({super.key});
 
   @override
   Widget build(BuildContext context) {
+    final colorScheme = Theme.of(context).colorScheme;
+    final themeController = ThemeController();
+
     return Container(
-      color: Colors.blueGrey.shade900,
+      color: colorScheme.surface,
       padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
       child: Row(
         children: [
           GestureDetector(
             onTap: () => Navigator.pushNamed(context, '/home'),
-            child: const Text(
+            child: Text(
               'Scriptagher',
-              style: TextStyle(
-                color: Colors.white,
-                fontSize: 18,
-                fontWeight: FontWeight.w600,
-              ),
+              style: Theme.of(context).textTheme.titleMedium?.copyWith(
+                    color: colorScheme.onSurface,
+                    fontWeight: FontWeight.w600,
+                  ),
             ),
           ),
           const Spacer(),
+          AnimatedBuilder(
+            animation: themeController,
+            builder: (context, _) {
+              final currentTheme = themeController.currentTheme;
+              return PopupMenuButton<AppTheme>(
+                tooltip: 'Cambia tema',
+                initialValue: currentTheme,
+                icon: Icon(Icons.brightness_6, color: colorScheme.onSurface),
+                onSelected: (theme) => themeController.setTheme(theme),
+                itemBuilder: (ctx) => AppTheme.values
+                    .map(
+                      (theme) => CheckedPopupMenuItem<AppTheme>(
+                        value: theme,
+                        checked: theme == currentTheme,
+                        child: Text(_labelForTheme(theme)),
+                      ),
+                    )
+                    .toList(),
+              );
+            },
+          ),
+          const SizedBox(width: 8),
           PopupMenuButton<_MenuOption>(
-            icon: const Icon(Icons.menu, color: Colors.white),
+            icon: Icon(Icons.menu, color: colorScheme.onSurface),
             onSelected: (opt) {
               switch (opt) {
                 case _MenuOption.portfolio:
@@ -35,13 +60,13 @@ class WindowTitleBar extends StatelessWidget {
               }
             },
             itemBuilder: (ctx) => const [
-              const PopupMenuItem<_MenuOption>(
+              PopupMenuItem<_MenuOption>(
                 value: _MenuOption.portfolio,
-                child: const Text('Portfolio'),
+                child: Text('Portfolio'),
               ),
-              const PopupMenuItem<_MenuOption>(
+              PopupMenuItem<_MenuOption>(
                 value: _MenuOption.botsList,
-                child: const Text('Bots List'),
+                child: Text('Bots List'),
               ),
             ],
           ),
@@ -52,3 +77,14 @@ class WindowTitleBar extends StatelessWidget {
 }
 
 enum _MenuOption { portfolio, botsList }
+
+String _labelForTheme(AppTheme theme) {
+  switch (theme) {
+    case AppTheme.light:
+      return 'Tema chiaro';
+    case AppTheme.dark:
+      return 'Tema scuro';
+    case AppTheme.highContrast:
+      return 'Alto contrasto';
+  }
+}
