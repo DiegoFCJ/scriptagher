@@ -1,7 +1,7 @@
 <!DOCTYPE html>
 <html>
   <head>
-    <base href="/">
+    <base href="$FLUTTER_BASE_HREF">
     <meta charset="UTF-8">
     <meta content="IE=Edge" http-equiv="X-UA-Compatible">
     <meta name="description" content="Scriptagher web experience">
@@ -12,6 +12,19 @@
     <meta name="theme-color" content="#0175C2">
   </head>
   <body>
+    <script>
+      (function () {
+        const baseElement = document.querySelector('base');
+        if (!baseElement) {
+          return;
+        }
+
+        const href = baseElement.getAttribute('href');
+        if (!href || href === '$FLUTTER_BASE_HREF') {
+          baseElement.setAttribute('href', '/');
+        }
+      })();
+    </script>
     <script src="flutter.js" defer></script>
     <script>
       window.addEventListener('load', function () {
