@@ -68,14 +68,10 @@ export class BotService {
       return of([]);
     }
 
-    const url = this.buildContentsUrl(this.githubInstallersPath);
-    const params = new HttpParams().set('ref', this.githubInstallersBranch);
-
-    return this.http.get<GitHubContentItem[]>(url, { headers: this.buildGithubHeaders(), params }).pipe(
-      switchMap((items) => {
-        const files = items.filter((item) => item.type === 'file');
-        const metadataFiles = files.filter((item) => this.isMetadataFile(item.name));
-        const binaryFiles = files.filter((item) => this.isBinaryFile(item.name));
+    return this.fetchInstallerContents(this.githubInstallersPath).pipe(
+      switchMap((files) => {
+        const metadataFiles = files.filter((item) => this.isMetadataFile(item.path));
+        const binaryFiles = files.filter((item) => this.isBinaryFile(item.path));
 
         const metadataRequests = metadataFiles.map((file) => this.fetchMetadataForFile(file));
         const metadataStream = metadataRequests.length ? forkJoin(metadataRequests) : of([]);
@@ -89,22 +85,62 @@ export class BotService {
               if (!entry) {
                 continue;
               }
-              const [key, metadata] = entry;
-              metadataMap.set(key, metadata);
-              if (metadata?.platform) {
-                const normalizedPlatform = this.normalizePlatform(metadata.platform).toLowerCase();
-                metadataByPlatform.set(normalizedPlatform, metadata);
+              for (const key of entry.keys) {
+                if (!key) {
+                  continue;
+                }
+                metadataMap.set(key, entry.metadata);
+              }
+              if (entry.metadata?.platform) {
+                const normalizedPlatform = this.normalizePlatform(entry.metadata.platform).toLowerCase();
+                metadataByPlatform.set(normalizedPlatform, entry.metadata);
               }
             }
 
-            return binaryFiles.map((file) =>
-              this.mapGithubContentToInstaller(file, metadataMap, metadataByPlatform)
-            );
+            return binaryFiles
+              .map((file) => this.mapGithubContentToInstaller(file, metadataMap, metadataByPlatform))
+              .sort((a, b) => {
+                const platformComparison = a.platform.localeCompare(b.platform);
+                if (platformComparison !== 0) {
+                  return platformComparison;
+                }
+                return a.filename.localeCompare(b.filename);
+              });
           })
         );
       }),
       catchError((error) => {
         console.error('Error fetching installer assets from GitHub:', error);
+        return of([]);
+      })
+    );
+  }
+
+  private fetchInstallerContents(path: string): Observable<GitHubContentItem[]> {
+    const url = this.buildContentsUrl(path);
+    const params = new HttpParams().set('ref', this.githubInstallersBranch);
+
+    return this.http.get<GitHubContentItem[]>(url, { headers: this.buildGithubHeaders(), params }).pipe(
+      switchMap((items) => {
+        if (!items?.length) {
+          return of([]);
+        }
+
+        const files = items.filter((item) => item.type === 'file');
+        const directories = items.filter((item) => item.type === 'dir');
+
+        if (!directories.length) {
+          return of(files);
+        }
+
+        const directoryRequests = directories.map((dir) => this.fetchInstallerContents(dir.path));
+
+        return forkJoin(directoryRequests).pipe(
+          map((nestedItems) => files.concat(...nestedItems))
+        );
+      }),
+      catchError((error) => {
+        console.error(`Error fetching installer directory contents from ${path}`, error);
         return of([]);
       })
     );
@@ -169,7 +205,7 @@ export class BotService {
     return headers;
   }
 
-  private fetchMetadataForFile(file: GitHubContentItem): Observable<[string, InstallerMetadata] | null> {
+  private fetchMetadataForFile(file: GitHubContentItem): Observable<InstallerMetadataEntry | null> {
     const url = this.buildContentsUrl(file.path);
     const params = new HttpParams().set('ref', this.githubInstallersBranch);
 
@@ -184,8 +220,10 @@ export class BotService {
         }
         try {
           const metadata = JSON.parse(decoded) as InstallerMetadata;
-          const key = this.getMetadataKey(file.name);
-          return [key, metadata] as [string, InstallerMetadata];
+          const pathKey = this.getMetadataKey(file.path);
+          const nameKey = this.getMetadataKey(file.name);
+          const keys = Array.from(new Set([pathKey, nameKey]));
+          return { keys, metadata } satisfies InstallerMetadataEntry;
         } catch (error) {
           console.error(`Invalid installer metadata in ${file.path}`, error);
           return null;
@@ -203,8 +241,9 @@ export class BotService {
     metadataMap: Map<string, InstallerMetadata>,
     metadataByPlatform: Map<string, InstallerMetadata>
   ): InstallerAsset {
-    const metadataKey = this.getMetadataKeyForBinary(item.name);
-    const directMetadata = metadataMap.get(metadataKey) || metadataMap.get(item.name.toLowerCase());
+    const metadataKey = this.getMetadataKeyForBinary(item.path);
+    const directMetadata = metadataMap.get(metadataKey)
+      || metadataMap.get(this.getMetadataKeyForBinary(item.name));
     const inferredPlatform = this.normalizePlatform(
       directMetadata?.platform ?? this.inferPlatformFromName(item.name)
     );
@@ -229,12 +268,12 @@ export class BotService {
     };
   }
 
-  private isMetadataFile(name: string): boolean {
-    return name.toLowerCase().endsWith('.json');
+  private isMetadataFile(pathOrName: string): boolean {
+    return this.normalizePath(pathOrName).endsWith('.json');
   }
 
-  private isBinaryFile(name: string): boolean {
-    const lowerName = name.toLowerCase();
+  private isBinaryFile(pathOrName: string): boolean {
+    const lowerName = this.normalizePath(pathOrName);
     const binaryExtensions = [
       '.exe',
       '.msi',
@@ -256,12 +295,12 @@ export class BotService {
     return binaryExtensions.some((extension) => lowerName.endsWith(extension));
   }
 
-  private getMetadataKey(name: string): string {
-    return name.replace(/\.json$/i, '').toLowerCase();
+  private getMetadataKey(pathOrName: string): string {
+    return this.normalizePath(pathOrName).replace(/\.json$/i, '');
   }
 
-  private getMetadataKeyForBinary(name: string): string {
-    const lower = name.toLowerCase();
+  private getMetadataKeyForBinary(pathOrName: string): string {
+    const lower = this.normalizePath(pathOrName);
     if (lower.endsWith('.tar.gz')) {
       return lower.replace(/\.tar\.gz$/, '');
     }
@@ -396,6 +435,13 @@ export class BotService {
     return content;
   }
 
+  private normalizePath(pathOrName: string): string {
+    if (!pathOrName) {
+      return '';
+    }
+    return pathOrName.replace(/\\/g, '/').toLowerCase();
+  }
+
   private getEnvironmentValue(key: string): string | undefined {
     if (!key) {
       return undefined;
@@ -466,4 +512,9 @@ export interface InstallerAsset {
   platform: string;
   contentType?: string;
   metadata?: InstallerMetadata;
+}
+
+interface InstallerMetadataEntry {
+  keys: string[];
+  metadata: InstallerMetadata;
 }
