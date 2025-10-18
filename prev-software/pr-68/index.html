@@ -1,0 +1,39 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <base href="/prev-software/pr-68/">
+    <meta charset="UTF-8">
+    <meta content="IE=Edge" http-equiv="X-UA-Compatible">
+    <meta name="description" content="Scriptagher web experience">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Scriptagher</title>
+    <link rel="manifest" href="manifest.json">
+    <link rel="icon" type="image/svg+xml" href="favicon.svg">
+    <meta name="theme-color" content="#0175C2">
+  </head>
+  <body>
+    <script>
+      (function () {
+        const baseElement = document.querySelector('base');
+        if (!baseElement) {
+          return;
+        }
+
+        const href = baseElement.getAttribute('href');
+        if (!href || href === '/prev-software/pr-68/') {
+          baseElement.setAttribute('href', '/');
+        }
+      })();
+    </script>
+    <script src="flutter.js" defer></script>
+    <script>
+      window.addEventListener('load', function () {
+        if ('serviceWorker' in navigator) {
+          navigator.serviceWorker.register('flutter_service_worker.js?v=2759809562');
+        }
+        window.flutterConfiguration = window.flutterConfiguration || {};
+        window.flutterConfiguration.assetBase = window.flutterConfiguration.assetBase || '';
+      });
+    </script>
+  </body>
+</html>
