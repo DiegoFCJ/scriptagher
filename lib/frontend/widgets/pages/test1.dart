@@ -7,20 +7,20 @@ class test1 extends StatefulWidget {
 }
 
 class _test1State extends State<test1> {
-  final Uri _url = Uri.parse('https://diegofcj.github.io/portfolio/');
+  final Uri _url = Uri.parse('https://scriptagher.app/marketplace');
 
   @override
   void initState() {
     super.initState();
-    _launchPortfolio();
+    _launchMarketplace();
   }
 
-  Future<void> _launchPortfolio() async {
+  Future<void> _launchMarketplace() async {
     if (await canLaunchUrl(_url)) {
       await launchUrl(_url, mode: LaunchMode.externalApplication);
     } else {
       ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('Impossibile aprire il portfolio')),
+        SnackBar(content: Text('Impossibile aprire il marketplace')),
       );
     }
   }
@@ -28,11 +28,11 @@ class _test1State extends State<test1> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(title: Text('Portfolio')),
+      appBar: AppBar(title: Text('Marketplace')),
       body: Center(
         child: ElevatedButton(
-          onPressed: _launchPortfolio,
-          child: Text('Apri Portfolio nel browser'),
+          onPressed: _launchMarketplace,
+          child: Text('Apri il marketplace nel browser'),
         ),
       ),
     );

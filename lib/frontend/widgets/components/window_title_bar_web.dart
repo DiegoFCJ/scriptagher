@@ -11,7 +11,11 @@ class WindowTitleBar extends StatelessWidget {
       child: Row(
         children: [
           GestureDetector(
-            onTap: () => Navigator.pushNamed(context, '/home'),
+            onTap: () => Navigator.pushNamedAndRemoveUntil(
+              context,
+              '/home',
+              (route) => false,
+            ),
             child: const Text(
               'Scriptagher',
               style: TextStyle(
@@ -40,22 +44,22 @@ class WindowTitleBar extends StatelessWidget {
                   break;
               }
             },
-            itemBuilder: (ctx) => const [
-              PopupMenuItem<_MenuOption>(
+            itemBuilder: (ctx) => <PopupMenuEntry<_MenuOption>>[
+              const PopupMenuItem<_MenuOption>(
                 value: _MenuOption.tutorial,
                 child: Text('Tutorial'),
               ),
-              PopupMenuItem<_MenuOption>(
+              const PopupMenuItem<_MenuOption>(
                 value: _MenuOption.marketplace,
                 child: Text('Marketplace'),
               ),
-              PopupMenuItem<_MenuOption>(
+              const PopupMenuItem<_MenuOption>(
                 value: _MenuOption.settings,
                 child: Text('Impostazioni'),
               ),
-              PopupMenuItem<_MenuOption>(
+              const PopupMenuItem<_MenuOption>(
                 value: _MenuOption.botsList,
-                child: Text('Bots List'),
+                child: Text('Elenco bot'),
               ),
             ],
           ),

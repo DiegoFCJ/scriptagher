@@ -36,6 +36,18 @@ class _HomePageState extends State<HomePage>
 
   final List<_SectionItem> _sections = const [
     _SectionItem(
+      title: 'Tutorial',
+      description: 'Impara a configurare Scriptagher con guide passo-passo',
+      icon: Icons.menu_book_outlined,
+      routeName: '/tutorial',
+    ),
+    _SectionItem(
+      title: 'Marketplace',
+      description: 'Esplora e installa bot creati dalla community',
+      icon: Icons.storefront_outlined,
+      routeName: '/marketplace',
+    ),
+    _SectionItem(
       title: 'Impostazioni',
       description: 'Gestisci preferenze, privacy e telemetria',
       icon: Icons.settings_outlined,

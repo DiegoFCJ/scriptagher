@@ -31,7 +31,11 @@ class WindowTitleBar extends StatelessWidget {
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
               GestureDetector(
-                onTap: () => Navigator.pushNamed(context, '/home'),
+                onTap: () => Navigator.pushNamedAndRemoveUntil(
+                  context,
+                  '/home',
+                  (route) => false,
+                ),
                 child: const Text(
                   'Scriptagher',
                   style: TextStyle(
@@ -59,8 +63,8 @@ class WindowTitleBar extends StatelessWidget {
                       break;
                   }
                 },
-                itemBuilder: (ctx) => const [
-                  PopupMenuItem<_MenuOption>(
+                itemBuilder: (ctx) => <PopupMenuEntry<_MenuOption>>[
+                  const PopupMenuItem<_MenuOption>(
                     enabled: false,
                     child: Text(
                       'Naviga',
@@ -70,22 +74,22 @@ class WindowTitleBar extends StatelessWidget {
                       ),
                     ),
                   ),
-                  PopupMenuDivider(),
-                  PopupMenuItem<_MenuOption>(
+                  const PopupMenuDivider(),
+                  const PopupMenuItem<_MenuOption>(
                     value: _MenuOption.tutorial,
                     child: Text('Tutorial'),
                   ),
-                  PopupMenuItem<_MenuOption>(
+                  const PopupMenuItem<_MenuOption>(
                     value: _MenuOption.marketplace,
                     child: Text('Marketplace'),
                   ),
-                  PopupMenuItem<_MenuOption>(
+                  const PopupMenuItem<_MenuOption>(
                     value: _MenuOption.settings,
                     child: Text('Impostazioni'),
                   ),
-                  PopupMenuItem<_MenuOption>(
+                  const PopupMenuItem<_MenuOption>(
                     value: _MenuOption.botsList,
-                    child: Text('Bots List'),
+                    child: Text('Elenco bot'),
                   ),
                 ],
               ),
