@@ -213,6 +213,17 @@ flutter build web
 
 Carica i file generati nella cartella `build/web` su un server web per renderli accessibili tramite un browser.
 
+### Flusso di backup e ripristino degli installer
+
+Per aiutare i maintainer a gestire in sicurezza gli asset pubblicati su `gh-pages`, ogni pull request che modifica gli installer viene accompagnata da un backup automatico. Quando la PR viene chiusa entra in azione il workflow [`installers-pr-teardown.yml`](.github/workflows/installers-pr-teardown.yml):
+
+1. Il workflow si attiva alla chiusura della PR e lavora direttamente sul branch `gh-pages` con permessi di scrittura.
+2. Se la PR è stata **mergeata**, viene eliminata la cartella di backup `installers-backups/pr-<numero_pr>` relativa a quella PR (se presente).
+3. Se la PR è stata **chiusa senza merge**, il workflow ripristina la cartella `installers/` copiandola dal backup `installers-backups/pr-<numero_pr>` e poi rimuove il backup ormai inutile.
+4. In assenza di backup (ad esempio per PR che non toccano gli installer) il workflow registra semplicemente un messaggio e non effettua modifiche.
+
+> **Nota per i maintainer:** non è necessario alcun intervento manuale nella maggior parte dei casi. Se dovesse servire un ripristino manuale, è sufficiente copiare i contenuti da `installers-backups/pr-<numero_pr>` nel branch `gh-pages` seguendo la stessa struttura usata dal workflow.
+
 ## Considerazioni Finali
 - Ogni piattaforma (Android, iOS, Linux, Windows, macOS) ha il suo proprio flusso di lavoro e requisiti di distribuzione.
 - Flutter rende possibile la creazione di un'app con un'unica base di codice per più piattaforme, ma la configurazione specifica di ciascuna piattaforma richiede attenzione ai dettagli.

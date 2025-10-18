@@ -1,0 +1,72 @@
+name: Installers PR Teardown
+
+on:
+  pull_request:
+    types:
+      - closed
+
+permissions:
+  contents: write
+
+jobs:
+  cleanup-or-restore:
+    name: Cleanup or Restore installers backup
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout gh-pages branch
+        uses: actions/checkout@v4
+        with:
+          ref: gh-pages
+          fetch-depth: 0
+
+      - name: Configure Git user
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+
+      - name: Remove backup after merge
+        if: ${{ github.event.pull_request.merged }}
+        run: |
+          set -e
+          BACKUP_DIR="installers-backups/pr-${{ github.event.number }}"
+          if [ -d "$BACKUP_DIR" ]; then
+            echo "Removing backup directory $BACKUP_DIR because the PR was merged."
+            rm -rf "$BACKUP_DIR"
+          else
+            echo "No backup directory found for PR #${{ github.event.number }}, skipping removal."
+          fi
+
+      - name: Restore installers from backup
+        if: ${{ !github.event.pull_request.merged }}
+        run: |
+          set -e
+          BACKUP_DIR="installers-backups/pr-${{ github.event.number }}"
+          if [ -d "$BACKUP_DIR" ]; then
+            echo "Restoring installers from $BACKUP_DIR because the PR was closed without merge."
+            rm -rf installers
+            if [ -d "$BACKUP_DIR/installers" ]; then
+              cp -a "$BACKUP_DIR/installers" ./
+            else
+              mkdir -p installers
+              cp -a "$BACKUP_DIR"/. installers/
+            fi
+            rm -rf "$BACKUP_DIR"
+          else
+            echo "No backup directory found for PR #${{ github.event.number }}, nothing to restore."
+          fi
+
+      - name: Commit and push changes
+        run: |
+          set -e
+          if [ -z "$(git status --porcelain)" ]; then
+            echo "No changes to commit."
+            exit 0
+          fi
+          git add -A
+          if [ "${{ github.event.pull_request.merged }}" = "true" ]; then
+            COMMIT_MESSAGE="chore: remove installers backup for PR #${{ github.event.number }}"
+          else
+            COMMIT_MESSAGE="chore: restore installers after PR #${{ github.event.number }} was closed"
+          fi
+          git commit -m "$COMMIT_MESSAGE"
+          git push origin gh-pages
