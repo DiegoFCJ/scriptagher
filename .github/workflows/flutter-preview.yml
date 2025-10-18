@@ -45,6 +45,7 @@ jobs:
           publish_dir: build/web
           destination_dir: prev-software/pr-${{ github.event.number }}
           keep_files: true
+          force: true
           user_name: github-actions[bot]
           user_email: 41898282+github-actions[bot]@users.noreply.github.com
 
