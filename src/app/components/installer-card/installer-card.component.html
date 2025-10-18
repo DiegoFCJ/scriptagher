@@ -1,0 +1,16 @@
+<div class="installer-card">
+  <div class="installer-surface">
+    <div class="installer-header">
+      <h3>{{ installer.platform }}</h3>
+      <span class="installer-asset" *ngIf="installer.asset">{{ installer.asset }}</span>
+    </div>
+    <p class="installer-description">{{ installer.description }}</p>
+    <div class="installer-notes" *ngIf="installer.releaseNotes">
+      <span>Release notes</span>
+      <p>{{ installer.releaseNotes }}</p>
+    </div>
+    <div class="installer-actions">
+      <button class="btn btn-primary" type="button" (click)="onDownload()">Download</button>
+    </div>
+  </div>
+</div>

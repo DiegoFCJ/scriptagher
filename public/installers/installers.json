@@ -1,0 +1,21 @@
+{
+  "installers": [
+    {
+      "platform": "Windows",
+      "description": "Installer for Windows 10/11 (64-bit) with bundled dependencies.",
+      "asset": "scriptagher-setup-x64.exe",
+      "releaseNotes": "Includes the latest automation scripts and support for enhanced logging."
+    },
+    {
+      "platform": "macOS",
+      "description": "Universal binary for macOS 13 Ventura and newer.",
+      "asset": "scriptagher-macos-universal.dmg"
+    },
+    {
+      "platform": "Linux",
+      "description": "AppImage package compatible with most modern Linux distributions.",
+      "asset": "scriptagher-linux-x86_64.AppImage",
+      "releaseNotes": "Tested on Ubuntu 22.04, Fedora 39, and Arch Linux with GNOME."
+    }
+  ]
+}
