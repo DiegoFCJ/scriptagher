@@ -93874,12 +93874,12 @@ bS(){this.cs()
 this.cj()
 this.he()}}
 A.ut.prototype={
-I(a){var s,r=this,q=null,p=A.A(a).ax,o=p.CW
-if(o==null)o=p.y
+I(a){var s,r=this,q=null,p=A.A(a).ax,o=A.bG(a,q,t.w).w.a.b,n=isFinite(o)&&o>0?o*1.5:1200,m=p.CW
+if(m==null)m=p.y
 s=p.id
 if(s==null)s=p.fy
-s=A.b([new A.vY(B.G0,new A.vZ(new A.MC(new A.a8J(r,a),new A.a8K(r,a),q),q),q),new A.MB(A.b([new A.q0("Scaricati","Consulta i bot installati localmente, aggiorna versioni e monitora gli esiti delle ultime esecuzioni.",B.GT,new A.a8L(r,a),p.b),new A.q0("Online","Esplora il marketplace ufficiale, filtra per linguaggio, tag o permessi e installa nuovi bot.",B.GQ,new A.a8M(r,a),o),new A.q0("Locali","Importa cartelle e archivi ZIP, valida Bot.json e prepara un ambiente isolato per l'esecuzione.",B.GU,new A.a8N(r,a),p.y),new A.q0("Impostazioni","Personalizza tema, preferenze di privacy, telemetria e integrazioni con strumenti esterni.",B.H6,new A.a8O(r,a),s)],t.OM),q),new A.vY(B.G_,new A.vZ(new A.MA(new A.a8P(r,a),q),q),q)],t.p)
-return A.lV(q,A.a1Y(!0,new A.Ln(s,B.ao,!1,q,q,B.iR,q,!1,q,0,q,q,B.fk,B.a2,q,q,B.F,B.ap,q),B.S),q)}}
+s=A.b([new A.vY(B.G0,new A.vZ(new A.MC(new A.a8J(r,a),new A.a8K(r,a),q),q),q),new A.MB(A.b([new A.q0("Scaricati","Consulta i bot installati localmente, aggiorna versioni e monitora gli esiti delle ultime esecuzioni.",B.GT,new A.a8L(r,a),p.b),new A.q0("Online","Esplora il marketplace ufficiale, filtra per linguaggio, tag o permessi e installa nuovi bot.",B.GQ,new A.a8M(r,a),m),new A.q0("Locali","Importa cartelle e archivi ZIP, valida Bot.json e prepara un ambiente isolato per l'esecuzione.",B.GU,new A.a8N(r,a),p.y),new A.q0("Impostazioni","Personalizza tema, preferenze di privacy, telemetria e integrazioni con strumenti esterni.",B.H6,new A.a8O(r,a),s)],t.OM),q),new A.vY(B.G_,new A.vZ(new A.MA(new A.a8P(r,a),q),q),q)],t.p)
+return A.lV(q,A.a1Y(!0,new A.Ln(s,B.ao,!1,q,q,B.iR,q,!1,q,0,n,q,B.fk,B.a2,q,q,B.F,B.ap,q),B.S),q)}}
 A.a8L.prototype={
 $0(){A.de(this.b,!1).jf("/bots",new A.pa(B.j_),t.X)
 return null},
