@@ -44,11 +44,11 @@ class MyApp extends StatelessWidget {
   final TelemetryService telemetryService;
   final ThemeController themeController;
 
-  const MyApp({
+  MyApp({
     super.key,
     required this.telemetryService,
-    required this.themeController,
-  });
+    ThemeController? themeController,
+  }) : themeController = themeController ?? ThemeController();
 
   @override
   Widget build(BuildContext context) {

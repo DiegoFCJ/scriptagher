@@ -85,7 +85,7 @@ class ThemeController extends ChangeNotifier {
         backgroundColor: colorScheme.inverseSurface,
         contentTextStyle: TextStyle(color: colorScheme.onInverseSurface),
       ),
-      cardTheme: CardTheme(
+      cardTheme: CardThemeData(
         color: colorScheme.surface,
         elevation: 2,
         margin: const EdgeInsets.symmetric(vertical: 8),
@@ -155,7 +155,7 @@ class ThemeController extends ChangeNotifier {
       ),
       textTheme: ThemeData(brightness: Brightness.light)
           .textTheme
-          .apply(fontWeightDelta: 1, bodyColor: Colors.black, displayColor: Colors.black),
+          .apply(bodyColor: Colors.black, displayColor: Colors.black),
       chipTheme: ChipThemeData(
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
         selectedColor: accent,
