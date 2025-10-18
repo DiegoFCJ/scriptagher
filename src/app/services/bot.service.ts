@@ -9,7 +9,6 @@ import { APP_BASE_HREF, DOCUMENT } from '@angular/common';
 export class BotService {
   private readonly botsBaseUrl: URL;
   private readonly botsSourceBaseUrl: URL;
-  private readonly installersBaseUrl: URL;
 
   constructor(
     private http: HttpClient,
@@ -19,7 +18,6 @@ export class BotService {
     const baseUrl = this.resolveBaseUrl();
     this.botsBaseUrl = new URL('bots/', baseUrl);
     this.botsSourceBaseUrl = new URL('bots/', baseUrl);
-    this.installersBaseUrl = new URL('installers/', baseUrl);
   }
 
   private resolveBaseUrl(): string {
@@ -48,14 +46,6 @@ export class BotService {
   }
 
   /**
-   * Fetch the installers manifest from installers.json.
-   */
-  getInstallers(): Observable<any> {
-    const installersJsonPath = new URL('installers.json', this.installersBaseUrl).toString();
-    return this.http.get(installersJsonPath);
-  }
-
-  /**
    * Costruisce il percorso completo per ottenere i dettagli di un bot specifico.
    * Fetch detailed bot information from Bot.json.
    * @param bot - The bot's name.
@@ -73,16 +63,6 @@ export class BotService {
     const assetName = bot.path || `${bot.botName}.zip`;
     const zipPath = new URL(`${bot.language}/${bot.botName}/${assetName}`, this.botsBaseUrl).toString();
     return this.http.get(zipPath, { responseType: 'blob' });
-  }
-
-  /**
-   * Fetch and download a platform installer asset.
-   * @param installer - Installer metadata containing the asset filename.
-   */
-  downloadInstaller(installer: any): Observable<Blob> {
-    const assetName = installer?.asset || installer?.filename;
-    const installerPath = new URL(`${assetName}`, this.installersBaseUrl).toString();
-    return this.http.get(installerPath, { responseType: 'blob' });
   }
 
   /**
