@@ -94,6 +94,29 @@ export class BotService {
   }
 
   listInstallerAssets(): Observable<InstallerAsset[]> {
+    return this.loadInstallerManifest().pipe(
+      switchMap((manifest) => {
+        if (manifest) {
+          return this.createInstallerAssetsFromManifest(manifest).pipe(
+            switchMap((assets) => {
+              if (assets.length) {
+                return of(assets);
+              }
+              return this.listInstallerAssetsFromGithub();
+            })
+          );
+        }
+
+        return this.listInstallerAssetsFromGithub();
+      }),
+      catchError((error) => {
+        console.error('Error loading installer manifest, falling back to GitHub', error);
+        return this.listInstallerAssetsFromGithub();
+      })
+    );
+  }
+
+  private listInstallerAssetsFromGithub(): Observable<InstallerAsset[]> {
     if (!this.githubRepoOwner || !this.githubRepoName) {
       return of([]);
     }
@@ -144,6 +167,591 @@ export class BotService {
         return of([]);
       })
     );
+  }
+
+  private loadInstallerManifest(): Observable<unknown | null> {
+    const manifestCandidates = ['installers.json', 'manifest.json', 'index.json'];
+
+    return manifestCandidates.reduce((stream, candidate) => {
+      return stream.pipe(
+        switchMap((result) => {
+          if (result) {
+            return of(result);
+          }
+          return this.fetchManifestCandidate(candidate);
+        })
+      );
+    }, of<unknown | null>(null));
+  }
+
+  private fetchManifestCandidate(filename: string): Observable<unknown | null> {
+    try {
+      const manifestUrl = new URL(filename, this.installersBaseUrl).toString();
+      return this.http.get<unknown>(manifestUrl).pipe(
+        catchError(() => of(null))
+      );
+    } catch {
+      return of(null);
+    }
+  }
+
+  private createInstallerAssetsFromManifest(manifest: unknown): Observable<InstallerAsset[]> {
+    const entries = this.extractInstallerEntriesFromManifest(manifest);
+    if (!entries.length) {
+      return of([]);
+    }
+
+    const assetRequests = entries.map((entry) =>
+      this.createInstallerAssetFromManifestEntry(entry).pipe(
+        catchError((error) => {
+          console.error(`Unable to map installer manifest entry for ${entry.path}`, error);
+          return of(null);
+        })
+      )
+    );
+
+    return forkJoin(assetRequests).pipe(
+      map((assets) =>
+        assets
+          .filter((asset): asset is InstallerAsset => !!asset)
+          .sort((a, b) => {
+            const platformComparison = a.platform.localeCompare(b.platform);
+            if (platformComparison !== 0) {
+              return platformComparison;
+            }
+            return a.filename.localeCompare(b.filename);
+          })
+      )
+    );
+  }
+
+  private extractInstallerEntriesFromManifest(manifest: unknown): ManifestFileEntry[] {
+    const entries = new Map<string, ManifestFileEntry>();
+
+    const visit = (value: unknown, context: string[]): void => {
+      if (value === null || value === undefined) {
+        return;
+      }
+
+      if (typeof value === 'string') {
+        const fullPath = this.combineContextPath(context, value);
+        if (this.isBinaryFile(fullPath)) {
+          const normalized = this.normalizeManifestRelativePath(fullPath);
+          if (!entries.has(normalized)) {
+            entries.set(normalized, { path: fullPath });
+          }
+        }
+        return;
+      }
+
+      if (Array.isArray(value)) {
+        value.forEach((item) => visit(item, context));
+        return;
+      }
+
+      if (typeof value !== 'object') {
+        return;
+      }
+
+      const node = value as Record<string, unknown>;
+      const type = this.pickString(node, ['type']);
+      const pathProperty = this.pickString(node, ['path', 'file', 'filename', 'relativePath', 'download']);
+      const metadataPath = this.pickString(node, ['metadataPath', 'metadataFile']);
+      const downloadUrl = this.pickString(node, ['downloadUrl', 'url', 'href']);
+      const displayName = this.pickString(node, ['displayName', 'title']);
+      const name = this.pickString(node, ['name']);
+      const platform = this.pickString(node, ['platform', 'os', 'system']);
+      const description = this.pickString(node, ['description', 'details', 'summary']);
+      const contentType = this.pickString(node, ['contentType', 'mimeType']);
+      const checksum = this.pickString(node, ['checksum', 'sha256', 'sha1', 'md5']);
+      const size = this.pickNumber(node, ['size', 'fileSize', 'bytes']);
+
+      const embeddedMetadata = this.extractEmbeddedMetadata(node);
+
+      if (pathProperty && this.isBinaryFile(pathProperty)) {
+        const fullPath = this.combineContextPath(context, pathProperty);
+        const normalized = this.normalizeManifestRelativePath(fullPath);
+        const existing = entries.get(normalized) ?? { path: fullPath };
+
+        existing.path = fullPath;
+        if (metadataPath) {
+          existing.metadataPath = this.combineContextPath(context, metadataPath);
+        }
+        if (embeddedMetadata) {
+          existing.metadata = this.mergeManifestMetadata(existing.metadata, embeddedMetadata);
+        }
+        if (displayName || name) {
+          existing.overrideName = existing.overrideName ?? displayName ?? name;
+        }
+        if (platform) {
+          existing.platform = existing.platform ?? platform;
+        }
+        if (description) {
+          existing.description = existing.description ?? description;
+        }
+        if (downloadUrl) {
+          existing.downloadUrl = existing.downloadUrl ?? downloadUrl;
+        }
+        if (contentType) {
+          existing.contentType = existing.contentType ?? contentType;
+        }
+        if (checksum) {
+          existing.checksum = existing.checksum ?? checksum;
+        }
+        if (size !== undefined) {
+          existing.size = existing.size ?? size;
+        }
+
+        entries.set(normalized, existing);
+        return;
+      }
+
+      const directoryContext = (() => {
+        if (type && type.toLowerCase() === 'directory') {
+          const directorySource = pathProperty ?? name;
+          if (directorySource) {
+            return this.combineContextSegments(context, directorySource);
+          }
+        }
+        if (pathProperty && !this.isBinaryFile(pathProperty)) {
+          return this.combineContextSegments(context, pathProperty);
+        }
+        if (name && !this.isBinaryFile(name)) {
+          return this.combineContextSegments(context, name);
+        }
+        return context;
+      })();
+
+      const childKeys = ['children', 'items', 'entries', 'installers', 'files', 'directories', 'folders', 'contents'];
+      for (const key of childKeys) {
+        const child = node[key];
+        if (child !== undefined) {
+          visit(child, directoryContext);
+        }
+      }
+
+      for (const [key, child] of Object.entries(node)) {
+        if (childKeys.includes(key)) {
+          continue;
+        }
+        if (
+          [
+            'type',
+            'path',
+            'file',
+            'filename',
+            'relativePath',
+            'download',
+            'metadata',
+            'metadataPath',
+            'metadataFile',
+            'downloadUrl',
+            'url',
+            'href',
+            'displayName',
+            'title',
+            'name',
+            'platform',
+            'os',
+            'system',
+            'description',
+            'details',
+            'summary',
+            'contentType',
+            'mimeType',
+            'checksum',
+            'sha256',
+            'sha1',
+            'md5',
+            'size',
+            'fileSize',
+            'bytes'
+          ].includes(key)
+        ) {
+          continue;
+        }
+
+        const nextContext = this.shouldTreatKeyAsDirectory(key, child)
+          ? this.combineContextSegments(directoryContext, key)
+          : directoryContext;
+
+        visit(child, nextContext);
+      }
+    };
+
+    visit(manifest, []);
+
+    return Array.from(entries.values());
+  }
+
+  private createInstallerAssetFromManifestEntry(entry: ManifestFileEntry): Observable<InstallerAsset | null> {
+    const normalizedPath = this.normalizeManifestRelativePath(entry.path);
+    if (!normalizedPath) {
+      return of(null);
+    }
+
+    const isAbsolute = this.isAbsoluteUrl(normalizedPath);
+    const filename = this.extractFilename(normalizedPath);
+    const relativePath = isAbsolute ? filename : this.getRelativeInstallerPath(normalizedPath);
+    const directories = isAbsolute ? [] : this.getInstallerDirectories(normalizedPath);
+
+    return this.loadInstallerMetadataForManifestEntry(entry, normalizedPath).pipe(
+      map((metadata) => {
+        const metadataOverrides = this.buildMetadataOverrides(entry);
+        const combinedMetadata = this.mergeManifestMetadata(metadata, metadataOverrides);
+
+        const platform = this.normalizePlatform(
+          combinedMetadata?.platform ?? entry.platform ?? this.inferPlatformFromName(filename)
+        );
+
+        const finalMetadata = combinedMetadata && Object.keys(combinedMetadata).length
+          ? combinedMetadata
+          : undefined;
+
+        const downloadUrl = isAbsolute
+          ? normalizedPath
+          : this.getInstallerDownloadUrl(normalizedPath, relativePath, null, finalMetadata);
+
+        const size = entry.size ?? this.extractSizeFromMetadata(finalMetadata) ?? 0;
+
+        return {
+          name: finalMetadata?.displayName
+            ?? finalMetadata?.name
+            ?? entry.overrideName
+            ?? filename,
+          filename,
+          path: normalizedPath,
+          downloadUrl,
+          size,
+          platform,
+          contentType: finalMetadata?.contentType ?? entry.contentType ?? this.inferContentType(filename),
+          metadata: finalMetadata,
+          directories,
+          relativePath,
+        } satisfies InstallerAsset;
+      })
+    );
+  }
+
+  private loadInstallerMetadataForManifestEntry(
+    entry: ManifestFileEntry,
+    normalizedPath: string
+  ): Observable<InstallerMetadata | undefined> {
+    const derivedMetadataPath = this.deriveMetadataPathFromRelativePath(normalizedPath);
+    const metadataPath = entry.metadataPath ?? derivedMetadataPath;
+
+    if (!metadataPath) {
+      return of(entry.metadata);
+    }
+
+    const resolvedMetadataUrl = this.resolveManifestAssetUrl(metadataPath);
+
+    return this.http.get<InstallerMetadata>(resolvedMetadataUrl).pipe(
+      map((remoteMetadata) => this.mergeManifestMetadata(entry.metadata, remoteMetadata)),
+      catchError(() => of(entry.metadata))
+    );
+  }
+
+  private mergeManifestMetadata(
+    ...metadatas: (InstallerMetadata | undefined)[]
+  ): InstallerMetadata | undefined {
+    const merged = metadatas.reduce((acc, metadata) => {
+      if (!metadata) {
+        return acc;
+      }
+      return { ...acc, ...metadata };
+    }, {} as InstallerMetadata);
+
+    return Object.keys(merged).length ? merged : undefined;
+  }
+
+  private buildMetadataOverrides(entry: ManifestFileEntry): InstallerMetadata | undefined {
+    const overrides: InstallerMetadata = {};
+
+    if (entry.overrideName) {
+      overrides.displayName = entry.overrideName;
+    }
+    if (entry.description) {
+      overrides.description = entry.description;
+    }
+    if (entry.platform) {
+      overrides.platform = entry.platform;
+    }
+    if (entry.downloadUrl) {
+      overrides.downloadUrl = this.resolveManifestAssetUrl(entry.downloadUrl);
+    }
+    if (entry.contentType) {
+      overrides.contentType = entry.contentType;
+    }
+    if (entry.checksum) {
+      overrides.checksum = entry.checksum;
+    }
+
+    return Object.keys(overrides).length ? overrides : undefined;
+  }
+
+  private resolveManifestAssetUrl(pathOrUrl: string): string {
+    if (!pathOrUrl) {
+      return pathOrUrl;
+    }
+
+    const trimmed = pathOrUrl.trim();
+    if (!trimmed) {
+      return trimmed;
+    }
+
+    if (this.isAbsoluteUrl(trimmed)) {
+      return trimmed;
+    }
+
+    const sanitized = trimmed.replace(/^\.\/+/, '').replace(/^\/+/, '');
+    return new URL(sanitized, this.installersBaseUrl).toString();
+  }
+
+  private normalizeManifestRelativePath(path: string): string {
+    if (!path) {
+      return '';
+    }
+
+    const trimmed = path.trim();
+    if (!trimmed) {
+      return '';
+    }
+
+    if (this.isAbsoluteUrl(trimmed)) {
+      return trimmed;
+    }
+
+    let sanitized = trimmed.replace(/^\.\/+/, '').replace(/^\/+/, '');
+    const base = this.githubInstallersPath.replace(/^\/+/, '');
+    if (base && sanitized.toLowerCase().startsWith(base.toLowerCase())) {
+      sanitized = sanitized.slice(base.length);
+      sanitized = sanitized.replace(/^\/+/, '');
+    }
+
+    return sanitized;
+  }
+
+  private combineContextSegments(context: string[], segment: string): string[] {
+    if (!segment) {
+      return context;
+    }
+
+    const trimmed = segment.trim();
+    if (!trimmed || this.isAbsoluteUrl(trimmed)) {
+      return context;
+    }
+
+    const sanitized = trimmed.replace(/^\.\/+/, '').replace(/^\/+/, '');
+    let parts = sanitized.split('/').filter(Boolean);
+    if (!parts.length) {
+      return context;
+    }
+
+    const base = this.githubInstallersPath.replace(/^\/+/, '').toLowerCase();
+    if (base && parts[0].toLowerCase() === base) {
+      parts = parts.slice(1);
+    }
+
+    if (!parts.length) {
+      return context;
+    }
+
+    return [...context, ...parts];
+  }
+
+  private combineContextPath(context: string[], value: string): string {
+    if (!value) {
+      return value;
+    }
+
+    const trimmed = value.trim();
+    if (!trimmed) {
+      return trimmed;
+    }
+
+    if (this.isAbsoluteUrl(trimmed)) {
+      return trimmed;
+    }
+
+    const sanitized = trimmed.replace(/^\.\/+/, '').replace(/^\/+/, '');
+    if (!context.length) {
+      return sanitized;
+    }
+
+    const base = this.githubInstallersPath.replace(/^\/+/, '').toLowerCase();
+    if (base && sanitized.toLowerCase().startsWith(base)) {
+      return sanitized;
+    }
+
+    const contextPath = context.join('/');
+    const lowerContextPath = contextPath.toLowerCase();
+    const lowerSanitized = sanitized.toLowerCase();
+
+    if (lowerSanitized.startsWith(lowerContextPath + '/')) {
+      return sanitized;
+    }
+
+    if (lowerSanitized === lowerContextPath) {
+      return sanitized;
+    }
+
+    return [...context, sanitized].filter(Boolean).join('/');
+  }
+
+  private shouldTreatKeyAsDirectory(key: string, value: unknown): boolean {
+    if (!key) {
+      return false;
+    }
+
+    if (value === null || value === undefined) {
+      return false;
+    }
+
+    if (typeof value !== 'object') {
+      return false;
+    }
+
+    const lowered = key.toLowerCase();
+    const reservedKeys = new Set([
+      'children',
+      'items',
+      'entries',
+      'installers',
+      'files',
+      'directories',
+      'folders',
+      'contents',
+      'metadata',
+      'path',
+      'file',
+      'filename',
+      'relativepath',
+      'download',
+      'downloadurl',
+      'url',
+      'href',
+      'description',
+      'details',
+      'summary',
+      'platform',
+      'os',
+      'system',
+      'type',
+      'size',
+      'filesize',
+      'bytes',
+      'contenttype',
+      'mimetype',
+      'checksum',
+      'sha256',
+      'sha1',
+      'md5'
+    ]);
+
+    if (reservedKeys.has(lowered)) {
+      return false;
+    }
+
+    if (/^\d+$/.test(key)) {
+      return false;
+    }
+
+    if (key.includes('.')) {
+      return false;
+    }
+
+    return true;
+  }
+
+  private pickString(source: Record<string, unknown>, keys: string[]): string | undefined {
+    for (const key of keys) {
+      const value = source[key];
+      if (typeof value === 'string' && value.trim()) {
+        return value;
+      }
+    }
+    return undefined;
+  }
+
+  private pickNumber(source: Record<string, unknown>, keys: string[]): number | undefined {
+    for (const key of keys) {
+      const value = source[key];
+      if (typeof value === 'number' && !Number.isNaN(value)) {
+        return value;
+      }
+      if (typeof value === 'string' && value.trim()) {
+        const parsed = Number(value);
+        if (!Number.isNaN(parsed)) {
+          return parsed;
+        }
+      }
+    }
+    return undefined;
+  }
+
+  private extractEmbeddedMetadata(node: Record<string, unknown>): InstallerMetadata | undefined {
+    const metadataValue = node['metadata'];
+    if (!metadataValue || typeof metadataValue !== 'object' || Array.isArray(metadataValue)) {
+      return undefined;
+    }
+    return metadataValue as InstallerMetadata;
+  }
+
+  private deriveMetadataPathFromRelativePath(path: string): string | undefined {
+    if (!path || this.isAbsoluteUrl(path)) {
+      return undefined;
+    }
+
+    const lower = path.toLowerCase();
+    if (lower.endsWith('.tar.gz')) {
+      return `${path.slice(0, -7)}.json`;
+    }
+    if (lower.endsWith('.tar.xz')) {
+      return `${path.slice(0, -7)}.json`;
+    }
+    if (lower.endsWith('.tar.bz2')) {
+      return `${path.slice(0, -8)}.json`;
+    }
+    const lastDot = path.lastIndexOf('.');
+    if (lastDot === -1) {
+      return `${path}.json`;
+    }
+    return `${path.slice(0, lastDot)}.json`;
+  }
+
+  private extractFilename(path: string): string {
+    if (!path) {
+      return '';
+    }
+    const segments = path.split('/').filter(Boolean);
+    return segments.length ? segments[segments.length - 1] : path;
+  }
+
+  private extractSizeFromMetadata(metadata: InstallerMetadata | undefined): number | undefined {
+    if (!metadata) {
+      return undefined;
+    }
+
+    const keys = ['size', 'fileSize', 'bytes'];
+    for (const key of keys) {
+      const value = metadata[key];
+      if (typeof value === 'number' && !Number.isNaN(value)) {
+        return value;
+      }
+      if (typeof value === 'string' && value.trim()) {
+        const parsed = Number(value);
+        if (!Number.isNaN(parsed)) {
+          return parsed;
+        }
+      }
+    }
+
+    return undefined;
+  }
+
+  private isAbsoluteUrl(value: string): boolean {
+    return /^https?:\/\//i.test(value);
   }
 
   private fetchInstallerContents(path: string): Observable<GitHubContentItem[]> {
@@ -629,4 +1237,17 @@ export interface InstallerAsset {
 interface InstallerMetadataEntry {
   keys: string[];
   metadata: InstallerMetadata;
+}
+
+interface ManifestFileEntry {
+  path: string;
+  metadataPath?: string;
+  metadata?: InstallerMetadata;
+  overrideName?: string;
+  platform?: string;
+  description?: string;
+  downloadUrl?: string;
+  contentType?: string;
+  checksum?: string;
+  size?: number;
 }
