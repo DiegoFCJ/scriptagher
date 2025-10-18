@@ -58,7 +58,6 @@ ios/
 windows/
 linux/
 macos/
-web/
 
 # VSCode specific
 .vscode/
