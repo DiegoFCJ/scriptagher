@@ -43,6 +43,9 @@ jobs:
           channel: stable
           cache: true
 
+      - name: Ensure Android platform sources
+        run: flutter create . --platforms=android -t app
+
       - name: Flutter pub get
         run: flutter pub get
 
