@@ -19,37 +19,48 @@
           return;
         }
 
-        let baseHref = baseElement.getAttribute('href') || '';
-        if (!baseHref || baseHref === '$FLUTTER_BASE_HREF') {
-          baseHref = new URL('./', window.location.href).pathname;
-        } else {
-          baseHref = new URL(baseHref, window.location.href).pathname;
+        const rawBaseHref = baseElement.getAttribute('href') || '';
+        const resolvedBaseUrl = new URL(
+          !rawBaseHref || rawBaseHref === '$FLUTTER_BASE_HREF'
+            ? './'
+            : rawBaseHref,
+          window.location.href
+        );
+
+        let normalizedBasePath = resolvedBaseUrl.pathname;
+        if (!normalizedBasePath.endsWith('/')) {
+          normalizedBasePath = `${normalizedBasePath}/`;
         }
 
-        if (!baseHref.endsWith('/')) {
-          baseHref = `${baseHref}/`;
-        }
+        baseElement.setAttribute('href', normalizedBasePath);
 
-        baseElement.setAttribute('href', baseHref);
+        const serviceWorkerUrl = new URL(
+          'flutter_service_worker.js',
+          resolvedBaseUrl
+        ).toString();
 
         window.flutterConfiguration = window.flutterConfiguration || {};
         if (!window.flutterConfiguration.assetBase) {
-          window.flutterConfiguration.assetBase = baseHref;
+          window.flutterConfiguration.assetBase = normalizedBasePath;
         }
 
-        window.__flutterServiceWorkerUrl = new URL(
-          'flutter_service_worker.js',
-          `${window.location.origin}${baseHref}`
-        ).toString();
+        if (!window.flutterConfiguration.serviceWorkerUrl) {
+          window.flutterConfiguration.serviceWorkerUrl = serviceWorkerUrl;
+        }
+
+        window.__flutterServiceWorkerUrl = serviceWorkerUrl;
       })();
     </script>
     <script src="flutter.js" defer></script>
     <script>
       window.addEventListener('load', function () {
+        const serviceWorkerUrl =
+          window.__flutterServiceWorkerUrl || 'flutter_service_worker.js';
+
         if ('serviceWorker' in navigator) {
-          const serviceWorkerUrl =
-            window.__flutterServiceWorkerUrl || 'flutter_service_worker.js';
-          navigator.serviceWorker.register(serviceWorkerUrl);
+          navigator.serviceWorker.register(serviceWorkerUrl).catch(function (error) {
+            console.error('Registrazione ServiceWorker fallita', error);
+          });
         }
 
         if (!window._flutter || !window._flutter.loader) {
@@ -57,12 +68,18 @@
           return;
         }
 
+        const serviceWorkerConfig = {
+          serviceWorkerVersion:
+            window.flutterConfiguration?.serviceWorkerVersion,
+        };
+
+        if (serviceWorkerUrl) {
+          serviceWorkerConfig.serviceWorkerUrl = serviceWorkerUrl;
+        }
+
         window._flutter.loader
           .loadEntrypoint({
-            serviceWorker: {
-              serviceWorkerVersion:
-                window.flutterConfiguration?.serviceWorkerVersion,
-            },
+            serviceWorker: serviceWorkerConfig,
             onEntrypointLoaded: function (engineInitializer) {
               engineInitializer
                 .initializeEngine()
