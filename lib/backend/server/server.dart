@@ -15,6 +15,13 @@ import 'routes.dart';
 import 'package:scriptagher/backend/server/api_integration/github_api.dart';
 import 'services/system_runtime_service.dart';
 
+const Map<String, String> _defaultCorsHeaders = <String, String>{
+  'Access-Control-Allow-Origin': '*',
+  'Access-Control-Allow-Methods': 'GET, POST, PUT, DELETE, OPTIONS',
+  'Access-Control-Allow-Headers':
+      'Origin, Content-Type, Accept, Authorization, X-Requested-With',
+};
+
 Future<void> startServer() async {
   // Crea un'istanza del CustomLogger
   final CustomLogger logger = CustomLogger();
@@ -53,6 +60,7 @@ Future<void> startServer() async {
   // Usa il middleware di logging per tracciare le richieste
   final handler = const Pipeline()
       .addMiddleware(logRequests()) // Middleware per il log delle richieste
+      .addMiddleware(createMiddleware())
       .addMiddleware(
           _logCustomRequests(logger)) // Usa il Custom Logger per le richieste
       .addHandler(router); // Usa il router per gestire le richieste
@@ -66,6 +74,38 @@ Future<void> startServer() async {
     // Log dell'errore se il server non riesce ad avviarsi
     logger.error(LOGS.serverError, 'Error starting server: $e');
   }
+}
+
+Middleware createMiddleware() {
+  return (Handler innerHandler) {
+    return (Request request) async {
+      if (request.method == 'OPTIONS') {
+        return Response.ok(
+          '',
+          headers: _defaultCorsHeaders,
+        );
+      }
+
+      final Response response = await innerHandler(request);
+      final Map<String, String> headersToAdd = <String, String>{
+        if (!response.headers.containsKey('Access-Control-Allow-Origin'))
+          'Access-Control-Allow-Origin':
+              _defaultCorsHeaders['Access-Control-Allow-Origin']!,
+        if (!response.headers.containsKey('Access-Control-Allow-Methods'))
+          'Access-Control-Allow-Methods':
+              _defaultCorsHeaders['Access-Control-Allow-Methods']!,
+        if (!response.headers.containsKey('Access-Control-Allow-Headers'))
+          'Access-Control-Allow-Headers':
+              _defaultCorsHeaders['Access-Control-Allow-Headers']!,
+      };
+
+      if (headersToAdd.isEmpty) {
+        return response;
+      }
+
+      return response.change(headers: headersToAdd);
+    };
+  };
 }
 
 // Middleware personalizzato che usa il Custom Logger
