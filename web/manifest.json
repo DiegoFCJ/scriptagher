@@ -1,0 +1,10 @@
+{
+  "name": "Scriptagher",
+  "short_name": "Scriptagher",
+  "start_url": ".",
+  "display": "standalone",
+  "background_color": "#0175C2",
+  "theme_color": "#0175C2",
+  "description": "Scriptagher Flutter Web App",
+  "orientation": "portrait-primary"
+}

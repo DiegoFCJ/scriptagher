@@ -1,4 +1,5 @@
 import 'dart:async';
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'shared/custom_logger.dart';
 import 'backend/server/server.dart';
@@ -33,14 +34,16 @@ Future<void> main() async {
   await startBackend(logger, telemetryService);
 
 // Configura la finestra prima dell'avvio dell'app
-  doWhenWindowReady(() {
-    final win = appWindow;
-    win.minSize = const Size(800, 600); // Imposta una dimensione minima
-    win.size = const Size(1024, 768); // Imposta una dimensione iniziale
-    win.alignment = Alignment.center;
-    win.title = "Scriptagher"; // Titolo della finestra
-    win.show(); // Mostra la finestra
-  });
+  if (!kIsWeb) {
+    doWhenWindowReady(() {
+      final win = appWindow;
+      win.minSize = const Size(800, 600); // Imposta una dimensione minima
+      win.size = const Size(1024, 768); // Imposta una dimensione iniziale
+      win.alignment = Alignment.center;
+      win.title = "Scriptagher"; // Titolo della finestra
+      win.show(); // Mostra la finestra
+    });
+  }
   
   // Avvio del frontend
   runApp(MyApp(telemetryService: telemetryService));
@@ -106,20 +109,35 @@ class MyApp extends StatelessWidget {
 
       debugShowCheckedModeBanner: false,
       theme: ThemeData(primarySwatch: Colors.blue),
-      home: WindowBorder(
-        child: HomeScreen(),
-        color: Colors.transparent,
-      ),
+      home: kIsWeb
+          ? Scaffold(
+              body: SafeArea(
+                child: Column(
+                  children: [
+                    const WindowTitleBar(),
+                    Expanded(
+                      child: HomePage(),
+                    ),
+                  ],
+                ),
+              ),
+            )
+          : WindowBorder(
+              child: const HomeScreen(),
+              color: Colors.transparent,
+            ),
     );
   }
 }
 
 class HomeScreen extends StatelessWidget {
+  const HomeScreen({super.key});
+
   @override
   Widget build(BuildContext context) {
     return Column(
       children: [
-        WindowTitleBar(),
+        const WindowTitleBar(),
         Expanded(
           child: HomePage(),
         ),
