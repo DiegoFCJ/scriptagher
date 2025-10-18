@@ -32,6 +32,10 @@ class HomePage extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final colorScheme = Theme.of(context).colorScheme;
+    final viewportHeight = MediaQuery.of(context).size.height;
+    final precacheExtent = viewportHeight.isFinite && viewportHeight > 0
+        ? viewportHeight * 1.5
+        : 1200.0;
 
     final features = [
       HomeFeatureItem(
@@ -72,6 +76,9 @@ class HomePage extends StatelessWidget {
       body: AppGradientBackground(
         padding: EdgeInsets.zero,
         child: CustomScrollView(
+          // Precache slivers beyond the first fold so widget tests can access
+          // the navigation cards without requiring an explicit scroll.
+          cacheExtent: precacheExtent,
           slivers: [
             SliverPadding(
               padding: const EdgeInsets.fromLTRB(24, 32, 24, 16),
