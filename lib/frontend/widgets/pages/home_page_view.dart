@@ -1,100 +1,13 @@
 import 'package:flutter/material.dart';
 import '../../models/bot_navigation.dart';
+import '../components/call_to_action_banner.dart';
+import '../components/feature_grid_section.dart';
+import '../components/gradient_hero_section.dart';
 
-class HomePage extends StatefulWidget {
+class HomePage extends StatelessWidget {
   const HomePage({super.key});
 
-  @override
-  State<HomePage> createState() => _HomePageState();
-}
-
-class _HomePageState extends State<HomePage>
-    with SingleTickerProviderStateMixin {
-  final List<_Category> _categories = const [
-    _Category(
-      title: 'Scaricati',
-      description:
-          'Consulta i bot che hai già scaricato e salvato nel database locale.',
-      icon: Icons.download_done_outlined,
-      category: BotCategory.downloaded,
-    ),
-    _Category(
-      title: 'Online',
-      description:
-          'Scopri i bot disponibili online tramite le API e scaricane di nuovi.',
-      icon: Icons.cloud_outlined,
-      category: BotCategory.online,
-    ),
-    _Category(
-      title: 'Locali',
-      description:
-          'Gestisci i bot presenti direttamente nel filesystem della macchina.',
-      icon: Icons.folder_outlined,
-      category: BotCategory.local,
-    ),
-  ];
-
-  final List<_SectionItem> _sections = const [
-    _SectionItem(
-      title: 'Impostazioni',
-      description: 'Gestisci preferenze, privacy e telemetria',
-      icon: Icons.settings_outlined,
-      routeName: '/settings',
-    ),
-  ];
-
-  late final TabController _tabController;
-  int _selectedIndex = 0;
-  bool _isTabControllerUpdateFromNavigation = false;
-
-  int get _totalDestinations => _categories.length + _sections.length;
-
-  @override
-  void initState() {
-    super.initState();
-    _tabController = TabController(length: _totalDestinations, vsync: this);
-    _tabController.addListener(_handleTabSelection);
-  }
-
-  @override
-  void dispose() {
-    _tabController.removeListener(_handleTabSelection);
-    _tabController.dispose();
-    super.dispose();
-  }
-
-  void _handleTabSelection() {
-    if (_tabController.indexIsChanging) return;
-
-    setState(() {
-      _selectedIndex = _tabController.index;
-    });
-
-    if (_isTabControllerUpdateFromNavigation) {
-      _isTabControllerUpdateFromNavigation = false;
-      return;
-    }
-
-    _handleSelection(_tabController.index);
-  }
-
-  void _onDestinationSelected(int index) {
-    if (_selectedIndex == index) {
-      _handleSelection(index);
-      return;
-    }
-    setState(() {
-      _selectedIndex = index;
-      if (_tabController.index != index) {
-        _isTabControllerUpdateFromNavigation = true;
-        _tabController.index = index;
-      }
-    });
-
-    _handleSelection(index);
-  }
-
-  void _openBots(BotCategory category) {
+  void _openBots(BuildContext context, BotCategory category) {
     Navigator.pushNamed(
       context,
       '/bots',
@@ -102,289 +15,153 @@ class _HomePageState extends State<HomePage>
     );
   }
 
-  void _openSection(_SectionItem section) {
-    Navigator.pushNamed(context, section.routeName);
+  void _openSettings(BuildContext context) {
+    Navigator.pushNamed(context, '/settings');
   }
 
-  void _handleSelection(int index) {
-    if (index < _categories.length) {
-      return;
-    }
-
-    final section = _sections[index - _categories.length];
-    _openSection(section);
-  }
-
-  void _openTutorial() {
+  void _openTutorial(BuildContext context) {
     Navigator.pushNamed(context, '/tutorial');
   }
 
-  Widget _buildCategoryContent(int index) {
-    if (index < _categories.length) {
-      final category = _categories[index];
-      return Padding(
-        key: ValueKey(category.category),
-        padding: const EdgeInsets.all(16.0),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Row(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                Icon(category.icon, size: 32, color: Colors.blueAccent),
-                const SizedBox(width: 12),
-                Text(
-                  category.title,
-                  style: const TextStyle(
-                    fontSize: 28,
-                    fontWeight: FontWeight.bold,
-                  ),
-                ),
-              ],
-            ),
-            const SizedBox(height: 16),
-            Text(
-              category.description,
-              style: const TextStyle(
-                fontSize: 16,
-                color: Colors.black54,
-              ),
-            ),
-            const Spacer(),
-            Align(
-              alignment: Alignment.bottomRight,
-              child: ElevatedButton.icon(
-                onPressed: () => _openBots(category.category),
-                icon: const Icon(Icons.arrow_forward),
-                label: const Text('Apri elenco'),
-              ),
-            ),
-          ],
-        ),
-      );
-    }
+  List<FeatureGridItem> _buildFeatureItems(BuildContext context) {
+    final theme = Theme.of(context);
+    final accent = theme.colorScheme.primary;
 
-    final section = _sections[index - _categories.length];
-    return Padding(
-      key: ValueKey(section.routeName),
-      padding: const EdgeInsets.all(16.0),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Row(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              Icon(section.icon, size: 32, color: Colors.blueAccent),
-              const SizedBox(width: 12),
-              Text(
-                section.title,
-                style: const TextStyle(
-                  fontSize: 28,
-                  fontWeight: FontWeight.bold,
-                ),
-              ),
-            ],
-          ),
-          const SizedBox(height: 16),
-          Text(
-            section.description,
-            style: const TextStyle(
-              fontSize: 16,
-              color: Colors.black54,
-            ),
-          ),
-          const Spacer(),
-          Align(
-            alignment: Alignment.bottomRight,
-            child: ElevatedButton.icon(
-              onPressed: () => _openSection(section),
-              icon: const Icon(Icons.arrow_forward),
-              label: Text('Apri ${section.title}'),
-            ),
-          ),
-        ],
+    return [
+      FeatureGridItem(
+        icon: Icons.download_rounded,
+        title: 'Scaricati',
+        description:
+            'Consulta i bot già installati, organizzati per linguaggio e tag.',
+        accentColor: accent,
+        onTap: () => _openBots(context, BotCategory.downloaded),
       ),
-    );
+      FeatureGridItem(
+        icon: Icons.cloud_rounded,
+        title: 'Marketplace Online',
+        description:
+            'Scopri le ultime novità dalla libreria remota e installa nuovi bot.',
+        accentColor: const Color(0xFF5AC8FA),
+        onTap: () => _openBots(context, BotCategory.online),
+      ),
+      FeatureGridItem(
+        icon: Icons.folder_rounded,
+        title: 'Bot Locali',
+        description:
+            'Gestisci i bot presenti sul filesystem con strumenti di import rapido.',
+        accentColor: const Color(0xFFFFB74D),
+        onTap: () => _openBots(context, BotCategory.local),
+      ),
+      FeatureGridItem(
+        icon: Icons.settings_rounded,
+        title: 'Impostazioni',
+        description:
+            'Personalizza preferenze, telemetria e comportamento dell’applicazione.',
+        accentColor: const Color(0xFF7E57C2),
+        onTap: () => _openSettings(context),
+      ),
+    ];
   }
 
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
-      body: Padding(
-        padding: const EdgeInsets.all(24.0),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            const Text(
-              'HOME - Cosa vuoi fare?',
-              style: TextStyle(
-                fontSize: 26,
-                fontWeight: FontWeight.bold,
-                color: Colors.black87,
-              ),
-            ),
-            const SizedBox(height: 16),
-            Card(
-              elevation: 2,
-              shape: RoundedRectangleBorder(
-                borderRadius: BorderRadius.circular(12),
-              ),
-              child: InkWell(
-                borderRadius: BorderRadius.circular(12),
-                onTap: _openTutorial,
-                child: Padding(
-                  padding: const EdgeInsets.all(20),
-                  child: Row(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      const Icon(Icons.school_outlined,
-                          color: Colors.blueAccent, size: 32),
-                      const SizedBox(width: 16),
-                      Expanded(
-                        child: Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            const Text(
-                              'Crea il tuo bot',
-                              style: TextStyle(
-                                fontSize: 20,
-                                fontWeight: FontWeight.bold,
-                              ),
-                            ),
-                            const SizedBox(height: 8),
-                            Text(
-                              'Segui il tutorial passo-passo per creare un bot sicuro compatibile con Scriptagher.',
-                              style: TextStyle(
-                                fontSize: 15,
-                                color: Colors.grey.shade700,
-                              ),
-                            ),
-                            const SizedBox(height: 12),
-                            Row(
-                              children: const [
-                                Text(
-                                  'Apri tutorial',
-                                  style: TextStyle(
-                                    fontSize: 15,
-                                    fontWeight: FontWeight.w600,
-                                  ),
-                                ),
-                                SizedBox(width: 4),
-                                Icon(Icons.arrow_forward, size: 18),
-                              ],
-                            ),
-                          ],
-                        ),
+    return LayoutBuilder(
+      builder: (context, constraints) {
+        final isDesktop = constraints.maxWidth >= 1100;
+        final isTablet = constraints.maxWidth >= 720 && constraints.maxWidth < 1100;
+        final crossAxisCount = isDesktop ? 3 : (isTablet ? 2 : 1);
+        final horizontalPadding = isDesktop
+            ? 120.0
+            : isTablet
+                ? 64.0
+                : 24.0;
+
+        return Scaffold(
+          backgroundColor: Theme.of(context).colorScheme.surface,
+          body: CustomScrollView(
+            physics: const BouncingScrollPhysics(),
+            slivers: [
+              SliverPadding(
+                padding: EdgeInsets.fromLTRB(
+                  horizontalPadding,
+                  isDesktop ? 64 : 32,
+                  horizontalPadding,
+                  28,
+                ),
+                sliver: SliverToBoxAdapter(
+                  child: GradientHeroSection(
+                    eyebrow: 'Scriptagher',
+                    title: 'Automatizza i tuoi workflow in sicurezza',
+                    subtitle:
+                        'Organizza, installa e monitora bot Python pronti all’uso da un’unica dashboard.'
+                        ' Il nuovo design offre un’esperienza coerente su desktop e web.',
+                    icon: Icons.smart_toy_rounded,
+                    primaryAction: FilledButton.icon(
+                      style: FilledButton.styleFrom(
+                        backgroundColor: Colors.white,
+                        foregroundColor: Theme.of(context).colorScheme.primary,
                       ),
-                    ],
+                      onPressed: () => _openBots(context, BotCategory.online),
+                      icon: const Icon(Icons.explore_rounded),
+                      label: const Text('Esplora i bot online'),
+                    ),
+                    secondaryAction: OutlinedButton.icon(
+                      style: OutlinedButton.styleFrom(
+                        foregroundColor: Colors.white,
+                        side: const BorderSide(color: Colors.white70),
+                      ),
+                      onPressed: () => _openTutorial(context),
+                      icon: const Icon(Icons.school_rounded),
+                      label: const Text('Impara a crearne uno'),
+                    ),
                   ),
                 ),
               ),
-            ),
-            const SizedBox(height: 24),
-            Expanded(
-              child: LayoutBuilder(
-                builder: (context, constraints) {
-                  if (constraints.maxWidth >= 800) {
-                    return Row(
-                      crossAxisAlignment: CrossAxisAlignment.stretch,
-                      children: [
-                        NavigationRail(
-                          selectedIndex: _selectedIndex,
-                          onDestinationSelected: _onDestinationSelected,
-                          labelType: NavigationRailLabelType.all,
-                          destinations: [
-                            ..._categories.map(
-                              (category) => NavigationRailDestination(
-                                icon: Icon(category.icon),
-                                selectedIcon: Icon(
-                                  category.icon,
-                                  color: Colors.blueAccent,
-                                ),
-                                label: Text(category.title),
-                              ),
-                            ),
-                            ..._sections.map(
-                              (section) => NavigationRailDestination(
-                                icon: Icon(section.icon),
-                                selectedIcon: Icon(
-                                  section.icon,
-                                  color: Colors.blueAccent,
-                                ),
-                                label: Text(section.title),
-                              ),
-                            ),
-                          ],
-                        ),
-                        const VerticalDivider(width: 1),
-                        Expanded(
-                          child: AnimatedSwitcher(
-                            duration: const Duration(milliseconds: 200),
-                            child: _buildCategoryContent(_selectedIndex),
-                          ),
-                        ),
-                      ],
-                    );
-                  }
-
-                  return Column(
-                    crossAxisAlignment: CrossAxisAlignment.stretch,
-                    children: [
-                      TabBar(
-                        controller: _tabController,
-                        labelColor: Colors.blueAccent,
-                        unselectedLabelColor: Colors.grey,
-                        tabs: [
-                          ..._categories.map((category) => Tab(text: category.title)),
-                          ..._sections.map((section) => Tab(text: section.title)),
-                        ],
-                      ),
-                      const SizedBox(height: 16),
-                      Expanded(
-                        child: TabBarView(
-                          controller: _tabController,
-                          children: List.generate(
-                            _totalDestinations,
-                            _buildCategoryContent,
-                          ),
-                        ),
-                      ),
-                    ],
-                  );
-                },
+              SliverPadding(
+                padding: EdgeInsets.symmetric(
+                  horizontal: horizontalPadding,
+                  vertical: 12,
+                ),
+                sliver: FeatureGridSection(
+                  items: _buildFeatureItems(context),
+                  crossAxisCount: crossAxisCount,
+                ),
               ),
-            ),
-          ],
-        ),
-      ),
+              SliverPadding(
+                padding: EdgeInsets.fromLTRB(
+                  horizontalPadding,
+                  32,
+                  horizontalPadding,
+                  isDesktop ? 64 : 32,
+                ),
+                sliver: SliverToBoxAdapter(
+                  child: CallToActionBanner(
+                    title: 'Pubblica il tuo primo bot in pochi minuti',
+                    subtitle:
+                        'Segui il tutorial guidato per preparare l’ambiente, definire il manifesto Bot.json '
+                        'e distribuire in sicurezza automazioni riutilizzabili.',
+                    icon: Icons.rocket_launch_rounded,
+                    primaryAction: FilledButton.icon(
+                      onPressed: () => _openTutorial(context),
+                      icon: const Icon(Icons.play_circle_fill_rounded),
+                      label: const Text('Avvia il tutorial'),
+                    ),
+                    secondaryAction: OutlinedButton.icon(
+                      onPressed: () => _openBots(context, BotCategory.local),
+                      icon: const Icon(Icons.folder_open_rounded),
+                      label: const Text('Gestisci bot locali'),
+                      style: OutlinedButton.styleFrom(
+                        foregroundColor: Colors.white,
+                        side: const BorderSide(color: Colors.white70),
+                      ),
+                    ),
+                  ),
+                ),
+              ),
+            ],
+          ),
+        );
+      },
     );
   }
-}
-
-class _Category {
-  final String title;
-  final String description;
-  final IconData icon;
-  final BotCategory category;
-
-  const _Category({
-    required this.title,
-    required this.description,
-    required this.icon,
-    required this.category,
-  });
-}
-
-class _SectionItem {
-  final String title;
-  final String description;
-  final IconData icon;
-  final String routeName;
-
-  const _SectionItem({
-    required this.title,
-    required this.description,
-    required this.icon,
-    required this.routeName,
-  });
 }

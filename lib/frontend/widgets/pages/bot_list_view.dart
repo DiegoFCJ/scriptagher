@@ -12,6 +12,7 @@ import '../../models/bot_navigation.dart';
 import '../../services/bot_get_service.dart';
 import '../../services/bot_upload_service.dart';
 import '../components/bot_card_component.dart';
+import '../components/gradient_hero_section.dart';
 import '../components/search_component.dart';
 import 'bot_detail_view.dart';
 
@@ -170,74 +171,194 @@ class _BotListState extends State<BotList>
 
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
-      appBar: AppBar(
-        title: const Text('Gestione Bot'),
-        actions: [
-          if (_selectedCategory == BotCategory.online)
-            Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 8.0),
-              child: TextButton.icon(
-                onPressed:
-                    _isRefreshingOnline ? null : () => _refreshOnlineBots(),
-                icon: _isRefreshingOnline
-                    ? const SizedBox(
-                        width: 16,
-                        height: 16,
-                        child: CircularProgressIndicator(strokeWidth: 2),
-                      )
-                    : const Icon(Icons.refresh),
-                label: Text(
-                    _isRefreshingOnline ? 'Aggiornamento...' : 'Aggiorna'),
+    final theme = Theme.of(context);
+
+    return LayoutBuilder(
+      builder: (context, constraints) {
+        final isDesktop = constraints.maxWidth >= 1200;
+        final isTablet = constraints.maxWidth >= 800 && constraints.maxWidth < 1200;
+        final horizontalPadding = isDesktop
+            ? 120.0
+            : isTablet
+                ? 72.0
+                : 24.0;
+        final isOnline = _selectedCategory == BotCategory.online;
+        final isLocal = _selectedCategory == BotCategory.local;
+
+        final VoidCallback? heroSecondaryOnPressed;
+        final Icon heroSecondaryIcon;
+        final String heroSecondaryLabel;
+        final ButtonStyle heroSecondaryStyle = FilledButton.styleFrom(
+          backgroundColor: Colors.white,
+          foregroundColor: theme.colorScheme.primary,
+        );
+
+        if (isOnline) {
+          heroSecondaryOnPressed =
+              _isRefreshingOnline ? null : _refreshOnlineBots;
+          heroSecondaryIcon = Icon(
+            _isRefreshingOnline
+                ? Icons.sync_rounded
+                : Icons.refresh_rounded,
+          );
+          heroSecondaryLabel =
+              _isRefreshingOnline ? 'Aggiornamento...' : 'Aggiorna elenco';
+        } else if (isLocal) {
+          heroSecondaryOnPressed = _isUploading ? null : _showUploadOptions;
+          heroSecondaryIcon = Icon(
+            _isUploading ? Icons.hourglass_top_rounded : Icons.upload_rounded,
+          );
+          heroSecondaryLabel =
+              _isUploading ? 'Caricamento...' : 'Importa nuovo bot';
+        } else {
+          heroSecondaryOnPressed = () => _goToCategory(BotCategory.online);
+          heroSecondaryIcon = const Icon(Icons.explore_rounded);
+          heroSecondaryLabel = 'Apri marketplace';
+        }
+
+        return Scaffold(
+          backgroundColor: theme.colorScheme.surface,
+          floatingActionButton: _selectedCategory == BotCategory.local
+              ? FloatingActionButton.extended(
+                  onPressed: _isUploading ? null : _showUploadOptions,
+                  icon: AnimatedSwitcher(
+                    duration: const Duration(milliseconds: 200),
+                    child: _isUploading
+                        ? const SizedBox(
+                            key: ValueKey('progress'),
+                            width: 20,
+                            height: 20,
+                            child: CircularProgressIndicator(strokeWidth: 2),
+                          )
+                        : const Icon(Icons.upload_file_rounded,
+                            key: ValueKey('icon')),
+                  ),
+                  label: Text(_isUploading ? 'Caricamento...' : 'Importa bot'),
+                )
+              : null,
+          body: NestedScrollView(
+            physics: const BouncingScrollPhysics(),
+            headerSliverBuilder: (context, innerBoxIsScrolled) => [
+              SliverPadding(
+                padding: EdgeInsets.fromLTRB(
+                  horizontalPadding,
+                  isDesktop ? 56 : 24,
+                  horizontalPadding,
+                  20,
+                ),
+                sliver: SliverToBoxAdapter(
+                  child: GradientHeroSection(
+                    leading: IconButton(
+                      style: IconButton.styleFrom(
+                        backgroundColor: Colors.white.withOpacity(0.16),
+                        foregroundColor: Colors.white,
+                      ),
+                      onPressed: () => Navigator.maybePop(context),
+                      icon: const Icon(Icons.arrow_back_rounded),
+                    ),
+                    eyebrow: 'Libreria bot',
+                    title: 'Gestisci e organizza le tue automazioni',
+                    subtitle:
+                        'Sfoglia i bot scaricati, esplora il marketplace online o importa pacchetti locali con un’unica esperienza.',
+                    icon: Icons.smart_toy_rounded,
+                    primaryAction: FilledButton.icon(
+                      onPressed: () => Navigator.pushNamed(context, '/tutorial'),
+                      icon: const Icon(Icons.lightbulb_rounded),
+                      label: const Text('Tutorial rapidi'),
+                    ),
+                    secondaryAction: FilledButton.icon(
+                      style: heroSecondaryStyle,
+                      onPressed: heroSecondaryOnPressed,
+                      icon: heroSecondaryIcon,
+                      label: Text(heroSecondaryLabel),
+                    ),
+                  ),
+                ),
               ),
-            ),
-        ],
-        bottom: TabBar(
-          controller: _tabController,
-          tabs: BotCategory.values
-              .map((category) => Tab(text: _labelForCategory(category)))
-              .toList(),
-        ),
-      ),
-      body: Column(
-        children: [
-          Padding(
-            padding:
-                const EdgeInsets.symmetric(horizontal: 16.0, vertical: 12.0),
-            child: SearchView(
-              onFilterChanged: _handleFilterChanged,
-              hintText:
-                  'Cerca per nome, tag, lingua o usa filtri (es. lang:python #utility)',
-            ),
-          ),
-          Expanded(
-            child: TabBarView(
+              SliverPadding(
+                padding: EdgeInsets.fromLTRB(
+                  horizontalPadding,
+                  0,
+                  horizontalPadding,
+                  16,
+                ),
+                sliver: SliverToBoxAdapter(
+                  child: DecoratedBox(
+                    decoration: BoxDecoration(
+                      color: theme.colorScheme.surfaceVariant.withOpacity(0.6),
+                      borderRadius: BorderRadius.circular(20),
+                    ),
+                    child: Padding(
+                      padding: const EdgeInsets.all(20),
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          SearchView(
+                            onFilterChanged: _handleFilterChanged,
+                            hintText:
+                                'Cerca per nome, tag, lingua o usa filtri (es. lang:python #utility)',
+                          ),
+                          const SizedBox(height: 12),
+                          Text(
+                            'Stai visualizzando ${_labelForCategory(_selectedCategory)}',
+                            style: theme.textTheme.bodyMedium?.copyWith(
+                              color: theme.colorScheme.onSurfaceVariant,
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                  ),
+                ),
+              ),
+              SliverPersistentHeader(
+                pinned: true,
+                delegate: _BotTabBarHeaderDelegate(
+                  TabBar(
+                    controller: _tabController,
+                    isScrollable: false,
+                    indicatorSize: TabBarIndicatorSize.tab,
+                    labelStyle: theme.textTheme.titleMedium?.copyWith(
+                      fontWeight: FontWeight.w700,
+                    ),
+                    unselectedLabelStyle: theme.textTheme.titleMedium,
+                    indicator: BoxDecoration(
+                      borderRadius: BorderRadius.circular(16),
+                      gradient: LinearGradient(
+                        colors: [
+                          theme.colorScheme.primary,
+                          theme.colorScheme.primary.withOpacity(0.7),
+                        ],
+                      ),
+                    ),
+                    labelColor: Colors.white,
+                    unselectedLabelColor: theme.colorScheme.onSurfaceVariant,
+                    tabs: BotCategory.values
+                        .map((category) => Tab(text: _labelForCategory(category)))
+                        .toList(),
+                  ),
+                  horizontalPadding: horizontalPadding,
+                  backgroundColor: theme.colorScheme.surface,
+                ),
+              ),
+            ],
+            body: TabBarView(
               controller: _tabController,
               children: BotCategory.values
                   .map(_buildCategoryView)
                   .toList(growable: false),
             ),
           ),
-        ],
-      ),
-      floatingActionButton: _selectedCategory == BotCategory.local
-          ? FloatingActionButton.extended(
-              onPressed: _isUploading ? null : _showUploadOptions,
-              icon: AnimatedSwitcher(
-                duration: const Duration(milliseconds: 200),
-                child: _isUploading
-                    ? const SizedBox(
-                        key: ValueKey('progress'),
-                        width: 20,
-                        height: 20,
-                        child: CircularProgressIndicator(strokeWidth: 2),
-                      )
-                    : const Icon(Icons.upload_file, key: ValueKey('icon')),
-              ),
-              label: Text(_isUploading ? 'Caricamento...' : 'Importa bot'),
-            )
-          : null,
+        );
+      },
     );
+  }
+
+  void _goToCategory(BotCategory category) {
+    if (_tabController.index == category.index) {
+      return;
+    }
+    _tabController.index = category.index;
   }
 
   Future<void> _refreshOnlineBots() async {
@@ -409,9 +530,55 @@ class _BotListState extends State<BotList>
         setState(() {
           _isUploading = false;
         });
-      }
     }
   }
+}
+
+class _BotTabBarHeaderDelegate extends SliverPersistentHeaderDelegate {
+  _BotTabBarHeaderDelegate(
+    this.tabBar, {
+    required this.horizontalPadding,
+    required this.backgroundColor,
+  });
+
+  final TabBar tabBar;
+  final double horizontalPadding;
+  final Color backgroundColor;
+
+  @override
+  double get minExtent => tabBar.preferredSize.height + 16;
+
+  @override
+  double get maxExtent => tabBar.preferredSize.height + 16;
+
+  @override
+  Widget build(
+      BuildContext context, double shrinkOffset, bool overlapsContent) {
+    return Container(
+      color: backgroundColor,
+      padding: EdgeInsets.fromLTRB(
+        horizontalPadding,
+        8,
+        horizontalPadding,
+        8,
+      ),
+      child: DecoratedBox(
+        decoration: BoxDecoration(
+          color: Theme.of(context).colorScheme.surfaceVariant.withOpacity(0.35),
+          borderRadius: BorderRadius.circular(18),
+        ),
+        child: tabBar,
+      ),
+    );
+  }
+
+  @override
+  bool shouldRebuild(covariant _BotTabBarHeaderDelegate oldDelegate) {
+    return oldDelegate.tabBar != tabBar ||
+        oldDelegate.horizontalPadding != horizontalPadding ||
+        oldDelegate.backgroundColor != backgroundColor;
+  }
+}
 
   void _refreshCategory(BotCategory category) {
     setState(() {
