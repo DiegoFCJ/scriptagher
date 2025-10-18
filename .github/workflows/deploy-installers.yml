@@ -287,6 +287,152 @@ jobs:
           name: ios-ipa
           path: installers/ios
 
+      - name: Generate installer metadata
+        run: |
+          python - <<'PY'
+          import datetime
+          import hashlib
+          import json
+          import os
+          import re
+
+          def read_version(path: str) -> str:
+              pattern = re.compile(r"^version:\s*(.+)$")
+              with open(path, encoding="utf-8") as handle:
+                  for raw_line in handle:
+                      match = pattern.match(raw_line.strip())
+                      if match:
+                          return match.group(1)
+              raise RuntimeError("Unable to determine version from pubspec.yaml")
+
+          def sha256sum(path: str) -> str:
+              digest = hashlib.sha256()
+              with open(path, "rb") as stream:
+                  for chunk in iter(lambda: stream.read(8192), b""):
+                      digest.update(chunk)
+              return digest.hexdigest()
+
+          def extension_for(filename: str) -> str:
+              lowered = filename.lower()
+              if lowered.endswith(".tar.gz"):
+                  return "tar.gz"
+              return filename.rsplit(".", 1)[-1].lower()
+
+          def linux_arch_label(identifier: str) -> str:
+              return {
+                  "x64": "x86_64",
+              }.get(identifier, identifier)
+
+          def android_arch_label(identifier: str) -> str:
+              mapping = {
+                  "arm64-v8a": "ARM64-v8a",
+                  "armeabi-v7a": "ARMv7",
+                  "x86_64": "x86_64",
+              }
+              return mapping.get(identifier, identifier)
+
+          def build_metadata(rel_path: str, version: str, base_url: str, timestamp: str) -> dict:
+              platform_dir, file_name = rel_path.split(os.sep, 1)
+              platform_names = {
+                  "android": "Android",
+                  "ios": "iOS",
+                  "linux": "Linux",
+                  "macos": "macOS",
+                  "windows": "Windows",
+              }
+              platform = platform_names.get(platform_dir, platform_dir.capitalize())
+              extension = extension_for(file_name)
+              file_stem = file_name
+              if extension == "tar.gz":
+                  file_stem = file_name[: -len(".tar.gz")]
+              elif "." in file_name:
+                  file_stem = file_name[: file_name.rfind(".")]
+
+              metadata = {
+                  "name": f"Scriptagher for {platform}",
+                  "platform": platform,
+                  "version": version,
+                  "file_name": file_name,
+                  "file_size": os.path.getsize(os.path.join("installers", rel_path)),
+                  "sha256": sha256sum(os.path.join("installers", rel_path)),
+                  "download_url": f"{base_url}/{rel_path.replace(os.sep, '/')}",
+                  "format": extension.upper(),
+                  "last_updated": timestamp,
+              }
+
+              if platform_dir == "android":
+                  variant = "Debug"
+                  abi_part = file_stem
+                  if abi_part.startswith("scriptagher-"):
+                      abi_part = abi_part[len("scriptagher-"):]
+                  if abi_part.endswith("-debug"):
+                      abi_part = abi_part[: -len("-debug")]
+                  metadata["architecture"] = android_arch_label(abi_part)
+                  metadata["build_variant"] = variant
+                  metadata["name"] = f"Scriptagher for {platform} ({metadata['architecture']} · {variant} Build)"
+              elif platform_dir == "linux":
+                  parts = file_stem.split("-")
+                  arch_identifier = parts[-1] if len(parts) >= 1 else "x86_64"
+                  architecture = linux_arch_label(arch_identifier)
+                  metadata["architecture"] = architecture
+                  metadata["build_variant"] = "Release"
+                  metadata["name"] = f"Scriptagher for {platform} ({architecture} · Release Build)"
+              elif platform_dir == "windows":
+                  metadata["architecture"] = "x86_64"
+                  metadata["build_variant"] = "Release"
+                  metadata["distribution"] = "Installer"
+                  metadata["name"] = "Scriptagher for Windows (64-bit Installer)"
+              elif platform_dir == "macos":
+                  metadata["build_variant"] = "Release"
+                  metadata["distribution"] = "Disk Image"
+                  metadata["name"] = "Scriptagher for macOS (Release Build)"
+              elif platform_dir == "ios":
+                  metadata["build_variant"] = "Release"
+                  metadata["distribution"] = "IPA Package"
+                  metadata["name"] = "Scriptagher for iOS (Release Build)"
+
+              return metadata
+
+          version = read_version("pubspec.yaml")
+          repository = os.environ.get("GITHUB_REPOSITORY", "scriptagher/scriptagher")
+          if "/" in repository:
+              owner, repo_name = repository.split("/", 1)
+          else:
+              owner, repo_name = repository, repository
+          base_url = f"https://{owner}.github.io/{repo_name}/installers"
+          timestamp = datetime.datetime.utcnow().replace(microsecond=0).isoformat() + "Z"
+
+          artifacts = []
+          installers_root = "installers"
+          for root, _, files in os.walk(installers_root):
+              for file_name in files:
+                  if file_name.startswith('.'):
+                      continue
+                  if file_name.endswith(".json"):
+                      continue
+                  rel_path = os.path.relpath(os.path.join(root, file_name), installers_root)
+                  if rel_path == ".nojekyll":
+                      continue
+                  metadata = build_metadata(rel_path, version, base_url, timestamp)
+                  artifacts.append(metadata)
+                  target_json = os.path.splitext(os.path.join(root, file_name))[0]
+                  if file_name.lower().endswith(".tar.gz"):
+                      target_json = os.path.join(root, file_name[: -len(".tar.gz")])
+                  json_path = f"{target_json}.json"
+                  with open(json_path, "w", encoding="utf-8") as handle:
+                      json.dump(metadata, handle, indent=2, ensure_ascii=False)
+                      handle.write("\n")
+
+          artifacts.sort(key=lambda item: item["download_url"])
+          summary_path = os.path.join(installers_root, "metadata.json")
+          with open(summary_path, "w", encoding="utf-8") as handle:
+              json.dump({
+                  "generated_at": timestamp,
+                  "installers": artifacts,
+              }, handle, indent=2, ensure_ascii=False)
+              handle.write("\n")
+          PY
+
       - name: Create .nojekyll marker
         run: touch installers/.nojekyll
 
