@@ -83,7 +83,7 @@ class WindowTitleBar extends StatelessWidget {
                     ),
                   );
                 },
-                menuChildren: buildNavigationMenuChildren(context, controller),
+                menuChildren: buildNavigationMenuChildren(context),
               ),
               Row(
                 children: [

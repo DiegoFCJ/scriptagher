@@ -6,14 +6,15 @@ class NavigationMenuEntry {
     required this.label,
     this.route,
     this.children = const <NavigationMenuEntry>[],
-  }) : assert(route != null || children.isNotEmpty,
-            'A menu entry must have either a route or children.');
+  });
 
   final String label;
   final String? route;
   final List<NavigationMenuEntry> children;
 
-  Widget toMenuWidget(BuildContext context, MenuController controller) {
+  Widget toMenuWidget(BuildContext context) {
+    assert(route != null || children.isNotEmpty,
+        'A menu entry must have either a route or children.');
     final TextStyle? textStyle = Theme.of(context).textTheme.bodyMedium;
     const EdgeInsets menuPadding = EdgeInsets.symmetric(
       horizontal: 16,
@@ -28,7 +29,7 @@ class NavigationMenuEntry {
           if (route == null) {
             return;
           }
-          controller.close();
+          MenuController.maybeOf(context)?.close();
           Navigator.of(context).pushNamed(route!);
         },
       );
@@ -36,7 +37,7 @@ class NavigationMenuEntry {
 
     return SubmenuButton(
       menuChildren:
-          children.map((child) => child.toMenuWidget(context, controller)).toList(),
+          children.map((child) => child.toMenuWidget(context)).toList(),
       child: Padding(
         padding: menuPadding,
         child: Row(
@@ -69,9 +70,8 @@ const List<NavigationMenuEntry> appNavigationEntries = <NavigationMenuEntry>[
 
 List<Widget> buildNavigationMenuChildren(
   BuildContext context,
-  MenuController controller,
 ) {
   return appNavigationEntries
-      .map((entry) => entry.toMenuWidget(context, controller))
+      .map((entry) => entry.toMenuWidget(context))
       .toList(growable: false);
 }
