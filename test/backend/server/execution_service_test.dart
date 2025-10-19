@@ -35,9 +35,11 @@ void main() {
           .transform(const LineSplitter())
           .toList();
 
-      controller.add(<int>[0x61, 0x62, 0x63, 0xFF]);
-      controller.add(<int>[0x64, 0x65, 0x66, 0x0A]);
-      await controller.close();
+      unawaited(Future<void>(() async {
+        controller.add(<int>[0x61, 0x62, 0x63, 0xFF]);
+        controller.add(<int>[0x64, 0x65, 0x66, 0x0A]);
+        await controller.close();
+      }));
 
       final lines = await linesFuture;
 
