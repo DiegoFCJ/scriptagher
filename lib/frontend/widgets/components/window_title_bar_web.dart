@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:scriptagher/shared/theme/theme_controller.dart';
 
+import 'navigation_menu.dart';
+
 class WindowTitleBar extends StatelessWidget {
   const WindowTitleBar({super.key});
 
@@ -14,15 +16,54 @@ class WindowTitleBar extends StatelessWidget {
       padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
       child: Row(
         children: [
-          GestureDetector(
-            onTap: () => Navigator.pushNamed(context, '/home'),
-            child: Text(
-              'Scriptagher',
-              style: Theme.of(context).textTheme.titleMedium?.copyWith(
+          MenuAnchor(
+            alignmentOffset: const Offset(0, 8),
+            builder: (context, controller, child) {
+              final isOpen = controller.isOpen;
+              final textStyle = Theme.of(context).textTheme.titleMedium?.copyWith(
                     color: colorScheme.onSurface,
                     fontWeight: FontWeight.w600,
+                  );
+
+              return Tooltip(
+                message: 'Apri la navigazione',
+                child: Material(
+                  color: colorScheme.surfaceVariant,
+                  borderRadius: BorderRadius.circular(12),
+                  child: InkWell(
+                    borderRadius: BorderRadius.circular(12),
+                    onTap: () => isOpen ? controller.close() : controller.open(),
+                    child: Padding(
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: 18,
+                        vertical: 10,
+                      ),
+                      child: Row(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          Icon(
+                            Icons.menu,
+                            size: 26,
+                            color: colorScheme.onSurface,
+                          ),
+                          const SizedBox(width: 12),
+                          Text('Menu', style: textStyle),
+                          const SizedBox(width: 8),
+                          Icon(
+                            isOpen
+                                ? Icons.keyboard_arrow_up
+                                : Icons.keyboard_arrow_down,
+                            size: 20,
+                            color: colorScheme.onSurface,
+                          ),
+                        ],
+                      ),
+                    ),
                   ),
-            ),
+                ),
+              );
+            },
+            menuChildren: buildNavigationMenuChildren(context, controller),
           ),
           const Spacer(),
           AnimatedBuilder(
@@ -47,36 +88,11 @@ class WindowTitleBar extends StatelessWidget {
             },
           ),
           const SizedBox(width: 8),
-          PopupMenuButton<_MenuOption>(
-            icon: Icon(Icons.menu, color: colorScheme.onSurface),
-            onSelected: (opt) {
-              switch (opt) {
-                case _MenuOption.portfolio:
-                  Navigator.pushNamed(context, '/portfolio');
-                  break;
-                case _MenuOption.botsList:
-                  Navigator.pushNamed(context, '/bots');
-                  break;
-              }
-            },
-            itemBuilder: (ctx) => const [
-              PopupMenuItem<_MenuOption>(
-                value: _MenuOption.portfolio,
-                child: Text('Portfolio'),
-              ),
-              PopupMenuItem<_MenuOption>(
-                value: _MenuOption.botsList,
-                child: Text('Bots List'),
-              ),
-            ],
-          ),
         ],
       ),
     );
   }
 }
-
-enum _MenuOption { portfolio, botsList }
 
 String _labelForTheme(AppTheme theme) {
   switch (theme) {
