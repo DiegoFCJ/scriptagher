@@ -23,18 +23,20 @@ class BotDownloadService {
       return Bot.fromJson(data);
     }
 
+    String? backendMessage;
     try {
       final Map<String, dynamic> error =
           jsonDecode(response.body) as Map<String, dynamic>;
       final message = error['message']?.toString();
       if (message != null && message.isNotEmpty) {
-        throw Exception(message);
+        backendMessage = message;
       }
     } catch (_) {
       // ignore decoding errors and throw generic one below
     }
 
-    throw Exception('Download fallito (codice ${response.statusCode}).');
+    throw Exception(
+        backendMessage ?? 'Download fallito (codice ${response.statusCode}).');
   }
 
   Future<void> deleteBot(String language, String botName) async {
@@ -47,17 +49,19 @@ class BotDownloadService {
       return;
     }
 
+    String? backendMessage;
     try {
       final Map<String, dynamic> error =
           jsonDecode(response.body) as Map<String, dynamic>;
       final message = error['message']?.toString();
       if (message != null && message.isNotEmpty) {
-        throw Exception(message);
+        backendMessage = message;
       }
     } catch (_) {
       // ignore decoding errors and throw generic one below
     }
 
-    throw Exception('Eliminazione fallita (codice ${response.statusCode}).');
+    throw Exception(backendMessage ??
+        'Eliminazione fallita (codice ${response.statusCode}).');
   }
 }
