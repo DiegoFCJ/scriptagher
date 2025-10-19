@@ -2,19 +2,19 @@ import 'package:flutter/material.dart';
 
 @immutable
 class NavigationMenuEntry {
-  const NavigationMenuEntry({
+  NavigationMenuEntry({
     required this.label,
     this.route,
-    this.children = const <NavigationMenuEntry>[],
-  });
+    List<NavigationMenuEntry> children = const <NavigationMenuEntry>[],
+  })  : children = List.unmodifiable(children),
+        assert(route != null || children.isNotEmpty,
+            'A menu entry must have either a route or children.');
 
   final String label;
   final String? route;
   final List<NavigationMenuEntry> children;
 
   Widget toMenuWidget(BuildContext context) {
-    assert(route != null || children.isNotEmpty,
-        'A menu entry must have either a route or children.');
     final TextStyle? textStyle = Theme.of(context).textTheme.bodyMedium;
     const EdgeInsets menuPadding = EdgeInsets.symmetric(
       horizontal: 16,
@@ -53,7 +53,8 @@ class NavigationMenuEntry {
   }
 }
 
-const List<NavigationMenuEntry> appNavigationEntries = <NavigationMenuEntry>[
+final List<NavigationMenuEntry> appNavigationEntries =
+    List<NavigationMenuEntry>.unmodifiable(<NavigationMenuEntry>[
   NavigationMenuEntry(label: 'Home', route: '/home'),
   NavigationMenuEntry(label: 'Bots', route: '/bots'),
   NavigationMenuEntry(label: 'Tutorial', route: '/tutorial'),
@@ -66,7 +67,7 @@ const List<NavigationMenuEntry> appNavigationEntries = <NavigationMenuEntry>[
     ],
   ),
   NavigationMenuEntry(label: 'Settings', route: '/settings'),
-];
+]);
 
 List<Widget> buildNavigationMenuChildren(
   BuildContext context,
