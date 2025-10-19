@@ -15,7 +15,8 @@ void main() {
     );
   }
 
-  Future<State> pumpDetailView(WidgetTester tester, Bot bot) async {
+  Future<State<StatefulWidget>> pumpDetailView(
+      WidgetTester tester, Bot bot) async {
     await tester.pumpWidget(
       MaterialApp(
         home: Scaffold(
@@ -24,7 +25,8 @@ void main() {
       ),
     );
     await tester.pump();
-    return tester.state<StatefulElement>(find.byType(BotDetailView));
+    final element = tester.element(find.byType(BotDetailView));
+    return (element as StatefulElement).state;
   }
 
   testWidgets('execute button is disabled when bot is not downloaded',
