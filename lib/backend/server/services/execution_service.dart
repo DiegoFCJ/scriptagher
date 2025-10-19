@@ -18,6 +18,7 @@ class ExecutionService {
   final BotDatabase _botDatabase;
   final ExecutionLogManager _logManager;
   final CustomLogger _logger = CustomLogger();
+  static const Utf8Decoder _lossyUtf8Decoder = Utf8Decoder(allowMalformed: true);
   final Map<String, _ManagedProcess> _runningProcesses = {};
   final Map<String, _CompletedProcess> _completedProcesses = {};
   final List<String> _completedOrder = [];
@@ -75,7 +76,7 @@ class ExecutionService {
       final process = await _spawnProcess(bot);
 
       final stdoutSub = process.stdout
-          .transform(utf8.decoder)
+          .transform(_lossyUtf8Decoder)
           .transform(const LineSplitter())
           .listen((line) {
         _handleLine(session, line,
@@ -91,7 +92,7 @@ class ExecutionService {
       });
 
       final stderrSub = process.stderr
-          .transform(utf8.decoder)
+          .transform(_lossyUtf8Decoder)
           .transform(const LineSplitter())
           .listen((line) {
         _handleLine(session, line,
@@ -272,7 +273,7 @@ class ExecutionService {
         process = await _spawnProcess(bot);
 
         stdoutSub = process!.stdout
-            .transform(utf8.decoder)
+            .transform(_lossyUtf8Decoder)
             .transform(const LineSplitter())
             .listen((line) {
           _handleLine(session, line,
@@ -280,7 +281,7 @@ class ExecutionService {
         });
 
         stderrSub = process!.stderr
-            .transform(utf8.decoder)
+            .transform(_lossyUtf8Decoder)
             .transform(const LineSplitter())
             .listen((line) {
           _handleLine(session, line,
