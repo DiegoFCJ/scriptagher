@@ -3,6 +3,7 @@ import 'dart:convert';
 import 'dart:io';
 
 import 'package:collection/collection.dart';
+import 'package:meta/meta.dart';
 import 'package:shelf/shelf.dart';
 import 'package:scriptagher/shared/constants/LOGS.dart';
 import 'package:scriptagher/shared/custom_logger.dart';
@@ -21,6 +22,10 @@ class ExecutionService {
   final Map<String, _ManagedProcess> _runningProcesses = {};
   final Map<String, _CompletedProcess> _completedProcesses = {};
   final List<String> _completedOrder = [];
+
+  @visibleForTesting
+  static const Utf8Decoder lossyUtf8Decoder =
+      Utf8Decoder(allowMalformed: true);
 
   Future<Response> startBot(
       Request request, String language, String botName) async {
@@ -75,7 +80,7 @@ class ExecutionService {
       final process = await _spawnProcess(bot);
 
       final stdoutSub = process.stdout
-          .transform(utf8.decoder)
+          .transform(lossyUtf8Decoder)
           .transform(const LineSplitter())
           .listen((line) {
         _handleLine(session, line,
@@ -91,7 +96,7 @@ class ExecutionService {
       });
 
       final stderrSub = process.stderr
-          .transform(utf8.decoder)
+          .transform(lossyUtf8Decoder)
           .transform(const LineSplitter())
           .listen((line) {
         _handleLine(session, line,
@@ -272,7 +277,7 @@ class ExecutionService {
         process = await _spawnProcess(bot);
 
         stdoutSub = process!.stdout
-            .transform(utf8.decoder)
+            .transform(lossyUtf8Decoder)
             .transform(const LineSplitter())
             .listen((line) {
           _handleLine(session, line,
@@ -280,7 +285,7 @@ class ExecutionService {
         });
 
         stderrSub = process!.stderr
-            .transform(utf8.decoder)
+            .transform(lossyUtf8Decoder)
             .transform(const LineSplitter())
             .listen((line) {
           _handleLine(session, line,
