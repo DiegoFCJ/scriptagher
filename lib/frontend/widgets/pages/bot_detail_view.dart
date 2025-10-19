@@ -13,6 +13,7 @@ import '../../services/bot_download_service.dart';
 import '../../services/bot_get_service.dart';
 import '../../services/browser_runner/browser_bot_runner.dart';
 import '../../services/browser_runner/browser_runner_models.dart';
+import '../../utils/execution_compatibility.dart';
 
 class BotDetailView extends StatefulWidget {
   const BotDetailView(
@@ -57,6 +58,8 @@ class _BotDetailViewState extends State<BotDetailView> {
   Bot? get _installedBot => _downloadedBot;
   bool get _isDesktopPlatform => !kIsWeb &&
       (Platform.isLinux || Platform.isMacOS || Platform.isWindows);
+  bool get _isMobilePlatform =>
+      !kIsWeb && (Platform.isAndroid || Platform.isIOS);
   bool get _canOpenFolderAction => _isDesktopPlatform && _isDownloaded;
 
   void _openTutorial() {
@@ -331,6 +334,23 @@ class _BotDetailViewState extends State<BotDetailView> {
   }
 
   Future<void> _startExecution({List<String>? grantedPermissions}) async {
+    final hasLocalData =
+        _isDownloaded || _primaryBot.isLocal || widget.bot.isLocal;
+    assert(hasLocalData, 'Tentativo di avviare un bot non scaricato o remoto.');
+    if (!hasLocalData) {
+      _showSnackBar('Scarica il bot prima di eseguirlo.');
+      return;
+    }
+
+    final compatibility = executionCompatibility;
+    assert(compatibility.isSupported,
+        'Tentativo di avviare un bot su una piattaforma non supportata.');
+    if (!compatibility.isSupported) {
+      _showSnackBar(compatibility.reason ??
+          'Questo bot non è compatibile con la piattaforma corrente.');
+      return;
+    }
+
     if (_shouldUseBrowserRunner) {
       await _startBrowserExecution();
       return;
@@ -668,11 +688,50 @@ class _BotDetailViewState extends State<BotDetailView> {
   bool get _shouldUseBrowserRunner =>
       kIsWeb && BrowserBotRunner.isSupported && _primaryBot.compat.canRunInBrowser;
 
-  bool get _canExecuteBot {
-    if (kIsWeb) {
-      return _shouldUseBrowserRunner;
-    }
-    return true;
+  @visibleForTesting
+  ExecutionCompatibilityResult get executionCompatibility =>
+      computeExecutionCompatibility(
+        bot: _primaryBot,
+        isWebPlatform: kIsWeb,
+        isDesktopPlatform: _isDesktopPlatform,
+        isMobilePlatform: _isMobilePlatform,
+        shouldUseBrowserRunner: _shouldUseBrowserRunner,
+      );
+
+  bool get _canExecuteBot => executionCompatibility.isSupported;
+
+  @visibleForTesting
+  void debugConfigureForTesting({
+    Bot? remoteBot,
+    bool updateRemoteBot = false,
+    Bot? downloadedBot,
+    bool updateDownloadedBot = false,
+    bool? isDownloaded,
+    bool? isRunning,
+    bool? isTerminating,
+    String? activeProcessId,
+    bool updateActiveProcessId = false,
+  }) {
+    setState(() {
+      if (updateRemoteBot) {
+        _remoteBot = remoteBot;
+      }
+      if (updateDownloadedBot) {
+        _downloadedBot = downloadedBot;
+      }
+      if (isDownloaded != null) {
+        _isDownloaded = isDownloaded;
+      }
+      if (isRunning != null) {
+        _isRunning = isRunning;
+      }
+      if (isTerminating != null) {
+        _isTerminating = isTerminating;
+      }
+      if (updateActiveProcessId) {
+        _activeProcessId = activeProcessId;
+      }
+    });
   }
 
   Future<void> _startBrowserExecution() async {
@@ -1264,6 +1323,39 @@ class _BotDetailViewState extends State<BotDetailView> {
                 ? 'Scaricato'
                 : 'Scarica';
 
+    final compatibility = executionCompatibility;
+    final bool isBusy = _isRunning || _isTerminating || _activeProcessId != null;
+    String? executeTooltip;
+    if (!_isDownloaded) {
+      executeTooltip = 'Scarica il bot prima di eseguirlo.';
+    } else if (!compatibility.isSupported) {
+      executeTooltip = compatibility.reason ??
+          'Questo bot non è compatibile con la piattaforma corrente.';
+    }
+
+    final VoidCallback? executeOnPressed =
+        (!isBusy && executeTooltip == null) ? _requestExecution : null;
+
+    Widget executeButton = ElevatedButton.icon(
+      onPressed: executeOnPressed,
+      icon: const Icon(Icons.play_arrow),
+      label: Text(_isRunning
+          ? 'Esecuzione in corso...'
+          : _isTerminating
+              ? 'Terminazione in corso...'
+              : _activeProcessId != null
+                  ? 'Processo attivo'
+                  : 'Esegui'),
+    );
+
+    if (executeTooltip != null) {
+      executeButton = Tooltip(
+        message: executeTooltip,
+        waitDuration: const Duration(milliseconds: 300),
+        child: executeButton,
+      );
+    }
+
     return Wrap(
       spacing: 12,
       runSpacing: 12,
@@ -1278,19 +1370,7 @@ class _BotDetailViewState extends State<BotDetailView> {
           icon: const Icon(Icons.folder_open),
           label: const Text('Apri cartella'),
         ),
-        ElevatedButton.icon(
-          onPressed: (_isRunning || _isTerminating || _activeProcessId != null)
-              ? null
-              : _requestExecution,
-          icon: const Icon(Icons.play_arrow),
-          label: Text(_isRunning
-              ? 'Esecuzione in corso...'
-              : _isTerminating
-                  ? 'Terminazione in corso...'
-                  : _activeProcessId != null
-                      ? 'Processo attivo'
-                      : 'Esegui'),
-        ),
+        executeButton,
       ],
     );
   }
