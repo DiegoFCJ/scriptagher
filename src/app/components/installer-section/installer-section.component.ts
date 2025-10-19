@@ -22,6 +22,103 @@ export class InstallerSectionComponent implements OnChanges {
     return installer.metadata?.displayName || installer.name || installer.filename;
   }
 
+  formatSize(size?: number | null): string | null {
+    if (!size || size <= 0) {
+      return null;
+    }
+
+    const megabytes = size / (1024 * 1024);
+    if (megabytes >= 10) {
+      return `${megabytes.toFixed(1)} MB`;
+    }
+
+    if (megabytes >= 1) {
+      return `${megabytes.toFixed(2)} MB`;
+    }
+
+    if (megabytes >= 0.01) {
+      return `${megabytes.toFixed(2)} MB`;
+    }
+
+    return `${megabytes.toFixed(3)} MB`;
+  }
+
+  getMaintainer(installer: InstallerAsset): string | undefined {
+    const metadata = installer.metadata as Record<string, unknown> | undefined;
+    if (!metadata) {
+      return undefined;
+    }
+
+    const keys = ['maintainer', 'maintainers', 'publisher', 'author', 'owner', 'vendor'];
+    for (const key of keys) {
+      const value = metadata[key];
+      const normalized = this.normalizeContact(value);
+      if (normalized) {
+        return normalized;
+      }
+    }
+
+    return undefined;
+  }
+
+  getLicense(installer: InstallerAsset): LicenseInfo | undefined {
+    const metadata = installer.metadata as Record<string, unknown> | undefined;
+    if (!metadata) {
+      return undefined;
+    }
+
+    const licenseCandidate = metadata['license'] ?? metadata['licence'] ?? metadata['licenseName'];
+    const text = this.extractLicenseName(licenseCandidate)
+      ?? this.extractLicenseName(metadata['licenseText'])
+      ?? this.extractLicenseName(metadata['licenseId']);
+
+    if (!text) {
+      return undefined;
+    }
+
+    const licenseUrlCandidate = metadata['licenseUrl']
+      ?? metadata['licenseURL']
+      ?? metadata['licenceUrl']
+      ?? metadata['licenseLink']
+      ?? (typeof licenseCandidate === 'object' ? (licenseCandidate as Record<string, unknown>)['url'] : undefined)
+      ?? (typeof licenseCandidate === 'object' ? (licenseCandidate as Record<string, unknown>)['html_url'] : undefined);
+
+    const licenseInfo: LicenseInfo = { text };
+    const url = this.extractFirstUrl(licenseUrlCandidate);
+    if (url) {
+      licenseInfo.url = url;
+    }
+
+    return licenseInfo;
+  }
+
+  getHomepage(installer: InstallerAsset): string | undefined {
+    const metadata = installer.metadata as Record<string, unknown> | undefined;
+    if (!metadata) {
+      return undefined;
+    }
+
+    const candidates = [
+      metadata['homepage'],
+      metadata['homePage'],
+      metadata['projectUrl'],
+      metadata['projectURL'],
+      metadata['sourceUrl'],
+      metadata['source'],
+      metadata['repositoryUrl'],
+      metadata['repository'],
+    ];
+
+    for (const candidate of candidates) {
+      const url = this.extractFirstUrl(candidate);
+      if (url) {
+        return url;
+      }
+    }
+
+    return undefined;
+  }
+
   trackByGroupPath(_: number, group: InstallerGroup): string {
     return group.path.join('/') || group.name;
   }
@@ -94,6 +191,110 @@ export class InstallerSectionComponent implements OnChanges {
       return a.filename.localeCompare(b.filename);
     });
   }
+
+  private normalizeContact(value: unknown): string | undefined {
+    if (!value) {
+      return undefined;
+    }
+
+    if (typeof value === 'string') {
+      const trimmed = value.trim();
+      return trimmed.length ? trimmed : undefined;
+    }
+
+    if (Array.isArray(value)) {
+      const parts = value
+        .map((entry) => this.normalizeContact(entry))
+        .filter((entry): entry is string => !!entry);
+      return parts.length ? Array.from(new Set(parts)).join(', ') : undefined;
+    }
+
+    if (typeof value === 'object') {
+      const record = value as Record<string, unknown>;
+      const candidates = [
+        record['name'],
+        record['displayName'],
+        record['fullName'],
+        record['login'],
+        record['username'],
+      ];
+      const email = typeof record['email'] === 'string' ? record['email'].trim() : undefined;
+      const url = this.extractFirstUrl(record['url'] ?? record['html_url']);
+
+      const name = candidates
+        .map((candidate) => this.normalizeContact(candidate))
+        .find((candidate): candidate is string => !!candidate);
+
+      const segments = [name, email, url].filter((segment): segment is string => !!segment);
+      if (segments.length) {
+        return Array.from(new Set(segments)).join(' · ');
+      }
+    }
+
+    return undefined;
+  }
+
+  private extractLicenseName(value: unknown): string | undefined {
+    if (!value) {
+      return undefined;
+    }
+
+    if (typeof value === 'string') {
+      const trimmed = value.trim();
+      return trimmed.length ? trimmed : undefined;
+    }
+
+    if (typeof value === 'object') {
+      const record = value as Record<string, unknown>;
+      const keys = ['name', 'title', 'spdx_id', 'spdxId', 'key', 'id'];
+      for (const key of keys) {
+        const candidate = record[key];
+        if (typeof candidate === 'string') {
+          const trimmed = candidate.trim();
+          if (trimmed.length) {
+            return trimmed;
+          }
+        }
+      }
+    }
+
+    return undefined;
+  }
+
+  private extractFirstUrl(value: unknown): string | undefined {
+    if (!value) {
+      return undefined;
+    }
+
+    if (typeof value === 'string') {
+      const trimmed = value.trim();
+      return trimmed.length ? trimmed : undefined;
+    }
+
+    if (Array.isArray(value)) {
+      for (const entry of value) {
+        const result = this.extractFirstUrl(entry);
+        if (result) {
+          return result;
+        }
+      }
+      return undefined;
+    }
+
+    if (typeof value === 'object') {
+      const record = value as Record<string, unknown>;
+      const keys = ['url', 'html_url', 'href', 'link'];
+      for (const key of keys) {
+        const candidate = record[key];
+        const normalized = this.extractFirstUrl(candidate);
+        if (normalized) {
+          return normalized;
+        }
+      }
+    }
+
+    return undefined;
+  }
 }
 
 interface InstallerGroup {
@@ -108,4 +309,9 @@ interface InstallerGroupBuilder {
   path: string[];
   installers: InstallerAsset[];
   children: Map<string, InstallerGroupBuilder>;
+}
+
+interface LicenseInfo {
+  text: string;
+  url?: string;
 }

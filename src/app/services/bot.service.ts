@@ -1227,7 +1227,62 @@ export interface InstallerMetadata {
   checksum?: string;
   releaseNotesUrl?: string;
   downloadUrl?: string;
+  license?: string | InstallerLicenseMetadata;
+  licence?: string | InstallerLicenseMetadata;
+  licenseUrl?: string;
+  licenceUrl?: string;
+  licenseId?: string;
+  licenseText?: string;
+  licenseName?: string;
+  projectUrl?: string | InstallerRepositoryInfo;
+  projectURL?: string | InstallerRepositoryInfo;
+  sourceUrl?: string | InstallerRepositoryInfo;
+  source?: string | InstallerRepositoryInfo;
+  repositoryUrl?: string | InstallerRepositoryInfo;
+  repository?: string | InstallerRepositoryInfo;
+  homepage?: string | InstallerRepositoryInfo;
+  homePage?: string | InstallerRepositoryInfo;
+  maintainer?: InstallerContactValue;
+  maintainers?: InstallerContactValue;
+  publisher?: InstallerContactValue;
+  author?: InstallerContactValue;
+  owner?: InstallerContactValue;
+  vendor?: InstallerContactValue;
   [key: string]: any;
+}
+
+export type InstallerContactValue = string | InstallerContact | InstallerContact[];
+
+export interface InstallerContact {
+  name?: string;
+  displayName?: string;
+  fullName?: string;
+  login?: string;
+  username?: string;
+  email?: string;
+  url?: string;
+  html_url?: string;
+  [key: string]: unknown;
+}
+
+export interface InstallerRepositoryInfo {
+  url?: string;
+  html_url?: string;
+  href?: string;
+  link?: string;
+  [key: string]: unknown;
+}
+
+export interface InstallerLicenseMetadata {
+  name?: string;
+  title?: string;
+  spdx_id?: string;
+  spdxId?: string;
+  key?: string;
+  id?: string;
+  url?: string;
+  html_url?: string;
+  [key: string]: unknown;
 }
 
 export interface InstallerAsset {
