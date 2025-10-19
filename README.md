@@ -37,7 +37,7 @@ Il file `Bot.json` contiene i metadati (nome, descrizione, versione), l'entrypoi
 Il repository include il workflow [`deploy-botlist`](.github/workflows/deploy-botlist.yml) che, ad ogni push sul branch `main` o al tag di una release, comprime i bot disponibili e pubblica i file risultanti su `gh-pages`.
 
 1. **Aggiungi o modifica un bot** nella directory `bot-sources/<piattaforma>/<nome-bot>/` assicurandoti che contenga un file `Bot.json` valido secondo la guida.
-2. **Esegui lo script di packaging in locale** (opzionale) con `bash tool/package_bots.sh bot-sources build/botlist` per verificare che vengano generati gli archivi `.zip` e i manifest aggiornati.
+2. **Esegui lo script di packaging in locale** (opzionale) con `bash tool/package_bots.sh bot-sources build/botlist` per verificare che vengano generati gli archivi `.zip` e i manifest aggiornati. Assicurati che `zip` e `jq` siano installati nel tuo ambiente locale, poiché lo script li usa per comprimere i bot e aggiornare i metadati.
 3. **Apri una pull request o esegui un push su `main`**: il workflow eseguirà automaticamente lo script, aggiornerà `botlist.json` aggregando i metadati e pubblicherà la cartella `build/botlist/` sul branch `gh-pages` tramite `peaceiris/actions-gh-pages`, mantenendo la cronologia e i file esistenti.
 4. **Recupera la botlist pubblicata** dal branch `gh-pages` (`bots/<piattaforma>/<nome>.zip`, `bots/<piattaforma>/<nome>.json` e `botlist.json`) per distribuirla via CDN o per l'app Scriptagher.
 

@@ -4,6 +4,16 @@ set -euo pipefail
 SOURCE_DIR=${1:-bot-sources}
 OUTPUT_DIR=${2:-build/botlist}
 
+# Verify dependencies up-front to fail fast on missing tools.
+required_commands=(jq zip)
+for cmd in "${required_commands[@]}"; do
+  if ! command -v "$cmd" >/dev/null 2>&1; then
+    echo "[botlist] Errore: comando richiesto '$cmd' non trovato nel PATH." >&2
+    echo "          Installa '$cmd' e riprova." >&2
+    exit 1
+  fi
+done
+
 # Prepare output directory structure
 rm -rf "$OUTPUT_DIR"
 mkdir -p "$OUTPUT_DIR/bots"
