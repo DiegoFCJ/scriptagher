@@ -1,6 +1,7 @@
 import 'dart:async';
 import 'dart:convert';
 import 'dart:io';
+import 'dart:math' as math;
 
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
@@ -921,181 +922,130 @@ class _BotDetailViewState extends State<BotDetailView> {
           ),
         ],
       ),
-      body: Padding(
-        padding: const EdgeInsets.all(16.0),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Text(
-              bot.botName,
-              style: theme.textTheme.headlineMedium,
-            ),
-            const SizedBox(height: 8),
-            Text(
-              bot.description.isNotEmpty
-                  ? bot.description
-                  : 'Nessuna descrizione disponibile.',
-              style: theme.textTheme.bodyLarge,
-            ),
-            const SizedBox(height: 12),
-            if (metadataChips != null) ...[
-              metadataChips,
-              const SizedBox(height: 12),
-            ],
-            _buildMetadataDetails(context),
-            const SizedBox(height: 12),
-            if (_isStatusLoading) ...[
-              const LinearProgressIndicator(),
-              const SizedBox(height: 12),
-            ],
-            if (!_isStatusLoading && updateBanner != null) ...[
-              updateBanner,
-              const SizedBox(height: 12),
-            ] else if (!_isStatusLoading && _isDownloaded && !_hasUpdateAvailable) ...[
-              Container(
-                padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
-                decoration: BoxDecoration(
-                  color: theme.colorScheme.surfaceVariant,
-                  borderRadius: BorderRadius.circular(8),
-                ),
-                child: Row(
-                  mainAxisSize: MainAxisSize.min,
+      body: LayoutBuilder(
+        builder: (context, constraints) {
+          final mediaHeight = MediaQuery.of(context).size.height;
+          final availableHeight = constraints.maxHeight.isFinite
+              ? constraints.maxHeight
+              : mediaHeight;
+          final consolePanelHeight = math.max(availableHeight * 0.4, 260.0);
+          final historyPanelHeight = math.max(availableHeight * 0.25, 220.0);
+
+          return SingleChildScrollView(
+            child: ConstrainedBox(
+              constraints: BoxConstraints(minHeight: availableHeight),
+              child: Padding(
+                padding: const EdgeInsets.all(16.0),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    Icon(Icons.check_circle_outline,
-                        color: theme.colorScheme.primary),
-                    const SizedBox(width: 8),
                     Text(
-                      'Bot installato all\'ultima versione disponibile.',
-                      style: theme.textTheme.bodyMedium?.copyWith(
-                        color: theme.colorScheme.primary,
-                      ),
+                      bot.botName,
+                      style: theme.textTheme.headlineMedium,
                     ),
+                    const SizedBox(height: 8),
+                    Text(
+                      bot.description.isNotEmpty
+                          ? bot.description
+                          : 'Nessuna descrizione disponibile.',
+                      style: theme.textTheme.bodyLarge,
+                    ),
+                    const SizedBox(height: 12),
+                    if (metadataChips != null) ...[
+                      metadataChips,
+                      const SizedBox(height: 12),
+                    ],
+                    _buildMetadataDetails(context),
+                    const SizedBox(height: 12),
+                    if (_isStatusLoading) ...[
+                      const LinearProgressIndicator(),
+                      const SizedBox(height: 12),
+                    ],
+                    if (!_isStatusLoading && updateBanner != null) ...[
+                      updateBanner,
+                      const SizedBox(height: 12),
+                    ] else if (!_isStatusLoading && _isDownloaded && !_hasUpdateAvailable) ...[
+                      Container(
+                        padding:
+                            const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                        decoration: BoxDecoration(
+                          color: theme.colorScheme.surfaceVariant,
+                          borderRadius: BorderRadius.circular(8),
+                        ),
+                        child: Row(
+                          mainAxisSize: MainAxisSize.min,
+                          children: [
+                            Icon(Icons.check_circle_outline,
+                                color: theme.colorScheme.primary),
+                            const SizedBox(width: 8),
+                            Text(
+                              'Bot installato all\'ultima versione disponibile.',
+                              style: theme.textTheme.bodyMedium?.copyWith(
+                                color: theme.colorScheme.primary,
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+                      const SizedBox(height: 12),
+                    ],
+                    _buildPrimaryActions(context),
+                    const SizedBox(height: 20),
+                    _buildPermissionsSection(context),
+                    if (hasPermissions) const SizedBox(height: 12),
+                    _buildCompatBadges(context),
+                    const SizedBox(height: 20),
+                    _buildExecutionControls(context),
+                    if (_error != null) ...[
+                      const SizedBox(height: 12),
+                      Text(
+                        _error!,
+                        style: TextStyle(color: theme.colorScheme.error),
+                      ),
+                    ],
+                    if (_startStatus != null) ...[
+                      const SizedBox(height: 12),
+                      Text(
+                        _startStatus!,
+                        style: TextStyle(
+                          color: theme.colorScheme.primary,
+                          fontWeight: FontWeight.w600,
+                        ),
+                      ),
+                    ],
+                    if (_activeProcessId != null) ...[
+                      const SizedBox(height: 8),
+                      Text(
+                        'Processo attivo: $_activeProcessId',
+                        style: theme.textTheme.bodyMedium,
+                      ),
+                    ],
+                    const SizedBox(height: 8),
+                    Text(
+                      'Ultimo exit code: ${_lastExitCode?.toString() ?? 'n/d'}',
+                      style: theme.textTheme.bodyMedium,
+                    ),
+                    if (kIsWeb && !_shouldUseBrowserRunner) ...[
+                      const SizedBox(height: 12),
+                      Text(
+                        _primaryBot.compat.browserReason ??
+                            'Questo bot non è compatibile con il runner browser.',
+                        style: TextStyle(
+                          color: theme.colorScheme.error,
+                          fontWeight: FontWeight.w600,
+                        ),
+                      ),
+                    ],
+                    const SizedBox(height: 20),
+                    _buildConsolePanel(consolePanelHeight),
+                    const SizedBox(height: 20),
+                    _buildHistoryPanel(historyPanelHeight, theme),
                   ],
                 ),
               ),
-              const SizedBox(height: 12),
-            ],
-            _buildPrimaryActions(context),
-            const SizedBox(height: 20),
-            _buildPermissionsSection(context),
-            if (hasPermissions) const SizedBox(height: 12),
-            _buildCompatBadges(context),
-            const SizedBox(height: 20),
-            _buildExecutionControls(context),
-            if (_error != null) ...[
-              const SizedBox(height: 12),
-              Text(
-                _error!,
-                style: TextStyle(color: theme.colorScheme.error),
-              ),
-            ],
-            if (_startStatus != null) ...[
-              const SizedBox(height: 12),
-              Text(
-                _startStatus!,
-                style: TextStyle(
-                  color: theme.colorScheme.primary,
-                  fontWeight: FontWeight.w600,
-                ),
-              ),
-            ],
-            if (_activeProcessId != null) ...[
-              const SizedBox(height: 8),
-              Text(
-                'Processo attivo: $_activeProcessId',
-                style: theme.textTheme.bodyMedium,
-              ),
-            ],
-            const SizedBox(height: 8),
-            Text(
-              'Ultimo exit code: ${_lastExitCode?.toString() ?? 'n/d'}',
-              style: theme.textTheme.bodyMedium,
             ),
-            if (kIsWeb && !_shouldUseBrowserRunner) ...[
-              const SizedBox(height: 12),
-              Text(
-                _primaryBot.compat.browserReason ??
-                    'Questo bot non è compatibile con il runner browser.',
-                style: TextStyle(
-                  color: theme.colorScheme.error,
-                  fontWeight: FontWeight.w600,
-                ),
-              ),
-            ],
-            const SizedBox(height: 20),
-            Expanded(
-              child: Container(
-                decoration: BoxDecoration(
-                  color: Colors.black,
-                  borderRadius: BorderRadius.circular(8),
-                  border: Border.all(color: Colors.grey.shade700),
-                ),
-                padding: const EdgeInsets.all(12),
-                child: _entries.isEmpty
-                    ? const Center(
-                        child: Text(
-                          'Nessun output disponibile. Avvia il bot per vedere i log.',
-                          style: TextStyle(color: Colors.white70),
-                          textAlign: TextAlign.center,
-                        ),
-                      )
-                    : ListView.builder(
-                        controller: _scrollController,
-                        itemCount: _entries.length,
-                        itemBuilder: (context, index) {
-                          final entry = _entries[index];
-                          return Text(
-                            entry.message,
-                            style: TextStyle(
-                              color: entry.color,
-                              fontFamily: 'monospace',
-                            ),
-                          );
-                        },
-                      ),
-              ),
-            ),
-            const SizedBox(height: 20),
-            SizedBox(
-              height: 220,
-              child: Card(
-                elevation: 2,
-                child: Padding(
-                  padding: const EdgeInsets.all(16.0),
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Row(
-                        children: [
-                          Text(
-                            'Storico esecuzioni',
-                            style: theme.textTheme.titleMedium,
-                          ),
-                          const Spacer(),
-                          IconButton(
-                            tooltip: 'Aggiorna',
-                            onPressed: _isLoadingLogs ? null : _loadLogs,
-                            icon: _isLoadingLogs
-                                ? const SizedBox(
-                                    width: 16,
-                                    height: 16,
-                                    child: CircularProgressIndicator(strokeWidth: 2),
-                                  )
-                                : const Icon(Icons.refresh),
-                          ),
-                        ],
-                      ),
-                      const SizedBox(height: 12),
-                      Expanded(
-                        child: _buildLogList(),
-                      ),
-                    ],
-                  ),
-                ),
-              ),
-            ),
-          ],
-        ),
+          );
+        },
       ),
     );
   }
@@ -1200,6 +1150,91 @@ class _BotDetailViewState extends State<BotDetailView> {
           TextSpan(text: '$label: ', style: labelStyle),
           TextSpan(text: value),
         ],
+      ),
+    );
+  }
+
+  Widget _buildConsolePanel(double targetHeight) {
+    final height = math.max(220.0, targetHeight);
+    return ConstrainedBox(
+      constraints: BoxConstraints(minHeight: 220.0, maxHeight: height),
+      child: SizedBox(
+        height: height,
+        child: Container(
+          decoration: BoxDecoration(
+            color: Colors.black,
+            borderRadius: BorderRadius.circular(8),
+            border: Border.all(color: Colors.grey.shade700),
+          ),
+          padding: const EdgeInsets.all(12),
+          child: _entries.isEmpty
+              ? const Center(
+                  child: Text(
+                    'Nessun output disponibile. Avvia il bot per vedere i log.',
+                    style: TextStyle(color: Colors.white70),
+                    textAlign: TextAlign.center,
+                  ),
+                )
+              : ListView.builder(
+                  controller: _scrollController,
+                  itemCount: _entries.length,
+                  itemBuilder: (context, index) {
+                    final entry = _entries[index];
+                    return Text(
+                      entry.message,
+                      style: TextStyle(
+                        color: entry.color,
+                        fontFamily: 'monospace',
+                      ),
+                    );
+                  },
+                ),
+        ),
+      ),
+    );
+  }
+
+  Widget _buildHistoryPanel(double targetHeight, ThemeData theme) {
+    final height = math.max(200.0, targetHeight);
+    return ConstrainedBox(
+      constraints: BoxConstraints(minHeight: 200.0, maxHeight: height),
+      child: SizedBox(
+        height: height,
+        child: Card(
+          elevation: 2,
+          child: Padding(
+            padding: const EdgeInsets.all(16.0),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Row(
+                  children: [
+                    Text(
+                      'Storico esecuzioni',
+                      style: theme.textTheme.titleMedium,
+                    ),
+                    const Spacer(),
+                    IconButton(
+                      tooltip: 'Aggiorna',
+                      onPressed: _isLoadingLogs ? null : _loadLogs,
+                      icon: _isLoadingLogs
+                          ? const SizedBox(
+                              width: 16,
+                              height: 16,
+                              child: CircularProgressIndicator(strokeWidth: 2),
+                            )
+                          : const Icon(Icons.refresh),
+                    ),
+                  ],
+                ),
+                const SizedBox(height: 12),
+                Expanded(
+                  child: _buildLogList(),
+                ),
+              ],
+            ),
+          ),
+        ),
       ),
     );
   }
