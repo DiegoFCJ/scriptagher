@@ -194,6 +194,7 @@ flutter build windows
 2. Crea un installer personalizzato con **Inno Setup** o **NSIS**.
 - Scarica e configura Inno Setup: https://jrsoftware.org/isinfo.php.
 - Scrivi uno script `.iss` per includere l'eseguibile e altre dipendenze, quindi compila l'installer.
+- Consulta la guida [Risoluzione degli avvisi SmartScreen](docs/windows-smartscreen.md) per sbloccare l'installer `ScriptagherSetup.exe` su ogni dispositivo e migliorare la reputazione del file.
 
 ### 5. **Distribuire su macOS**
 Per distribuire su macOS, puoi creare un pacchetto `.dmg` o `.pkg`.
