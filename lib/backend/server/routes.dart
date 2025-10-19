@@ -39,6 +39,11 @@ class BotRoutes {
         (Request request, String language, String botName) =>
             botController.killBot(request, language, botName));
 
+    router.delete(
+        '/bots/<language>/<botName>',
+        (Request request, String language, String botName) =>
+            botController.deleteBot(request, language, botName));
+
     return router;
   }
 }
