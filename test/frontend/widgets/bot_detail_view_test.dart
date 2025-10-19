@@ -25,8 +25,7 @@ void main() {
       ),
     );
     await tester.pump();
-    final element = tester.element(find.byType(BotDetailView));
-    return (element as StatefulElement).state;
+    return tester.state<State<StatefulWidget>>(find.byType(BotDetailView));
   }
 
   testWidgets('execute button is disabled when bot is not downloaded',
