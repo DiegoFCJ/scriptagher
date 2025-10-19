@@ -3,11 +3,11 @@
   "platform": "Android",
   "version": "1.0.0+1",
   "file_name": "scriptagher-armeabi-v7a-debug.apk",
-  "file_size": 60625861,
-  "sha256": "3307bd0569b1f280a0774ab647c463816469efacf992c0b8a9df4fc87bc37d79",
+  "file_size": 60627989,
+  "sha256": "156b9888af6020d5756f7f36a5cd6147b5a816a949b745afda64ce1c324cf5a9",
   "download_url": "https://DiegoFCJ.github.io/scriptagher/installers/android/scriptagher-armeabi-v7a-debug.apk",
   "format": "APK",
-  "last_updated": "2025-10-19T07:19:50Z",
+  "last_updated": "2025-10-19T07:21:03Z",
   "architecture": "ARMv7",
   "build_variant": "Debug"
 }

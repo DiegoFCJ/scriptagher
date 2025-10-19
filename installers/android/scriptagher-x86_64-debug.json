@@ -3,11 +3,11 @@
   "platform": "Android",
   "version": "1.0.0+1",
   "file_name": "scriptagher-x86_64-debug.apk",
-  "file_size": 67178219,
-  "sha256": "58a5838632feb8ec581fccb105f584060dd9b17b7c88e2bb81e75585de2ae47b",
+  "file_size": 67180347,
+  "sha256": "befabbde5bdb4233bc67f449c77e392a2e237ff71d197c4180ccb6e6c117cb4b",
   "download_url": "https://DiegoFCJ.github.io/scriptagher/installers/android/scriptagher-x86_64-debug.apk",
   "format": "APK",
-  "last_updated": "2025-10-19T07:19:50Z",
+  "last_updated": "2025-10-19T07:21:03Z",
   "architecture": "x86_64",
   "build_variant": "Debug"
 }
