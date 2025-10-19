@@ -32,6 +32,17 @@ Il file `Bot.json` contiene i metadati (nome, descrizione, versione), l'entrypoi
 
 > **Sicurezza:** sviluppa bot in ambienti isolati, dichiara solo le permission indispensabili e controlla l'origine dei pacchetti. Altri suggerimenti sono disponibili nella guida dedicata.
 
+### Aggiornare la botlist con la pipeline GitHub Actions
+
+Il repository include il workflow [`deploy-botlist`](.github/workflows/deploy-botlist.yml) che, ad ogni push sul branch `main` o al tag di una release, comprime i bot disponibili e pubblica i file risultanti su `gh-pages`.
+
+1. **Aggiungi o modifica un bot** nella directory `bot-sources/<piattaforma>/<nome-bot>/` assicurandoti che contenga un file `Bot.json` valido secondo la guida.
+2. **Esegui lo script di packaging in locale** (opzionale) con `bash tool/package_bots.sh bot-sources build/botlist` per verificare che vengano generati gli archivi `.zip` e i manifest aggiornati.
+3. **Apri una pull request o esegui un push su `main`**: il workflow eseguirà automaticamente lo script, aggiornerà `botlist.json` aggregando i metadati e pubblicherà la cartella `build/botlist/` sul branch `gh-pages` tramite `peaceiris/actions-gh-pages`, mantenendo la cronologia e i file esistenti.
+4. **Recupera la botlist pubblicata** dal branch `gh-pages` (`bots/<piattaforma>/<nome>.zip`, `bots/<piattaforma>/<nome>.json` e `botlist.json`) per distribuirla via CDN o per l'app Scriptagher.
+
+Se la directory `bot-sources/` è vuota il workflow pubblicherà comunque un `botlist.json` valido con un array di bot vuoto, preservando la cache dei client.
+
 ### Backend API e CORS
 
 Il server backend Shelf esposto su `http://localhost:8080` gestisce automaticamente le richieste `OPTIONS` e applica gli header CORS `Access-Control-Allow-Origin`, `Access-Control-Allow-Methods` e `Access-Control-Allow-Headers` a tutte le risposte, inclusi gli stream SSE. Assicurati che qualsiasi client personalizzato invii le richieste con gli header previsti (ad esempio `Content-Type` o `Authorization`) per sfruttare correttamente il supporto CORS fornito dal backend.
