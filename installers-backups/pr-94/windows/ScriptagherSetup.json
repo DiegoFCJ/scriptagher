@@ -1,0 +1,14 @@
+{
+  "name": "Scriptagher for Windows (64-bit Installer)",
+  "platform": "Windows",
+  "version": "1.0.0+1",
+  "file_name": "ScriptagherSetup.exe",
+  "file_size": 10712574,
+  "sha256": "8b71a60d167438f1ffd828d4d1bca1558b3343504dc9eba37caf081029b49ddb",
+  "download_url": "https://DiegoFCJ.github.io/scriptagher/installers/windows/ScriptagherSetup.exe",
+  "format": "EXE",
+  "last_updated": "2025-10-19T07:21:03Z",
+  "architecture": "x86_64",
+  "build_variant": "Release",
+  "distribution": "Installer"
+}
