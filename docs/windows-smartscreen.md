@@ -55,10 +55,21 @@ Per ridurre gli avvisi SmartScreen nel tempo:
 
 ### Pipeline consigliata per la firma
 
-1. Acquista e configura il certificato di firma del codice (preferibilmente EV) su un dispositivo sicuro o HSM.
-2. Integra nel processo CI/CD un job che, dopo aver generato `ScriptagherSetup.exe`, esegue `signtool sign` con il certificato e la marca temporale.
-3. Conserva il file firmato in un archivio verificato e pubblica solo quella versione.
-4. Utilizza `signtool verify /pa ScriptagherSetup.exe` per controllare la validità della firma come parte delle checklist di rilascio.
+1. **Procurati un certificato affidabile**: usa un certificato di firma del codice **EV** archiviato su token hardware o HSM per impedire l'esfiltrazione della chiave privata. Configura il PIN in modo che solo il processo di build approvato possa accedere alla chiave.
+2. **Firma e apponi il timestamp automaticamente**: integra nel processo CI/CD un job che, dopo aver generato `ScriptagherSetup.exe`, esegue `signtool sign /tr <url_timestamp> /td sha256` con il certificato EV e aggiunge un timestamp RFC 3161. In caso di build locali, usa lo stesso script per evitare varianti non firmate.
+3. **Esegui controlli di integrità**: conserva il file firmato in un archivio verificato (ad esempio un bucket con versioning) e calcola l'hash SHA-256 pubblicato nelle note di rilascio. Aggiungi `signtool verify /pa ScriptagherSetup.exe` e `Get-FileHash` alle checklist di rilascio.
+4. **Registra ogni firma**: mantieni un log con data, certificato, hash e ambiente di build per ricostruire la catena di fiducia durante gli audit o le submission a Microsoft.
+
+### Evitare che l'installer sembri malware
+
+Per ridurre le segnalazioni antivirus e far percepire l'installer come affidabile:
+
+- **Usa un formato moderno**: valuta di distribuire anche un pacchetto `MSIX` o `MSIXBundle`. I pacchetti MSIX firmati sono convalidati dal sistema operativo e godono di maggiore fiducia rispetto agli EXE generici.
+- **Elimina comportamenti anomali**: rimuovi funzioni auto-estrazione, downloader nascosti o modifiche al registro non necessarie. Un installer lineare che copia file e registra dipendenze riduce gli heuristic hit.
+- **Compila in modalità Release senza debug**: binari compilati con flag di debug, packer o obfuscation possono essere classificati come sospetti. Mantieni simboli e PDB separati per il debug, ma non includerli nel pacchetto pubblico.
+- **Firma anche i componenti secondari**: includi librerie, DLL e script PowerShell firmati o hashati. Un componente non firmato scaricato a runtime può far scattare SmartScreen o Defender.
+- **Allinea metadata e versioning**: imposta `CompanyName`, `ProductName`, `OriginalFilename` e una versione semantica coerente. Incoerenze nei metadata possono penalizzare la reputazione.
+- **Distribuisci aggiornamenti incrementali**: riduci i cambiamenti drastici tra release, riutilizza il certificato esistente e mantieni stabile l'hash dei file secondari.
 
 ## 5. Risoluzione dei problemi comuni
 
@@ -76,11 +87,22 @@ Per evitare che Windows identifichi l'installer come potenzialmente dannoso, ado
 1. **Includi Scriptagher nella Microsoft Security Intelligence**: carica il pacchetto firmato nel portale [Microsoft Security Intelligence](https://www.microsoft.com/en-us/wdsi/filesubmission) e richiedi la valutazione come software legittimo. Allegare dettagli (descrizione, hash, firma) accelera la revisione e riduce i falsi positivi.
 2. **Partecipa al programma SmartScreen Application Reputation**: assicurati che l'account Microsoft Partner sia verificato, mantieni la firma EV attiva e pubblica versioni con numeri di versione incrementali. Più utenti eseguono versioni identiche firmate, maggiore sarà la reputazione assegnata.
 3. **Distribuisci tramite canali fidati**: preferisci Windows Package Manager, Microsoft Store oppure link HTTPS aziendali con certificato valido. Un download da fonti inattese può far scattare ulteriori controlli antivirus.
-4. **Elimina comportamenti sospetti**: assicurati che l'installer non scarichi componenti non firmati, non modifichi impostazioni di sicurezza e non richieda privilegi amministrativi superflui. Compila in modalità *Release* e riduci al minimo i *packer* o compressioni autoestraenti che possono ricordare malware.
+4. **Elimina comportamenti sospetti**: assicurati che l'installer non scarichi componenti non firmati, non modifichi impostazioni di sicurezza e non richieda privilegi amministrativi superflui. Compila in modalità *Release*, preferisci pacchetti MSIX quando possibile e riduci al minimo i *packer* o compressioni autoestraenti che possono ricordare malware.
 5. **Monitora il feedback degli utenti**: raccogli hash e log dagli endpoint che segnalano l'app come minaccia. Invia questi dati a Microsoft durante le segnalazioni per far aggiornare le definizioni.
 6. **Mantieni aggiornati i certificati**: rinnova il certificato di firma prima della scadenza e distribuisci rapidamente nuove build firmate; un certificato scaduto annulla la fiducia costruita.
 
-## 7. Checklist per ogni dispositivo
+## 7. Gestire i falsi positivi di Microsoft Defender
+
+Quando Microsoft Defender classifica l'installer come minaccia, agisci rapidamente:
+
+1. **Verifica localmente la rilevazione**: apri Windows Security > *Protezione da virus e minacce* > *Cronologia protezione* e annota ID, nome della minaccia e percorso del file. Confronta l'hash con quello ufficiale.
+2. **Prepara il pacchetto da inviare**: comprimi `ScriptagherSetup.exe` (firmato) in uno ZIP protetto da password, includi un file `readme.txt` con hash, versione, certificato usato e motivazione della richiesta di sblocco.
+3. **Invia una segnalazione di falso positivo** dal portale [Microsoft Security Intelligence](https://www.microsoft.com/en-us/wdsi/filesubmission) selezionando *Software Developer* > *False positive*. Allega lo ZIP, specifica che il file è firmato EV e fornisci il log di `signtool verify`.
+4. **Monitora lo stato della submission**: conserva l'ID di supporto ricevuto e aggiorna la documentazione interna. Microsoft invia un'email quando la definizione antivirus viene corretta.
+5. **Distribuisci le nuove definizioni**: dopo la risoluzione, invita gli utenti a eseguire `MpCmdRun.exe -SignatureUpdate` o un aggiornamento tramite Windows Update per scaricare le firme aggiornate.
+6. **Aggiorna i canali di distribuzione**: se l'installer è pubblicato su servizi terzi (es. antivirus di terze parti), invia la stessa segnalazione per prevenire nuove rilevazioni.
+
+## 8. Checklist per ogni dispositivo
 
 1. Conferma l'hash con `Get-FileHash`.
 2. Avvia la scansione antivirus manuale.
