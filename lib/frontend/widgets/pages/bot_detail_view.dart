@@ -1324,11 +1324,12 @@ class _BotDetailViewState extends State<BotDetailView> {
                 : 'Scarica';
 
     final compatibility = executionCompatibility;
+    final bool canExecute = _canExecuteBot;
     final bool isBusy = _isRunning || _isTerminating || _activeProcessId != null;
     String? executeTooltip;
     if (!_isDownloaded) {
       executeTooltip = 'Scarica il bot prima di eseguirlo.';
-    } else if (!compatibility.isSupported) {
+    } else if (!canExecute) {
       executeTooltip = compatibility.reason ??
           'Questo bot non è compatibile con la piattaforma corrente.';
     }
