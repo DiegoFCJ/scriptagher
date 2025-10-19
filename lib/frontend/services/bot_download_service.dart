@@ -23,18 +23,7 @@ class BotDownloadService {
       return Bot.fromJson(data);
     }
 
-    String? backendMessage;
-    try {
-      final Map<String, dynamic> error =
-          jsonDecode(response.body) as Map<String, dynamic>;
-      final message = error['message']?.toString();
-      if (message != null && message.isNotEmpty) {
-        backendMessage = message;
-      }
-    } catch (_) {
-      // ignore decoding errors and throw generic one below
-    }
-
+    final backendMessage = _extractErrorMessage(response);
     throw Exception(
         backendMessage ?? 'Download fallito (codice ${response.statusCode}).');
   }
@@ -49,19 +38,40 @@ class BotDownloadService {
       return;
     }
 
-    String? backendMessage;
-    try {
-      final Map<String, dynamic> error =
-          jsonDecode(response.body) as Map<String, dynamic>;
-      final message = error['message']?.toString();
-      if (message != null && message.isNotEmpty) {
-        backendMessage = message;
-      }
-    } catch (_) {
-      // ignore decoding errors and throw generic one below
-    }
-
+    final backendMessage = _extractErrorMessage(response);
     throw Exception(backendMessage ??
         'Eliminazione fallita (codice ${response.statusCode}).');
+  }
+
+  String? _extractErrorMessage(http.Response response) {
+    final body = response.body;
+    if (body.isEmpty) {
+      return null;
+    }
+
+    try {
+      final decoded = jsonDecode(body);
+      if (decoded is Map<String, dynamic>) {
+        final candidates = [decoded['message'], decoded['error']];
+        for (final candidate in candidates) {
+          if (candidate is String) {
+            final trimmed = candidate.trim();
+            if (trimmed.isNotEmpty) {
+              return trimmed;
+            }
+          }
+        }
+      } else if (decoded is String) {
+        final trimmed = decoded.trim();
+        if (trimmed.isNotEmpty) {
+          return trimmed;
+        }
+      }
+    } catch (_) {
+      // ignore decoding errors and fall back to the raw body below
+    }
+
+    final trimmedBody = body.trim();
+    return trimmedBody.isNotEmpty ? trimmedBody : null;
   }
 }
