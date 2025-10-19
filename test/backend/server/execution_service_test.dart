@@ -29,23 +29,20 @@ void main() {
 
     test('decodes malformed bytes in SSE stream without throwing', () async {
       final controller = StreamController<List<int>>();
-      final buffer = StringBuffer();
-      final errors = <Object>[];
 
-      final subscription = controller.stream
+      final linesFuture = controller.stream
           .transform(ExecutionService.lossyUtf8Decoder)
           .transform(const LineSplitter())
-          .listen((line) {
-        buffer.writeln(line);
-      }, onError: errors.add);
+          .toList();
 
       controller.add(<int>[0x61, 0x62, 0x63, 0xFF]);
       controller.add(<int>[0x64, 0x65, 0x66, 0x0A]);
       await controller.close();
-      await subscription.asFuture<void>();
 
-      expect(errors, isEmpty);
-      expect(buffer.toString(), contains('�'));
+      final lines = await linesFuture;
+
+      expect(lines, isNotEmpty);
+      expect(lines.join('\n'), contains('�'));
     });
   });
 }
