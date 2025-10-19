@@ -1,23 +1,23 @@
 import { Component, Input } from '@angular/core';
-import { BotCardComponent } from '../bot-card/bot-card.component';
 import { CommonModule } from '@angular/common';
+
+import { BotCardComponent } from '../bot-card/bot-card.component';
 import { BotService } from '../../services/bot.service';
+import { TranslatePipe } from '../../core/i18n/translate.pipe';
+import { TranslationService } from '../../core/i18n/translation.service';
 
 @Component({
   selector: 'app-bot-section',
   standalone: true,
-  imports: [
-    CommonModule,
-    BotCardComponent
-  ],
+  imports: [CommonModule, BotCardComponent, TranslatePipe],
   templateUrl: './bot-section.component.html',
   styleUrls: ['./bot-section.component.scss']
 })
-export class BotSectionComponent{
+export class BotSectionComponent {
   @Input() language: string = '';
   @Input() bots: any[] = [];
 
-  constructor(private botService: BotService) {}
+  constructor(private botService: BotService, private translation: TranslationService) {}
 
   downloadBot(bot: any) {
     bot.language = this.language;
@@ -29,13 +29,9 @@ export class BotSectionComponent{
         link.click();
       },
       error: (error: any) => {
-        console.error('Error downloading bot:', error);
-        alert('Could not download the bot. Please try again.');
+        console.error(this.translation.translate('botSection.downloadErrorLog') + ':', error);
+        alert(this.translation.translate('botSection.downloadErrorAlert'));
       }
-    })
-  }
-    
-  capitalize(str: string): string {
-    return str.charAt(0).toUpperCase() + str.slice(1);
+    });
   }
 }

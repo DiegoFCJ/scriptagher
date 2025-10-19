@@ -1,0 +1,21 @@
+.language-switcher {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
+  font-size: 0.875rem;
+  color: inherit;
+}
+
+.language-switcher__label {
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  font-weight: 600;
+}
+
+.language-switcher__select {
+  background: transparent;
+  border: 1px solid currentColor;
+  border-radius: 999px;
+  padding: 0.25rem 0.75rem;
+  color: inherit;
+}

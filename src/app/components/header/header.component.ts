@@ -3,11 +3,13 @@ import { Component, OnDestroy, OnInit } from '@angular/core';
 import { Router, NavigationEnd } from '@angular/router';
 import { filter } from 'rxjs/operators';
 import { Subscription } from 'rxjs';
+import { TranslatePipe } from '../../core/i18n/translate.pipe';
+import { LanguageSwitcherComponent } from './language-switcher.component';
 
 @Component({
   selector: 'app-header',
   standalone: true,
-  imports: [CommonModule],
+  imports: [CommonModule, TranslatePipe, LanguageSwitcherComponent],
   templateUrl: './header.component.html',
   styleUrls: ['./header.component.scss']
 })
