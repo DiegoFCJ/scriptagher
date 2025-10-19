@@ -10,6 +10,7 @@ import '../services/bot_upload_service.dart';
 import '../services/execution_service.dart';
 import '../models/bot.dart';
 import '../exceptions/download_exceptions.dart';
+import '../db/bot_database.dart';
 
 class BotController {
   final CustomLogger logger = CustomLogger();
@@ -17,9 +18,14 @@ class BotController {
   final BotGetService botGetService;
   final BotUploadService botUploadService;
   final ExecutionService executionService;
+  final BotDatabase botDatabase;
 
   BotController(
-      this.botDownloadService, this.botGetService, this.botUploadService, this.executionService);
+      this.botDownloadService,
+      this.botGetService,
+      this.botUploadService,
+      this.executionService,
+      this.botDatabase);
 
   // Endpoint per ottenere la lista dei bot disponibili remoti
   Future<Response> fetchAvailableBots(Request request) async {
@@ -64,6 +70,87 @@ class BotController {
   Future<Response> killBot(
       Request request, String language, String botName) {
     return executionService.killBot(request, language, botName);
+  }
+
+  Future<Response> deleteBot(
+      Request request, String language, String botName) async {
+    logger.info(LOGS.BOT_SERVICE, 'Deleting bot: $language/$botName');
+
+    try {
+      final Bot? bot = await botDatabase.findBotByName(language, botName);
+
+      if (bot == null || !bot.isDownloaded) {
+        logger.warn(LOGS.BOT_SERVICE,
+            'Bot $language/$botName not found among downloaded bots.');
+        return Response.notFound(
+          json.encode({
+            'error': 'Bot not found',
+            'message':
+                'Impossibile trovare un bot scaricato per $language/$botName.',
+          }),
+          headers: {'Content-Type': 'application/json'},
+        );
+      }
+
+      final List<String> warnings = [];
+      final String sourcePath = bot.sourcePath;
+      final file = File(sourcePath);
+      Directory? targetDirectory;
+
+      if (await file.exists()) {
+        targetDirectory = file.parent;
+      } else {
+        final dir = Directory(sourcePath);
+        if (await dir.exists()) {
+          targetDirectory = dir;
+        }
+      }
+
+      if (targetDirectory != null) {
+        try {
+          if (await targetDirectory.exists()) {
+            await targetDirectory.delete(recursive: true);
+            logger.info(LOGS.BOT_SERVICE,
+                'Removed files for $language/$botName at ${targetDirectory.path}.');
+          }
+        } catch (e) {
+          logger.error(LOGS.BOT_SERVICE,
+              'Failed to remove files for $language/$botName: $e');
+          warnings.add(
+              'Impossibile eliminare alcuni file locali per $language/$botName.');
+        }
+      } else {
+        logger.warn(LOGS.BOT_SERVICE,
+            'No local files found for $language/$botName at $sourcePath.');
+      }
+
+      if (bot.id != null) {
+        await botDatabase.deleteBot(bot.id!);
+      } else {
+        logger.warn(LOGS.BOT_SERVICE,
+            'Bot $language/$botName has no ID; skipping DB delete.');
+      }
+
+      await botDatabase.deleteLocalBot(language, botName);
+
+      return Response.ok(
+        json.encode({
+          'message': 'Bot eliminato correttamente.',
+          if (warnings.isNotEmpty) 'warnings': warnings,
+        }),
+        headers: {'Content-Type': 'application/json'},
+      );
+    } catch (e) {
+      logger.error(
+          LOGS.BOT_SERVICE, 'Unexpected error deleting bot $language/$botName: $e');
+      return Response.internalServerError(
+        body: json.encode({
+          'error': 'Errore durante l\'eliminazione',
+          'message': e.toString(),
+        }),
+        headers: {'Content-Type': 'application/json'},
+      );
+    }
   }
 
   // Endpoint per scaricare un bot specifico

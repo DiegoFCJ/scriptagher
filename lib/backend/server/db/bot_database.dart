@@ -205,6 +205,15 @@ class BotDatabase {
     logger.info('BotDatabase', 'Bot with id $id deleted.');
   }
 
+  Future<void> deleteLocalBot(String language, String botName) async {
+    final db = await database;
+    await db.delete('local_bots',
+        where: 'bot_name = ? AND language = ?',
+        whereArgs: [botName, language]);
+    logger.info('BotDatabase',
+        'Local bot $language/$botName deleted from local_bots table.');
+  }
+
   /// Controlla se la tabella 'bots' esiste
   Future<void> checkIfTableExists() async {
     final db = await database;

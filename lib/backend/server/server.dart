@@ -36,9 +36,8 @@ Future<void> startServer() async {
   final botUploadService = BotUploadService(botDatabase);
   final executionLogManager = ExecutionLogManager();
   final executionService = ExecutionService(botDatabase, executionLogManager);
-  final botController =
-      BotController(botDownloadService, botGetService, botUploadService,
-          executionService);
+  final botController = BotController(botDownloadService, botGetService,
+      botUploadService, executionService, botDatabase);
 
   // Ottieni il router con le rotte definite
   final botRoutes = BotRoutes(botController);

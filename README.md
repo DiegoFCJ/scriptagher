@@ -47,6 +47,20 @@ Se la directory `bot-sources/` è vuota il workflow pubblicherà comunque un `bo
 
 Il server backend Shelf esposto su `http://localhost:8080` gestisce automaticamente le richieste `OPTIONS` e applica gli header CORS `Access-Control-Allow-Origin`, `Access-Control-Allow-Methods` e `Access-Control-Allow-Headers` a tutte le risposte, inclusi gli stream SSE. Assicurati che qualsiasi client personalizzato invii le richieste con gli header previsti (ad esempio `Content-Type` o `Authorization`) per sfruttare correttamente il supporto CORS fornito dal backend.
 
+#### Endpoint REST principali
+
+| Metodo | Percorso | Descrizione |
+| ------ | -------- | ----------- |
+| `GET` | `/bots` | Restituisce l'elenco dei bot disponibili nel marketplace remoto. |
+| `GET` | `/bots/{language}/{botName}` | Scarica e installa in locale il bot specificato. |
+| `DELETE` | `/bots/{language}/{botName}` | Rimuove un bot scaricato, cancellando record locali e directory nel filesystem. |
+| `GET` | `/bots/downloaded` | Elenca i bot scaricati presenti nel database locale. |
+| `GET` | `/localbots` | Elenca i bot trovati nel filesystem locale. |
+| `POST` | `/bots/{language}/{botName}/start` | Avvia l'esecuzione del bot. |
+| `POST` | `/bots/{language}/{botName}/stop` | Richiede l'arresto ordinato del bot. |
+| `POST` | `/bots/{language}/{botName}/kill` | Termina forzatamente il processo del bot. |
+| `POST` | `/bots/upload` | Carica un archivio ZIP contenente un bot locale. |
+
 ## Struttura del Progetto
 La struttura di base di un'app Flutter è la seguente:
 

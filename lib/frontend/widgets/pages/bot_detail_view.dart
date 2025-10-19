@@ -36,6 +36,7 @@ class _BotDetailViewState extends State<BotDetailView> {
   Bot? _remoteBot;
   bool _isStatusLoading = false;
   bool _isDownloadingBot = false;
+  bool _isDeletingBot = false;
   bool _isDownloaded = false;
   bool _hasUpdateAvailable = false;
 
@@ -58,7 +59,8 @@ class _BotDetailViewState extends State<BotDetailView> {
   Bot? get _installedBot => _downloadedBot;
   bool get _isDesktopPlatform => !kIsWeb &&
       (Platform.isLinux || Platform.isMacOS || Platform.isWindows);
-  bool get _canOpenFolderAction => _isDesktopPlatform && _isDownloaded;
+  bool get _canOpenFolderAction =>
+      _isDesktopPlatform && _isDownloaded && !_isDeletingBot;
 
   void _openTutorial() {
     Navigator.pushNamed(context, '/tutorial');
@@ -212,6 +214,76 @@ class _BotDetailViewState extends State<BotDetailView> {
     if (completed && mounted) {
       await _refreshBotStatus();
     }
+  }
+
+  Future<void> _confirmAndDeleteBot() async {
+    if (!_isDownloaded || _isDeletingBot) {
+      return;
+    }
+
+    final confirmed = await showDialog<bool>(
+      context: context,
+      builder: (dialogContext) {
+        final theme = Theme.of(dialogContext);
+        return AlertDialog(
+          title: const Text('Elimina bot'),
+          content: Text(
+              'Vuoi eliminare definitivamente ${widget.bot.botName}? Verranno rimossi i file locali.'),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.of(dialogContext).pop(false),
+              child: const Text('Annulla'),
+            ),
+            FilledButton(
+              style: FilledButton.styleFrom(
+                backgroundColor: theme.colorScheme.error,
+                foregroundColor: theme.colorScheme.onError,
+              ),
+              onPressed: () => Navigator.of(dialogContext).pop(true),
+              child: const Text('Elimina'),
+            ),
+          ],
+        );
+      },
+    );
+
+    if (confirmed != true) {
+      return;
+    }
+
+    setState(() {
+      _isDeletingBot = true;
+    });
+
+    var deleted = false;
+    try {
+      await _botDownloadService.deleteBot(
+          widget.bot.language, widget.bot.botName);
+      deleted = true;
+    } catch (e) {
+      if (mounted) {
+        _showSnackBar('Errore durante l\'eliminazione: $e');
+      }
+    } finally {
+      if (mounted) {
+        setState(() {
+          _isDeletingBot = false;
+        });
+      }
+    }
+
+    if (!mounted || !deleted) {
+      return;
+    }
+
+    setState(() {
+      _downloadedBot = null;
+      _isDownloaded = false;
+      _hasUpdateAvailable = false;
+    });
+    _showSnackBar('Bot eliminato correttamente.');
+
+    await _refreshBotStatus();
   }
 
   Future<void> _openBotFolder() async {
@@ -1281,8 +1353,9 @@ class _BotDetailViewState extends State<BotDetailView> {
   }
 
   Widget _buildPrimaryActions(BuildContext context) {
-    final bool enableDownload =
-        !_isDownloadingBot && (!_isDownloaded || _hasUpdateAvailable);
+    final bool enableDownload = !_isDownloadingBot &&
+        !_isDeletingBot &&
+        (!_isDownloaded || _hasUpdateAvailable);
     final bool showSpinner = _isDownloadingBot;
     final Widget downloadIcon = showSpinner
         ? const SizedBox(
@@ -1298,6 +1371,17 @@ class _BotDetailViewState extends State<BotDetailView> {
             : _isDownloaded
                 ? 'Scaricato'
                 : 'Scarica';
+    final bool showDelete = _isDownloaded;
+    final bool deleteSpinner = _isDeletingBot;
+    final Widget deleteIcon = deleteSpinner
+        ? const SizedBox(
+            width: 18,
+            height: 18,
+            child: CircularProgressIndicator(strokeWidth: 2),
+          )
+        : const Icon(Icons.delete);
+    final String deleteLabel =
+        deleteSpinner ? 'Eliminazione...' : 'Elimina';
 
     return Wrap(
       spacing: 12,
@@ -1326,6 +1410,16 @@ class _BotDetailViewState extends State<BotDetailView> {
                       ? 'Processo attivo'
                       : 'Esegui'),
         ),
+        if (showDelete)
+          ElevatedButton.icon(
+            onPressed: deleteSpinner ? null : _confirmAndDeleteBot,
+            style: ElevatedButton.styleFrom(
+              backgroundColor: Theme.of(context).colorScheme.error,
+              foregroundColor: Theme.of(context).colorScheme.onError,
+            ),
+            icon: deleteIcon,
+            label: Text(deleteLabel),
+          ),
       ],
     );
   }
