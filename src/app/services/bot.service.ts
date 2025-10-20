@@ -13,6 +13,7 @@ import {
 } from 'rxjs';
 import { APP_BASE_HREF, DOCUMENT } from '@angular/common';
 import { TranslationService } from '../core/i18n/translation.service';
+import { BOT_CONFIG, BotRuntimeConfig } from './bot-config';
 
 @Injectable({
   providedIn: 'root'
@@ -20,7 +21,8 @@ import { TranslationService } from '../core/i18n/translation.service';
 export class BotService {
   private readonly botsBaseUrl: URL;
   private readonly botsSourceBaseUrl: URL;
-  private readonly installersBaseUrl: URL;
+  private installersBaseUrl: URL;
+  private readonly remoteInstallersBaseUrl?: URL;
   private readonly githubApiBaseUrl: string;
   private readonly githubRepoOwner: string;
   private readonly githubRepoName: string;
@@ -36,10 +38,12 @@ export class BotService {
     private http: HttpClient,
     private translations: TranslationService,
     @Optional() @Inject(DOCUMENT) private readonly documentRef: Document | null,
-    @Optional() @Inject(APP_BASE_HREF) private readonly appBaseHref?: string
+    @Optional() @Inject(APP_BASE_HREF) private readonly appBaseHref?: string,
+    @Optional() @Inject(BOT_CONFIG) private readonly botConfig?: BotRuntimeConfig
   ) {
     const baseUrl = this.resolveBaseUrl();
     const inferredRepoInfo = this.detectGithubRepoInfo(baseUrl);
+    const config = this.botConfig ?? {};
 
     this.botsBaseUrl = new URL('bots/', baseUrl);
     this.botsSourceBaseUrl = new URL('bots/', baseUrl);
@@ -47,11 +51,13 @@ export class BotService {
     this.githubApiBaseUrl = this.getEnvironmentValue('NG_APP_GITHUB_API_URL')
       || this.getEnvironmentValue('GITHUB_API_URL')
       || 'https://api.github.com';
-    this.githubRepoOwner = this.getEnvironmentValue('NG_APP_GITHUB_OWNER')
+    this.githubRepoOwner = config.githubRepoOwner
+      || this.getEnvironmentValue('NG_APP_GITHUB_OWNER')
       || this.getEnvironmentValue('GITHUB_OWNER')
       || inferredRepoInfo.owner
       || '';
-    this.githubRepoName = this.getEnvironmentValue('NG_APP_GITHUB_REPO')
+    this.githubRepoName = config.githubRepoName
+      || this.getEnvironmentValue('NG_APP_GITHUB_REPO')
       || this.getEnvironmentValue('GITHUB_REPO')
       || inferredRepoInfo.repo
       || '';
@@ -59,12 +65,21 @@ export class BotService {
       || this.getEnvironmentValue('GITHUB_TOKEN');
     this.githubApiVersion = this.getEnvironmentValue('NG_APP_GITHUB_API_VERSION')
       || this.getEnvironmentValue('GITHUB_API_VERSION');
-    this.githubInstallersBranch = this.getEnvironmentValue('NG_APP_GITHUB_INSTALLERS_BRANCH')
+    this.githubInstallersBranch = config.githubInstallersBranch
+      || this.getEnvironmentValue('NG_APP_GITHUB_INSTALLERS_BRANCH')
       || this.getEnvironmentValue('GITHUB_INSTALLERS_BRANCH')
       || 'gh-pages';
     this.githubInstallersPath = this.getEnvironmentValue('NG_APP_GITHUB_INSTALLERS_PATH')
       || this.getEnvironmentValue('GITHUB_INSTALLERS_PATH')
       || 'installers';
+
+    const installersBaseUrlFromConfig = config.publicInstallersBaseUrl
+      || this.getEnvironmentValue('NG_APP_INSTALLERS_BASE_URL')
+      || this.getEnvironmentValue('INSTALLERS_BASE_URL')
+      || (this.githubRepoOwner && this.githubRepoName
+        ? `https://${this.githubRepoOwner}.github.io/${this.githubRepoName}/installers/`
+        : undefined);
+    this.remoteInstallersBaseUrl = this.tryCreateUrl(installersBaseUrlFromConfig, baseUrl);
   }
 
   private resolveBaseUrl(): string {
@@ -82,6 +97,36 @@ export class BotService {
 
   private ensureTrailingSlash(url: string): string {
     return url.endsWith('/') ? url : `${url}/`;
+  }
+
+  private tryCreateUrl(value?: string, base?: string): URL | undefined {
+    if (!value) {
+      return undefined;
+    }
+
+    const normalized = this.ensureTrailingSlash(value);
+
+    try {
+      return new URL(normalized);
+    } catch {
+      if (!base) {
+        return undefined;
+      }
+
+      try {
+        return new URL(normalized, base);
+      } catch {
+        return undefined;
+      }
+    }
+  }
+
+  private urlsMatch(urlA?: URL, urlB?: URL): boolean {
+    if (!urlA || !urlB) {
+      return false;
+    }
+
+    return urlA.toString() === urlB.toString();
   }
 
   private detectGithubRepoInfo(baseUrl: string): { owner?: string; repo?: string } {
@@ -200,14 +245,40 @@ export class BotService {
   }
 
   private fetchManifestCandidate(filename: string): Observable<unknown | null> {
-    try {
-      const manifestUrl = new URL(filename, this.installersBaseUrl).toString();
-      return this.http.get<unknown>(manifestUrl).pipe(
-        catchError(() => of(null))
-      );
-    } catch {
-      return of(null);
-    }
+    const attemptLoad = (base: URL | undefined): Observable<unknown | null> => {
+      if (!base) {
+        return of(null);
+      }
+      try {
+        const manifestUrl = new URL(filename, base).toString();
+        return this.http.get<unknown>(manifestUrl).pipe(
+          catchError(() => of(null))
+        );
+      } catch {
+        return of(null);
+      }
+    };
+
+    return attemptLoad(this.installersBaseUrl).pipe(
+      switchMap((result) => {
+        if (
+          result ||
+          !this.remoteInstallersBaseUrl ||
+          this.urlsMatch(this.installersBaseUrl, this.remoteInstallersBaseUrl)
+        ) {
+          return of(result);
+        }
+
+        return attemptLoad(this.remoteInstallersBaseUrl).pipe(
+          map((remoteResult) => {
+            if (remoteResult) {
+              this.installersBaseUrl = this.remoteInstallersBaseUrl!;
+            }
+            return remoteResult;
+          })
+        );
+      })
+    );
   }
 
   private createInstallerAssetsFromManifest(manifest: unknown): Observable<InstallerAsset[]> {

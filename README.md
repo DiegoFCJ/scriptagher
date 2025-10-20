@@ -134,6 +134,7 @@ Configure the runtime environment with the following variables so the Angular ap
 | `NG_APP_GITHUB_API_VERSION` | Custom `X-GitHub-Api-Version` header value. | GitHub default |
 | `NG_APP_GITHUB_INSTALLERS_BRANCH` | Branch where the `installers/` directory lives. | `gh-pages` |
 | `NG_APP_GITHUB_INSTALLERS_PATH` | Directory path containing installer binaries. | `installers` |
+| `NG_APP_INSTALLERS_BASE_URL` | Absolute URL for the published installers directory (e.g. GitHub Pages). | `https://<owner>.github.io/<repo>/installers/` |
 
 > ℹ️ The service also checks for the same variables without the `NG_APP_` prefix (e.g. `GITHUB_OWNER`) to support hosting platforms that expose only unprefixed environment variables.
 
@@ -152,10 +153,56 @@ Example runtime configuration snippet to inject from the hosting platform:
     NG_APP_GITHUB_OWNER: 'my-org',
     NG_APP_GITHUB_REPO: 'my-repo',
     NG_APP_GITHUB_TOKEN: '<token-with-contents-read>',
-    NG_APP_GITHUB_INSTALLERS_BRANCH: 'gh-pages'
+    NG_APP_GITHUB_INSTALLERS_BRANCH: 'gh-pages',
+    NG_APP_INSTALLERS_BASE_URL: 'https://my-org.github.io/my-repo/installers/'
   };
 </script>
 ```
+
+### Overriding the Angular provider for alternative deployments
+
+The Angular application exposes a `BOT_CONFIG` injection token that centralises
+the GitHub repository metadata. The default provider, registered in
+`src/app/app.config.ts`, reads the environment variables listed above and falls
+back to the GitHub Pages convention (`https://<owner>.github.io/<repo>/`). For
+custom deployments you can override the defaults by editing `app.config.ts`:
+
+```ts
+import { provideBotConfig } from './services/bot-config';
+
+export const appConfig: ApplicationConfig = {
+  providers: [
+    /* ...other providers... */
+    provideBotConfig({
+      githubRepoOwner: 'my-company',
+      githubRepoName: 'bot-list-installers',
+      githubInstallersBranch: 'production-installers',
+      publicInstallersBaseUrl: 'https://downloads.example.com/installers/'
+    }),
+  ],
+};
+```
+
+The override can also be applied conditionally (for example when bootstrapping
+the server bundle) so you can point staging environments at a different
+repository or CDN without rebuilding the application.
+
+### Verifying remote installers during local development
+
+When running `ng serve` there are no static `installers/` assets on the dev
+server, so the `BotService` automatically falls back to the configured public
+URL. After setting `NG_APP_INSTALLERS_BASE_URL`, start the dev server and check
+that the browser requests the manifest from the remote origin:
+
+```bash
+npm install
+npm run start
+```
+
+Open the application, then inspect the network tab for
+`https://<your-site>/installers/installers.json` (or another manifest filename).
+If the request succeeds the download buttons will resolve to the remote base
+URL, matching the behaviour of the GitHub Pages deployment.
 
 ## 📦 Distribution Roadmap
 
