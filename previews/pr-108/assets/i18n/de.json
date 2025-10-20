@@ -1,0 +1,135 @@
+{
+  "app": {
+    "name": "Scriptagher"
+  },
+  "languages": {
+    "it": {
+      "label": "Italienisch",
+      "short": "IT"
+    },
+    "en": {
+      "label": "Englisch",
+      "short": "EN"
+    },
+    "no": {
+      "label": "Norwegisch",
+      "short": "NO"
+    },
+    "de": {
+      "label": "Deutsch",
+      "short": "DE"
+    },
+    "ru": {
+      "label": "Russisch",
+      "short": "RU"
+    },
+    "es": {
+      "label": "Spanisch",
+      "short": "ES"
+    }
+  },
+  "languageSwitcher": {
+    "label": "Sprache"
+  },
+  "header": {
+    "pdf": {
+      "currentPage": "PDF zu Txt",
+      "home": "Start"
+    },
+    "hero": {
+      "eyebrow": "Ein Arsenal kreativer Automationen",
+      "title": "Scriptagher Bot-Bibliothek",
+      "description": "Entdecke eine kuratierte Sammlung mehrsprachiger Bots, gestaltet für ein fesselndes und intensives Erlebnis.",
+      "cta": "Bots entdecken"
+    }
+  },
+  "botSection": {
+    "languageBadge": "{{language}}",
+    "title": "Bots auf {{language}}",
+    "downloadErrorAlert": "Der Bot konnte nicht heruntergeladen werden. Bitte versuche es erneut.",
+    "downloadErrorLog": "Fehler beim Herunterladen des Bots"
+  },
+  "botCard": {
+    "noDescription": "Keine Beschreibung verfügbar",
+    "startCommand": "Startbefehl",
+    "noStartCommand": "Kein Startbefehl angegeben",
+    "pdfCta": "Zum PDF-zu-Txt-Konverter",
+    "viewSource": "Quellcode anzeigen",
+    "download": "Herunterladen",
+    "navigationError": "Fehler bei der Navigation zur PDF-zu-Txt-Seite"
+  },
+  "botList": {
+    "errorTitle": "Ups, etwas ist schiefgelaufen.",
+    "errorDefault": "Keine Bots verfügbar.",
+    "loadError": "Die Bot-Liste konnte nicht geladen werden.",
+    "cardLoadError": "Fehler beim Laden der Details"
+  },
+  "installerSection": {
+    "title": "Installer",
+    "subtitle": "Sofort einsatzbereite Pakete mit verifizierbaren Prüfsummen, Release Notes und Lizenzen im Fokus.",
+    "download": "Herunterladen",
+    "sizeLabel": "Größe",
+    "licenseLabel": "Lizenz",
+    "maintainerLabel": "Betreuer",
+    "checksumLabel": "Prüfsumme",
+    "releaseNotesLabel": "Release Notes",
+    "releaseNotesAction": "Öffnen",
+    "sourceLabel": "Quelle"
+  },
+  "pdfToTxt": {
+    "intro": {
+      "eyebrow": "Werkzeug",
+      "title": "PDFs ohne Aufwand in Text umwandeln",
+      "description": "Lade dein PDF hoch und extrahiere den Text in Sekunden. Es wird nichts an entfernte Server gesendet: alles passiert direkt im Browser."
+    },
+    "highlights": {
+      "fast": "Schnelle Konvertierung",
+      "privacy": "Datenschutz garantiert",
+      "ready": "Text zum Kopieren bereit"
+    },
+    "dropzone": {
+      "badge": "PDF",
+      "title": "Zieh dein PDF hierher",
+      "subtitle": "Oder klicke, um es von deinem Gerät zu wählen",
+      "button": "Datei auswählen"
+    },
+    "status": {
+      "replaceFile": "Datei ersetzen",
+      "progressComplete": "Konvertierung abgeschlossen ({{total}} Seiten)",
+      "progress": "Konvertiere: Seite {{current}} von {{total}}",
+      "noText": "Aus dem Dokument konnte kein Text extrahiert werden.",
+      "error": "Das PDF konnte nicht gelesen werden. Stelle sicher, dass es nicht geschützt ist, und versuche es später erneut."
+    },
+    "result": {
+      "title": "Extrahierter Text",
+      "copy": "Alles kopieren"
+    },
+    "fallback": {
+      "title": "Kein PDF ausgewählt",
+      "description": "Lade ein Dokument hoch, um zu starten. Sollte das Tool nicht mehr verfügbar sein, wird der Button in der oberen Leiste automatisch ausgeblendet, um Verwirrung zu vermeiden."
+    },
+    "errors": {
+      "conversion": "Fehler bei der PDF-Konvertierung",
+      "copy": "Text konnte nicht in die Zwischenablage kopiert werden"
+    }
+  },
+  "notFound": {
+    "title": "404 - Seite nicht gefunden",
+    "message": "Die gesuchte Seite existiert nicht.",
+    "cta": "Zurück zur Startseite"
+  },
+  "footer": {
+    "copy": "© 2024 Scriptagher · Mit Leidenschaft für Automatisierung gefertigt",
+    "legal": "Für die Maker-Community bereitgestellt: Lies vor der Nutzung von Automatisierungsbots immer die Release Notes und Lizenzen.",
+    "links": {
+      "portfolio": "Portfolio",
+      "github": "GitHub",
+      "license": "Lizenz"
+    }
+  },
+  "license": {
+    "title": "Repository-Lizenz",
+    "loading": "Lizenz wird geladen …",
+    "error": "Die Lizenzdatei konnte nicht geladen werden. Bitte aktualisiere die Seite oder versuche es später erneut."
+  }
+}
