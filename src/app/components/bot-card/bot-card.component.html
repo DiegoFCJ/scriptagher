@@ -18,7 +18,11 @@
       >
         {{ 'botCard.pdfCta' | translate }}
       </button>
-      <button class="btn btn-secondary" (click)="openBot()">
+      <button
+        *ngIf="canViewSource"
+        class="btn btn-secondary"
+        (click)="openBot()"
+      >
         {{ bot.actions['viewSource'] || ('botCard.viewSource' | translate) }}
       </button>
       <button class="btn btn-primary" (click)="downloadBot()">

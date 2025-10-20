@@ -3,6 +3,7 @@
   "startCommand": "python3 bots/python/Zipper/Zipper.py",
   "description": "This bot zips a folder into a ZIP archive.",
   "language": "python",
+  "sourceUrl": "https://github.com/scriptagle/scriptagher/tree/main/public/bots/python/Zipper",
   "translations": {
     "it": {
       "displayName": "Zipper",
