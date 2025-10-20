@@ -1,6 +1,28 @@
 {
-    "botName": "facebook-images-remover",
-    "startCommand": "./image-remover.sh",
-    "description": "A Python bot that automates the process of deleting Facebook photos by interacting with the web interface using Selenium.",
-    "language": "Python"
+  "botName": "facebook-images-remover",
+  "startCommand": "./image-remover.sh",
+  "description": "A Python bot that automates the process of deleting Facebook photos by interacting with the web interface using Selenium.",
+  "language": "Python",
+  "translations": {
+    "it": {
+      "displayName": "Facebook Images Remover",
+      "shortDescription": "Elimina automaticamente le foto da Facebook simulando l'interazione dell'utente.",
+      "longDescription": "Il bot usa Selenium per individuare e rimuovere rapidamente le immagini dal tuo profilo Facebook, riducendo al minimo gli interventi manuali.",
+      "startCommand": "./image-remover.sh",
+      "actions": {
+        "download": "Scarica script",
+        "viewSource": "Vedi sorgente"
+      }
+    },
+    "en": {
+      "displayName": "Facebook Images Remover",
+      "shortDescription": "Automatically delete Facebook photos by simulating user interactions.",
+      "longDescription": "The bot leverages Selenium to find and remove images from your Facebook profile quickly, minimising manual work.",
+      "startCommand": "./image-remover.sh",
+      "actions": {
+        "download": "Download script",
+        "viewSource": "View source"
+      }
+    }
+  }
 }

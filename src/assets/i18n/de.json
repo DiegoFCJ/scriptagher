@@ -62,7 +62,9 @@
     "errorTitle": "Ups, etwas ist schiefgelaufen.",
     "errorDefault": "Keine Bots verfügbar.",
     "loadError": "Die Bot-Liste konnte nicht geladen werden.",
-    "cardLoadError": "Fehler beim Laden der Details"
+    "cardLoadError": "Fehler beim Laden der Details",
+    "installersLoadError": "Die Installer-Liste konnte nicht geladen werden.",
+    "noBotsAvailable": "Für diese Sprache sind derzeit keine Bots verfügbar."
   },
   "installerSection": {
     "title": "Installer",

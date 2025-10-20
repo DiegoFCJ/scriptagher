@@ -62,7 +62,9 @@
     "errorTitle": "Ops, qualcosa è andato storto.",
     "errorDefault": "Nessun bot disponibile.",
     "loadError": "Impossibile caricare l'elenco dei bot.",
-    "cardLoadError": "Errore nel caricamento dei dettagli"
+    "cardLoadError": "Errore nel caricamento dei dettagli",
+    "installersLoadError": "Impossibile caricare l'elenco degli installer.",
+    "noBotsAvailable": "Nessun bot disponibile in questa lingua."
   },
   "installerSection": {
     "title": "Installers",

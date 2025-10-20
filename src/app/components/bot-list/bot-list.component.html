@@ -2,8 +2,13 @@
 <app-installer-section *ngIf="installerAssets.length" [installers]="installerAssets"></app-installer-section>
 
 <main class="bot-list" id="bots" *ngIf="botSections.length; else errorTemplate">
-  <app-bot-section *ngFor="let section of botSections" [language]="section.language"
-    [bots]="section.botDetails"></app-bot-section>
+  <app-bot-section
+    *ngFor="let section of botSections"
+    [language]="section.language"
+    [title]="section.title"
+    [summary]="section.summary"
+    [bots]="section.bots"
+  ></app-bot-section>
 </main>
 <ng-template #errorTemplate>
   <div class="error-state">

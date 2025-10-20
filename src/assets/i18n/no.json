@@ -62,7 +62,9 @@
     "errorTitle": "Oops, noe gikk galt.",
     "errorDefault": "Ingen bot-er tilgjengelig.",
     "loadError": "Kunne ikke laste bot-listen.",
-    "cardLoadError": "Feil ved lasting av detaljer"
+    "cardLoadError": "Feil ved lasting av detaljer",
+    "installersLoadError": "Kunne ikke laste installasjonslisten.",
+    "noBotsAvailable": "Ingen bot-er er tilgjengelige på dette språket ennå."
   },
   "installerSection": {
     "title": "Installasjoner",

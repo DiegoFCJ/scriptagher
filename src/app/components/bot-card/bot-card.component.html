@@ -1,10 +1,10 @@
 <div class="bot">
   <div class="bot-surface">
     <div class="bot-header">
-      <h3>{{ bot.botName }}</h3>
+      <h3>{{ bot.displayName || bot.botName }}</h3>
       <span class="bot-language">{{ ('languages.' + language + '.short') | translate }}</span>
     </div>
-    <p class="bot-description">{{ bot.description || ('botCard.noDescription' | translate) }}</p>
+    <p class="bot-description">{{ bot.shortDescription || ('botCard.noDescription' | translate) }}</p>
     <div class="bot-command">
       <span>{{ 'botCard.startCommand' | translate }}</span>
       <code>{{ bot.startCommand || ('botCard.noStartCommand' | translate) }}</code>
@@ -18,8 +18,8 @@
       >
         {{ 'botCard.pdfCta' | translate }}
       </button>
-      <button class="btn btn-secondary" (click)="openBot()">{{ 'botCard.viewSource' | translate }}</button>
-      <button class="btn btn-primary" (click)="downloadBot()">{{ 'botCard.download' | translate }}</button>
+      <button class="btn btn-secondary" (click)="openBot()">{{ bot.actions?.viewSource || ('botCard.viewSource' | translate) }}</button>
+      <button class="btn btn-primary" (click)="downloadBot()">{{ bot.actions?.download || ('botCard.download' | translate) }}</button>
     </div>
   </div>
 </div>
