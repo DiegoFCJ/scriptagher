@@ -1,5 +1,5 @@
 import { ComponentFixture, TestBed } from '@angular/core/testing';
-import { Router } from '@angular/router';
+import { ActivatedRoute, Router } from '@angular/router';
 import { Subject } from 'rxjs';
 
 import { BotCardComponent } from './bot-card.component';
@@ -37,7 +37,8 @@ describe('BotCardComponent', () => {
           provide: TranslationService,
           useValue: { translate: jasmine.createSpy('translate').and.callFake((key: string) => key) }
         },
-        { provide: Router, useValue: { navigate: jasmine.createSpy('navigate') } }
+        { provide: Router, useValue: { navigate: jasmine.createSpy('navigate') } },
+        { provide: ActivatedRoute, useValue: {} }
       ]
     }).compileComponents();
 
