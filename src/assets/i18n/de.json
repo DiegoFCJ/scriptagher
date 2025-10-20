@@ -134,9 +134,32 @@
     }
   },
   "license": {
-  "title": "Repository-Lizenz",
-  "loading": "Lizenz wird geladen …",
-  "error": "Die Lizenzdatei konnte nicht geladen werden. Bitte aktualisiere die Seite oder versuche es später erneut.",
-  "backToHome": "Zur Startseite zurück"
-}
+    "title": "Repository-Lizenz",
+    "loading": "Lizenz wird geladen …",
+    "error": "Die Lizenzdatei konnte nicht geladen werden. Bitte aktualisiere die Seite oder versuche es später erneut.",
+    "backToHome": "Zur Startseite zurück"
+  },
+  "navigation": {
+    "home": "Startseite",
+    "bots": "Bots",
+    "installers": "Installationsprogramme"
+  },
+  "installers": {
+    "loading": "Installationsprogramme werden geladen…",
+    "empty": "Noch keine Installationsprogramme verfügbar.",
+    "error": "Die Liste der Installationsprogramme konnte nicht geladen werden."
+  },
+  "botDetail": {
+    "loading": "Bot-Details werden geladen…",
+    "backToBots": "Zurück zu den Bots",
+    "download": "Download",
+    "viewSource": "Quellcode ansehen",
+    "noDescription": "Keine Beschreibung verfügbar",
+    "startCommand": "Startbefehl",
+    "actionsTitle": "Verfügbare Aktionen",
+    "notFound": "Dieser Bot konnte nicht gefunden werden.",
+    "loadError": "Die Bot-Details konnten nicht geladen werden.",
+    "loadErrorLog": "Fehler beim Laden der Bot-Details",
+    "missingParams": "Bot-Informationen fehlen."
+  }
 }

@@ -134,9 +134,32 @@
     }
   },
   "license": {
-  "title": "Repo-lisens",
-  "loading": "Laster inn lisensen …",
-  "error": "Kunne ikke laste lisensfilen. Oppdater eller prøv igjen senere.",
-  "backToHome": "Tilbake til forsiden"
-}
+    "title": "Repo-lisens",
+    "loading": "Laster inn lisensen …",
+    "error": "Kunne ikke laste lisensfilen. Oppdater eller prøv igjen senere.",
+    "backToHome": "Tilbake til forsiden"
+  },
+  "navigation": {
+    "home": "Hjem",
+    "bots": "Bots",
+    "installers": "Installer"
+  },
+  "installers": {
+    "loading": "Laster installasjonsfiler…",
+    "empty": "Ingen installasjonsfiler tilgjengelig ennå.",
+    "error": "Kunne ikke laste listen over installasjonsfiler."
+  },
+  "botDetail": {
+    "loading": "Laster bot-detaljer…",
+    "backToBots": "Tilbake til bots",
+    "download": "Last ned",
+    "viewSource": "Vis kilde",
+    "noDescription": "Ingen beskrivelse tilgjengelig",
+    "startCommand": "Startkommando",
+    "actionsTitle": "Tilgjengelige handlinger",
+    "notFound": "Fant ikke denne boten.",
+    "loadError": "Kunne ikke laste bot-detaljene.",
+    "loadErrorLog": "Feil under lasting av bot-detaljer",
+    "missingParams": "Mangler bot-informasjon."
+  }
 }

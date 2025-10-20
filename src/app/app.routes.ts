@@ -3,8 +3,21 @@ import { BotListComponent } from './components/bot-list/bot-list.component';
 
 export const routes: Routes = [
   {
-    path: '', // Rotta di default
+    path: '',
+    pathMatch: 'full',
     component: BotListComponent
+  },
+  {
+    path: 'bots',
+    component: BotListComponent
+  },
+  {
+    path: 'bots/:language/:botName',
+    loadComponent: () => import('./pages/bot-detail/bot-detail-page.component').then(m => m.BotDetailPageComponent)
+  },
+  {
+    path: 'installers',
+    loadComponent: () => import('./pages/installers/installers-page.component').then(m => m.InstallersPageComponent)
   },
   {
     path: 'pdf-to-txt',
@@ -15,7 +28,7 @@ export const routes: Routes = [
     loadComponent: () => import('./components/legal/license/license.component').then(m => m.LicenseComponent)
   },
   {
-    path: '**', // Rotta per errori 404
+    path: '**',
     loadComponent: () => import('./components/not-found/not-found.component').then(m => m.NotFoundComponent)
   }
 ];

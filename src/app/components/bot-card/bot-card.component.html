@@ -1,7 +1,11 @@
 <div class="bot">
   <div class="bot-surface">
     <div class="bot-header">
-      <h3>{{ bot.displayName || bot.botName }}</h3>
+      <h3>
+        <a [routerLink]="['/bots', language, bot.botName]" class="bot-name-link">
+          {{ bot.displayName || bot.botName }}
+        </a>
+      </h3>
       <span class="bot-language">{{ ('languages.' + language + '.short') | translate }}</span>
     </div>
     <p class="bot-description">{{ bot.shortDescription || ('botCard.noDescription' | translate) }}</p>
