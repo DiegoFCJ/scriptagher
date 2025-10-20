@@ -154,3 +154,10 @@ Example runtime configuration snippet to inject from the hosting platform:
   };
 </script>
 ```
+
+## 📦 Distribution Roadmap
+
+Planning to publish the application to consumer app stores? Review the
+[future distribution tasks checklist](docs/future-tasks.md) for guidance on
+store accounts, packaging formats, submission steps, and how to capture the
+resulting store URLs for `installers.json`.
