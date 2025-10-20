@@ -36,6 +36,8 @@ class _BotDetailViewState extends State<BotDetailView> {
   final ScrollController _scrollController = ScrollController();
   final List<_ConsoleEntry> _entries = [];
   final List<ExecutionLog> _logHistory = [];
+  static const ValueKey<String> _runButtonKey =
+      ValueKey<String>('bot-detail-run-button');
   late final BotGetService _botGetService;
   late final BotDownloadService _botDownloadService;
   Bot? _downloadedBot;
@@ -1480,6 +1482,7 @@ class _BotDetailViewState extends State<BotDetailView> {
         shouldShowExecutionTooltip ? _executionDisabledReason : null;
 
     Widget executeButton = ElevatedButton.icon(
+      key: _runButtonKey,
       onPressed: canRequestExecution ? _requestExecution : null,
       icon: const Icon(Icons.play_arrow),
       label: Text(_isRunning

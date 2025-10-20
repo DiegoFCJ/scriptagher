@@ -81,7 +81,7 @@ void main() {
 
     await tester.pump(const Duration(milliseconds: 100));
 
-    final runFinder = find.widgetWithText(ElevatedButton, 'Esegui');
+    final runFinder = find.byKey(const ValueKey('bot-detail-run-button'));
     expect(runFinder, findsOneWidget);
     final ElevatedButton runButton = tester.widget(runFinder);
     expect(runButton.onPressed, isNull);
@@ -119,7 +119,7 @@ void main() {
     await tester.pump(const Duration(milliseconds: 100));
     await tester.pump(const Duration(milliseconds: 100));
 
-    final runFinder = find.widgetWithText(ElevatedButton, 'Esegui');
+    final runFinder = find.byKey(const ValueKey('bot-detail-run-button'));
     expect(runFinder, findsOneWidget);
     final ElevatedButton runButton = tester.widget(runFinder);
     expect(runButton.onPressed, isNull);
