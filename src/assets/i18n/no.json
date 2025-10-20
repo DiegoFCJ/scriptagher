@@ -155,8 +155,8 @@
     "cta": "Tilbake til forsiden"
   },
   "footer": {
-    "copy": "© 2024 Scriptagher · Laget med lidenskap for automatisering",
-    "legal": "Delt med maker-fellesskapet: les alltid utgivelsesnotater og lisenser før du bruker automasjonsbot-er.",
+    "copy": "© 2024 Scriptagher · Automatisering laget med omtanke",
+    "legal": "Vi er også skapere – ta en titt på versjonsnotater og lisenser før du kjører botene.",
     "links": {
       "portfolio": "Portefølje",
       "github": "GitHub",
@@ -168,11 +168,11 @@
       "contact": "Kontakt"
     },
     "brand": "Scriptagher",
-    "tagline": "Automatiseringsoppskrifter, verktøy og guider for skapere.",
+    "tagline": "Scriptagher | Passion For Automation",
     "contact": {
       "email": "hello@scriptagher.dev",
       "issues": "Opprett en GitHub-issue",
-      "availability": "Vi svarer vanligvis innen to virkedager."
+      "availability": "Som regel svarer vi i løpet av et par dager."
     }
   },
   "license": {
