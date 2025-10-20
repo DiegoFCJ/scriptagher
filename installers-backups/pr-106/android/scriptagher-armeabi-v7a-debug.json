@@ -1,0 +1,13 @@
+{
+  "name": "Scriptagher for Android (ARMv7 · Debug Build)",
+  "platform": "Android",
+  "version": "1.0.0+1",
+  "file_name": "scriptagher-armeabi-v7a-debug.apk",
+  "file_size": 60639705,
+  "sha256": "f7257364611e1b3dd8ea51d9a48f237f12455a183aeb15a2aadc1673b4179542",
+  "download_url": "https://DiegoFCJ.github.io/scriptagher/installers/android/scriptagher-armeabi-v7a-debug.apk",
+  "format": "APK",
+  "last_updated": "2025-10-20T02:47:32Z",
+  "architecture": "ARMv7",
+  "build_variant": "Debug"
+}
