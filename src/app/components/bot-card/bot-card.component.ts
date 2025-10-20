@@ -1,9 +1,10 @@
 import { CommonModule } from '@angular/common';
-import { Component, Input, Output, EventEmitter } from '@angular/core';
+import { Component, Input, Output, EventEmitter, DestroyRef } from '@angular/core';
 import { Router } from '@angular/router';
 import { BotService, LocalizedBotDetails } from '../../services/bot.service';
 import { TranslatePipe } from '../../core/i18n/translate.pipe';
 import { TranslationService } from '../../core/i18n/translation.service';
+import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 
 @Component({
   selector: 'app-bot-card',
@@ -16,15 +17,23 @@ export class BotCardComponent {
   @Input() bot!: LocalizedBotDetails;
   @Input() language: string = '';
   @Output() download = new EventEmitter<void>();
+  private isSourceRepoPublic = true;
 
   constructor(
     private router: Router,
     private botService: BotService,
-    private translation: TranslationService
-  ) {}
+    private translation: TranslationService,
+    destroyRef: DestroyRef
+  ) {
+    this.botService.isSourceRepoPublic$
+      .pipe(takeUntilDestroyed(destroyRef))
+      .subscribe((isPublic) => {
+        this.isSourceRepoPublic = isPublic;
+      });
+  }
 
   get canViewSource(): boolean {
-    return !!this.bot?.sourceUrl;
+    return !!this.bot?.sourceUrl && this.isSourceRepoPublic;
   }
 
   openBot() {

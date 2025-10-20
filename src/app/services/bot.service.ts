@@ -9,7 +9,8 @@ import {
   catchError,
   combineLatest,
   startWith,
-  shareReplay
+  shareReplay,
+  distinctUntilChanged
 } from 'rxjs';
 import { APP_BASE_HREF, DOCUMENT } from '@angular/common';
 import { TranslationService } from '../core/i18n/translation.service';
@@ -33,6 +34,7 @@ export class BotService {
 
   private botsConfig$?: Observable<BotConfiguration>;
   private readonly botDetailsCache = new Map<string, Observable<LocalizedBotDetails>>();
+  readonly isSourceRepoPublic$: Observable<boolean>;
 
   constructor(
     private http: HttpClient,
@@ -80,6 +82,8 @@ export class BotService {
         ? `https://${this.githubRepoOwner}.github.io/${this.githubRepoName}/installers/`
         : undefined);
     this.remoteInstallersBaseUrl = this.tryCreateUrl(installersBaseUrlFromConfig, baseUrl);
+
+    this.isSourceRepoPublic$ = this.createSourceRepoPublicStream();
   }
 
   private resolveBaseUrl(): string {
@@ -913,9 +917,12 @@ export class BotService {
 
       const localized$ = combineLatest([
         raw$,
-        this.translations.language$.pipe(startWith(this.translations.language()))
+        this.translations.language$.pipe(startWith(this.translations.language())),
+        this.isSourceRepoPublic$
       ]).pipe(
-        map(([raw, language]) => this.mergeBotDetails(raw, language, bot)),
+        map(([raw, language, isSourceRepoPublic]) =>
+          this.mergeBotDetails(raw, language, bot, isSourceRepoPublic)
+        ),
         catchError(() => of(this.buildFallbackBot(bot))),
         shareReplay(1)
       );
@@ -1045,7 +1052,12 @@ export class BotService {
     } satisfies BotSummary;
   }
 
-  private mergeBotDetails(raw: BotDetails | null, language: string, fallback: BotSummary): LocalizedBotDetails {
+  private mergeBotDetails(
+    raw: BotDetails | null,
+    language: string,
+    fallback: BotSummary,
+    isSourceRepoPublic: boolean
+  ): LocalizedBotDetails {
     if (!raw) {
       return this.buildFallbackBot(fallback);
     }
@@ -1079,7 +1091,7 @@ export class BotService {
 
     const startCommand = selected?.startCommand ?? raw.startCommand;
     const actions = { ...(raw.actions ?? {}), ...(selected?.actions ?? {}) };
-    const sourceUrl = this.resolveSourceUrl(raw, selected);
+    const sourceUrl = isSourceRepoPublic ? this.resolveSourceUrl(raw, selected) : undefined;
 
     return {
       ...raw,
@@ -1094,6 +1106,25 @@ export class BotService {
       translations,
       sourceUrl
     } satisfies LocalizedBotDetails;
+  }
+
+  private createSourceRepoPublicStream(): Observable<boolean> {
+    if (!this.githubRepoOwner || !this.githubRepoName) {
+      return of(true);
+    }
+
+    const url = `${this.githubApiBaseUrl.replace(/\/$/, '')}/repos/${this.githubRepoOwner}/${this.githubRepoName}`;
+
+    return this.http.get<GitHubRepository>(url, { headers: this.buildGithubHeaders() }).pipe(
+      map((response) => response?.private !== true),
+      catchError((error) => {
+        console.error('Unable to determine source repository visibility', error);
+        return of(true);
+      }),
+      startWith(true),
+      distinctUntilChanged(),
+      shareReplay(1)
+    );
   }
 
   private resolveSourceUrl(
@@ -1594,6 +1625,10 @@ interface GitHubFileContent {
   sha: string;
   size: number;
   url: string;
+}
+
+interface GitHubRepository {
+  private?: boolean;
 }
 
 export interface InstallerMetadata {

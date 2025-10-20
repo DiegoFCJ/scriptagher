@@ -6,6 +6,7 @@ import { firstValueFrom, take } from 'rxjs';
 
 import { BotService, LocalizedBotDetails } from './bot.service';
 import { TranslationService } from '../core/i18n/translation.service';
+import { provideBotConfig } from './bot-config';
 
 describe('BotService localization', () => {
   let service: BotService;
@@ -19,7 +20,8 @@ describe('BotService localization', () => {
         BotService,
         TranslationService,
         { provide: PLATFORM_ID, useValue: 'server' },
-        { provide: APP_BASE_HREF, useValue: '/' }
+        { provide: APP_BASE_HREF, useValue: '/' },
+        provideBotConfig({ githubRepoOwner: 'test-owner', githubRepoName: 'test-repo' })
       ]
     });
 
@@ -63,6 +65,9 @@ describe('BotService localization', () => {
       .getBotDetails({ botName: 'Zipper', path: 'Zipper.zip', language: 'python' })
       .subscribe((value) => results.push(value));
 
+    const repoRequest = httpMock.expectOne((req) => req.url === 'https://api.github.com/repos/test-owner/test-repo');
+    repoRequest.flush({ private: false });
+
     const request = httpMock.expectOne((req) => req.url.endsWith('/bots/python/Zipper/Bot.json'));
     request.flush({
       botName: 'Zipper',
@@ -89,11 +94,38 @@ describe('BotService localization', () => {
     subscription.unsubscribe();
   }));
 
+  it('removes the source URL when the repository is private', fakeAsync(() => {
+    const results: LocalizedBotDetails[] = [];
+    const subscription = service
+      .getBotDetails({ botName: 'Hidden', path: 'Hidden.zip', language: 'python' })
+      .subscribe((value) => results.push(value));
+
+    const repoRequest = httpMock.expectOne((req) => req.url === 'https://api.github.com/repos/test-owner/test-repo');
+    repoRequest.flush({ private: true });
+
+    const request = httpMock.expectOne((req) => req.url.endsWith('/bots/python/Hidden/Bot.json'));
+    request.flush({
+      botName: 'Hidden',
+      sourceUrl: 'https://example.com/hidden',
+      translations: {
+        it: { displayName: 'Hidden IT', shortDescription: 'Descrizione nascosta' }
+      }
+    });
+
+    tick();
+
+    expect(results[0].sourceUrl).toBeUndefined();
+
+    subscription.unsubscribe();
+  }));
+
   it('falls back to English translations when Italian content is missing', async () => {
     translations.changeLanguage('no');
 
     const details$ = service.getBotDetails({ botName: 'Fallback', language: 'python' });
     const valuePromise = firstValueFrom(details$.pipe(take(1)));
+    const repoRequest = httpMock.expectOne((req) => req.url === 'https://api.github.com/repos/test-owner/test-repo');
+    repoRequest.flush({ private: false });
     const request = httpMock.expectOne((req) => req.url.endsWith('/bots/python/Fallback/Bot.json'));
     request.flush({
       botName: 'Fallback',
