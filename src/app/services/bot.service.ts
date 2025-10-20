@@ -840,11 +840,13 @@ export class BotService {
         shareReplay(1)
       );
 
-      const localized$ = combineLatest([
-        raw$,
-        this.translations.language$.pipe(startWith(this.translations.language()))
-      ]).pipe(
-        map(([raw, language]) => this.mergeBotDetails(raw, language, bot)),
+      const localized$ = raw$.pipe(
+        switchMap((raw) =>
+          this.translations.language$.pipe(
+            startWith(this.translations.language()),
+            map((language) => this.mergeBotDetails(raw, language, bot))
+          )
+        ),
         catchError(() => of(this.buildFallbackBot(bot)))
       );
 

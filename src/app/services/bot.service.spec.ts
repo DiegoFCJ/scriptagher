@@ -90,6 +90,7 @@ describe('BotService localization', () => {
     translations.changeLanguage('no');
 
     const details$ = service.getBotDetails({ botName: 'Fallback', language: 'python' });
+    const valuePromise = firstValueFrom(details$.pipe(take(1)));
     const request = httpMock.expectOne((req) => req.url.endsWith('/bots/python/Fallback/Bot.json'));
     request.flush({
       botName: 'Fallback',
@@ -98,7 +99,7 @@ describe('BotService localization', () => {
       }
     });
 
-    const value = await firstValueFrom(details$.pipe(take(1)));
+    const value = await valuePromise;
 
     expect(value.displayName).toBe('Fallback EN');
     expect(value.shortDescription).toBe('English only description');
