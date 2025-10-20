@@ -13,9 +13,71 @@
 }
 
 .language-switcher__select {
-  background: transparent;
-  border: 1px solid currentColor;
+  --language-switcher-accent: var(--accent, #38bdf8);
+  --language-switcher-outline: color-mix(in srgb, var(--language-switcher-accent) 32%, transparent);
+  --language-switcher-surface-dark: color-mix(in srgb, #0f172a 82%, #020617 18%);
+  --language-switcher-surface-light: color-mix(in srgb, #ffffff 94%, #e2e8f0 6%);
+  background-color: #111b2f;
+  background-color: var(--language-switcher-surface-dark);
+  border: 1px solid color-mix(in srgb, var(--text-primary, #e2e8f0) 28%, transparent);
   border-radius: 999px;
-  padding: 0.25rem 0.75rem;
-  color: inherit;
+  padding: 0.45rem 2.35rem 0.45rem 0.95rem;
+  color: var(--text-primary, #e2e8f0);
+  font-weight: 500;
+  line-height: 1.35;
+  appearance: none;
+  -webkit-appearance: none;
+  min-width: 8.25rem;
+  background-image: linear-gradient(45deg, transparent 50%, currentColor 50%),
+    linear-gradient(135deg, currentColor 50%, transparent 50%),
+    linear-gradient(to right, color-mix(in srgb, currentColor 28%, transparent), transparent);
+  background-position: right 1.15rem center, right 0.75rem center, right 2.1rem center;
+  background-size: 0.55rem 0.55rem, 0.55rem 0.55rem, 1px 60%;
+  background-repeat: no-repeat;
+  box-shadow: 0 2px 6px rgba(2, 8, 23, 0.24);
+  transition: background-color 0.2s ease, border-color 0.2s ease, box-shadow 0.2s ease,
+    color 0.2s ease;
+}
+
+.language-switcher__select:hover {
+  border-color: color-mix(in srgb, var(--language-switcher-accent) 50%, currentColor 50%);
+  box-shadow: 0 4px 16px rgba(8, 47, 73, 0.24);
+}
+
+.language-switcher__select:focus-visible {
+  outline: none;
+  border-color: var(--language-switcher-accent);
+  box-shadow: 0 0 0 3px var(--language-switcher-outline);
+}
+
+.language-switcher__select:disabled {
+  opacity: 0.65;
+  cursor: not-allowed;
+}
+
+.language-switcher__select option {
+  color: #e2e8f0;
+  background-color: #0b1120;
+}
+
+@media (prefers-color-scheme: light) {
+  .language-switcher__select {
+    background-color: var(--language-switcher-surface-light);
+    color: #0f172a;
+    border-color: rgba(15, 23, 42, 0.24);
+    box-shadow: 0 2px 8px rgba(15, 23, 42, 0.12);
+  }
+
+  .language-switcher__select:hover {
+    box-shadow: 0 4px 18px rgba(15, 23, 42, 0.12);
+  }
+
+  .language-switcher__select option {
+    color: #0f172a;
+    background-color: #ffffff;
+  }
+}
+
+.language-switcher__select::-ms-expand {
+  display: none;
 }
