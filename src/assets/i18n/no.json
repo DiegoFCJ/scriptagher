@@ -26,6 +26,10 @@
     "es": {
       "label": "Spansk",
       "short": "ES"
+    },
+    "python": {
+      "label": "Python",
+      "short": "PY"
     }
   },
   "languageSwitcher": {
