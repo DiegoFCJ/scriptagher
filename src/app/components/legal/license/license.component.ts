@@ -1,6 +1,8 @@
 import { CommonModule } from '@angular/common';
 import { HttpClient } from '@angular/common/http';
 import { Component, OnInit, inject, signal } from '@angular/core';
+import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
+import { finalize } from 'rxjs';
 
 @Component({
   selector: 'app-license',
@@ -17,15 +19,20 @@ export class LicenseComponent implements OnInit {
   protected readonly errorMessage = signal<string | null>(null);
 
   ngOnInit(): void {
-    this.http.get('/LICENSE', { responseType: 'text' }).subscribe({
-      next: (text) => {
-        this.licenseText.set(text);
-        this.isLoading.set(false);
-      },
-      error: () => {
-        this.errorMessage.set('Impossibile caricare la licenza. Riprova più tardi.');
-        this.isLoading.set(false);
-      }
-    });
+    this.http
+      .get('/LICENSE', { responseType: 'text' })
+      .pipe(
+        takeUntilDestroyed(),
+        finalize(() => this.isLoading.set(false))
+      )
+      .subscribe({
+        next: (text) => {
+          this.licenseText.set(text);
+          this.errorMessage.set(null);
+        },
+        error: () => {
+          this.errorMessage.set('Impossibile caricare la licenza. Riprova più tardi.');
+        }
+      });
   }
 }
