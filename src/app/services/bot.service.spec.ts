@@ -67,6 +67,7 @@ describe('BotService localization', () => {
     request.flush({
       botName: 'Zipper',
       startCommand: 'python3 bots/python/Zipper/Zipper.py',
+      sourceUrl: 'https://example.com/zipper',
       translations: {
         it: { displayName: 'Zipper IT', shortDescription: 'Descrizione IT' },
         en: { displayName: 'Zipper EN', shortDescription: 'English description' }
@@ -76,12 +77,14 @@ describe('BotService localization', () => {
     tick();
     expect(results[0].displayName).toBe('Zipper IT');
     expect(results[0].shortDescription).toBe('Descrizione IT');
+    expect(results[0].sourceUrl).toBe('https://example.com/zipper');
 
     translations.changeLanguage('en');
     tick();
 
     expect(results[results.length - 1].displayName).toBe('Zipper EN');
     expect(results[results.length - 1].shortDescription).toBe('English description');
+    expect(results[results.length - 1].sourceUrl).toBe('https://example.com/zipper');
 
     subscription.unsubscribe();
   }));
@@ -103,5 +106,6 @@ describe('BotService localization', () => {
 
     expect(value.displayName).toBe('Fallback EN');
     expect(value.shortDescription).toBe('English only description');
+    expect(value.sourceUrl).toBeUndefined();
   });
 });

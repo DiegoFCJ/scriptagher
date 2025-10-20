@@ -23,7 +23,15 @@ export class BotCardComponent {
     private translation: TranslationService
   ) {}
 
+  get canViewSource(): boolean {
+    return !!this.bot?.sourceUrl;
+  }
+
   openBot() {
+    if (!this.canViewSource) {
+      return;
+    }
+
     this.bot.language = this.language;
     this.botService.openBot(this.bot);
   }

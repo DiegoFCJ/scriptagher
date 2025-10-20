@@ -870,9 +870,30 @@ export class BotService {
    * @param bot - Bot object containing language and name.
    */
   openBot(bot: any): void {
-    const assetName = bot.path || `${bot.botName}.zip`;
-    const sourcePath = new URL(`${bot.language}/${bot.botName}/${assetName}`, this.botsSourceBaseUrl).toString();
-    window.open(sourcePath, '_blank');
+    const normalizedSource = this.normalizeSourceUrl(bot?.sourceUrl);
+    const target = normalizedSource ?? this.buildBotArchiveUrl(bot);
+
+    if (!target) {
+      return;
+    }
+
+    window.open(target, '_blank');
+  }
+
+  private buildBotArchiveUrl(bot: any): string | undefined {
+    const botName = bot?.botName;
+    const language = bot?.language;
+    if (!botName || !language) {
+      return undefined;
+    }
+
+    const assetName = bot.path || `${botName}.zip`;
+
+    try {
+      return new URL(`${language}/${botName}/${assetName}`, this.botsSourceBaseUrl).toString();
+    } catch {
+      return undefined;
+    }
   }
 
   private normalizeBotConfiguration(raw: RawBotConfiguration | null | undefined): BotConfiguration {
@@ -987,6 +1008,7 @@ export class BotService {
 
     const startCommand = selected?.startCommand ?? raw.startCommand;
     const actions = { ...(raw.actions ?? {}), ...(selected?.actions ?? {}) };
+    const sourceUrl = this.resolveSourceUrl(raw, selected);
 
     return {
       ...raw,
@@ -998,8 +1020,33 @@ export class BotService {
       longDescription,
       startCommand,
       actions,
-      translations
+      translations,
+      sourceUrl
     } satisfies LocalizedBotDetails;
+  }
+
+  private resolveSourceUrl(
+    raw: BotDetails | null,
+    selected: BotTranslation | undefined
+  ): string | undefined {
+    const candidate = selected?.sourceUrl ?? raw?.sourceUrl;
+    return this.normalizeSourceUrl(candidate);
+  }
+
+  private normalizeSourceUrl(value: string | undefined): string | undefined {
+    if (!value) {
+      return undefined;
+    }
+
+    if (this.isAbsoluteUrl(value)) {
+      return value;
+    }
+
+    try {
+      return new URL(value, this.botsSourceBaseUrl).toString();
+    } catch {
+      return undefined;
+    }
   }
 
   private getLanguageFallbackOrder(language: string): string[] {
@@ -1029,7 +1076,8 @@ export class BotService {
       displayName: bot.botName ?? placeholder,
       shortDescription: placeholder,
       actions: {},
-      translations: {}
+      translations: {},
+      sourceUrl: undefined
     } satisfies LocalizedBotDetails;
   }
 
@@ -1436,6 +1484,7 @@ interface BotDetails extends BotSummary {
   longDescription?: string;
   displayName?: string;
   startCommand?: string;
+  sourceUrl?: string;
   actions?: Record<string, string>;
   translations?: Record<string, BotTranslation | null | undefined>;
 }
@@ -1445,6 +1494,7 @@ export interface BotTranslation {
   shortDescription?: string;
   longDescription?: string;
   startCommand?: string;
+  sourceUrl?: string;
   actions?: Record<string, string>;
 }
 
