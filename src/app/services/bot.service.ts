@@ -34,6 +34,7 @@ export class BotService {
 
   private botsConfig$?: Observable<BotConfiguration>;
   private readonly botDetailsCache = new Map<string, Observable<LocalizedBotDetails>>();
+  readonly isSourceRepoPublic$: Observable<boolean>;
 
   constructor(
     private http: HttpClient,
@@ -89,6 +90,8 @@ export class BotService {
         ? `https://github.com/${this.githubRepoOwner}/${this.githubRepoName}/tree/${this.githubInstallersBranch}/bots/`
         : undefined);
     this.botsRepositoryBaseUrl = this.tryCreateUrl(botsRepositoryBaseUrlFromConfig);
+
+    this.isSourceRepoPublic$ = this.buildSourceRepoVisibilityStream();
   }
 
   private resolveBaseUrl(): string {
@@ -922,9 +925,10 @@ export class BotService {
 
       const localized$ = combineLatest([
         raw$,
-        this.translations.language$.pipe(startWith(this.translations.language()))
+        this.translations.language$.pipe(startWith(this.translations.language())),
+        this.isSourceRepoPublic$
       ]).pipe(
-        map(([raw, language]) => this.mergeBotDetails(raw, language, bot)),
+        map(([raw, language, isRepoPublic]) => this.mergeBotDetails(raw, language, bot, isRepoPublic)),
         catchError(() => of(this.buildFallbackBot(bot))),
         shareReplay(1)
       );
@@ -1054,7 +1058,12 @@ export class BotService {
     } satisfies BotSummary;
   }
 
-  private mergeBotDetails(raw: BotDetails | null, language: string, fallback: BotSummary): LocalizedBotDetails {
+  private mergeBotDetails(
+    raw: BotDetails | null,
+    language: string,
+    fallback: BotSummary,
+    isRepoPublic: boolean
+  ): LocalizedBotDetails {
     if (!raw) {
       return this.buildFallbackBot(fallback);
     }
@@ -1088,7 +1097,7 @@ export class BotService {
 
     const startCommand = selected?.startCommand ?? raw.startCommand;
     const actions = { ...(raw.actions ?? {}), ...(selected?.actions ?? {}) };
-    const sourceUrl = this.resolveSourceUrl(raw, selected);
+    const sourceUrl = isRepoPublic ? this.resolveSourceUrl(raw, selected) : undefined;
 
     return {
       ...raw,
@@ -1135,6 +1144,20 @@ export class BotService {
     } catch {
       return undefined;
     }
+  }
+
+  private buildSourceRepoVisibilityStream(): Observable<boolean> {
+    if (!this.githubRepoOwner || !this.githubRepoName) {
+      return of(true);
+    }
+
+    const url = `${this.githubApiBaseUrl.replace(/\/$/, '')}/repos/${this.githubRepoOwner}/${this.githubRepoName}`;
+
+    return this.http.get<{ private?: boolean }>(url, { headers: this.buildGithubHeaders() }).pipe(
+      map((response) => response?.private === false),
+      catchError(() => of(false)),
+      shareReplay(1)
+    );
   }
 
   private getLanguageFallbackOrder(language: string): string[] {
