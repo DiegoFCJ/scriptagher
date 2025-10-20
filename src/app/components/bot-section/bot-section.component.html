@@ -1,7 +1,10 @@
 <section class="bot-section">
     <div class="section-header">
-        <span class="section-language">{{ language | uppercase }}</span>
-        <h2>{{ capitalize(language) }} Bots</h2>
+        <span class="section-language">{{ resolvedLanguageLabel }}</span>
+        <div class="section-text">
+            <h2>{{ resolvedTitle }}</h2>
+            <p *ngIf="summary" class="section-summary">{{ summary }}</p>
+        </div>
     </div>
     <div class="bot-container">
         <app-bot-card *ngFor="let bot of bots" [bot]="bot" [language]="language"

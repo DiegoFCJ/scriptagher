@@ -37,6 +37,12 @@
     justify-content: space-between;
     flex-wrap: wrap;
     gap: 1rem;
+
+    .section-text {
+      display: flex;
+      flex-direction: column;
+      gap: 0.45rem;
+    }
   }
 
   .section-language {
@@ -63,6 +69,13 @@
     background: linear-gradient(120deg, #38bdf8 0%, #818cf8 50%, #c084fc 100%);
     -webkit-background-clip: text;
     -webkit-text-fill-color: transparent;
+  }
+
+  .section-summary {
+    margin: 0;
+    font-size: 0.95rem;
+    color: rgba(226, 232, 240, 0.85);
+    max-width: 640px;
   }
 
   .bot-container {

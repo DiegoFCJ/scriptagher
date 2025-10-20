@@ -1,6 +1,18 @@
 {
-    "botName": "Zipper",
-    "startCommand": "python3 bots/python/Zipper/Zipper.py",
-    "description": "This bot zips a folder into a ZIP archive.",
-    "language": "python"
+  "botName": "Zipper",
+  "startCommand": "python3 bots/python/Zipper/Zipper.py",
+  "description": "This bot zips a folder into a ZIP archive.",
+  "language": "python",
+  "translations": {
+    "it": {
+      "displayName": "Zipper",
+      "shortDescription": "Comprimi rapidamente una cartella in un archivio ZIP.",
+      "description": "Questo bot comprime una cartella in un archivio ZIP pronto per il download."
+    },
+    "en": {
+      "displayName": "Zipper",
+      "shortDescription": "Quickly compress a folder into a ZIP archive.",
+      "description": "This bot zips a folder into a downloadable ZIP archive."
+    }
+  }
 }

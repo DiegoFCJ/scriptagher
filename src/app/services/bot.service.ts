@@ -2,6 +2,7 @@ import { Inject, Injectable, Optional } from '@angular/core';
 import { HttpClient, HttpHeaders, HttpParams } from '@angular/common/http';
 import { Observable, forkJoin, map, of, switchMap, catchError } from 'rxjs';
 import { APP_BASE_HREF, DOCUMENT } from '@angular/common';
+import { I18nService } from './i18n.service';
 
 @Injectable({
   providedIn: 'root'
@@ -20,6 +21,7 @@ export class BotService {
 
   constructor(
     private http: HttpClient,
+    private readonly i18n: I18nService,
     @Optional() @Inject(DOCUMENT) private readonly documentRef: Document | null,
     @Optional() @Inject(APP_BASE_HREF) private readonly appBaseHref?: string
   ) {
@@ -796,9 +798,11 @@ export class BotService {
   /**
    * Fetch the bots configuration from bots.json.
    */
-  getBotsConfig(): Observable<any> {
+  getBotsConfig(): Observable<BotsConfiguration> {
     const botsJsonPath = new URL('bots.json', this.botsBaseUrl).toString();
-    return this.http.get(botsJsonPath);
+    return this.http.get<Record<string, unknown>>(botsJsonPath).pipe(
+      map((config) => this.normalizeBotsConfiguration(config))
+    );
   }
 
   /**
@@ -806,9 +810,181 @@ export class BotService {
    * Fetch detailed bot information from Bot.json.
    * @param bot - The bot's name.
    */
-  getBotDetails(bot: any): Observable<any> {
+  getBotDetails(bot: any): Observable<BotDetails> {
     const botJsonPath = new URL(`${bot.language}/${bot.botName}/Bot.json`, this.botsBaseUrl).toString();
-    return this.http.get(botJsonPath);
+    return this.http.get<BotDetails>(botJsonPath).pipe(
+      map((details) => this.mergeBotDetails(bot, details)),
+      catchError((error) => {
+        console.error(`Error loading bot details for ${bot?.botName}`, error);
+        return of(this.buildFallbackBotDetails(bot));
+      })
+    );
+  }
+
+  private normalizeBotsConfiguration(config: Record<string, unknown>): BotsConfiguration {
+    const sections: Record<string, BotSectionConfiguration> = {};
+    const bots: Record<string, BotSummary[]> = {};
+
+    const rawSections = config['sections'];
+    if (rawSections && typeof rawSections === 'object') {
+      for (const [sectionKey, value] of Object.entries(rawSections as Record<string, unknown>)) {
+        if (!value || typeof value !== 'object') {
+          continue;
+        }
+
+        const sectionValue = value as { translations?: Record<string, SectionTranslation> };
+        sections[sectionKey] = {
+          translations: this.normalizeSectionTranslations(sectionValue.translations)
+        };
+      }
+    }
+
+    for (const [key, value] of Object.entries(config)) {
+      if (key === 'sections') {
+        continue;
+      }
+      if (Array.isArray(value)) {
+        bots[key] = value as BotSummary[];
+      }
+    }
+
+    return { sections, bots };
+  }
+
+  private normalizeSectionTranslations(
+    translations: Record<string, SectionTranslation> | undefined
+  ): Record<string, SectionTranslation> {
+    if (!translations) {
+      return {};
+    }
+
+    const normalized: Record<string, SectionTranslation> = {};
+    for (const [language, value] of Object.entries(translations)) {
+      if (!value || typeof value !== 'object') {
+        continue;
+      }
+      const normalizedLanguage = language.toLowerCase();
+      normalized[normalizedLanguage] = {
+        title: typeof value.title === 'string' ? value.title : undefined,
+        summary: typeof value.summary === 'string' ? value.summary : undefined
+      };
+    }
+    return normalized;
+  }
+
+  private mergeBotDetails(bot: any, details: BotDetails): BotDetails {
+    const requestedLanguage = this.i18n.getCurrentLanguage();
+    const fallbackChain = this.i18n.getFallbackLanguages(requestedLanguage);
+
+    const baseTranslations = this.mergeTranslations(
+      bot?.translations as Record<string, BotTranslation> | undefined,
+      details?.translations
+    );
+
+    const merged: BotDetails = {
+      ...(bot ?? {}),
+      ...(details ?? {}),
+      botName: details?.botName ?? bot?.botName ?? '',
+      language: bot?.language ?? details?.language ?? '',
+      path: bot?.path ?? details?.path,
+      startCommand: details?.startCommand ?? bot?.startCommand,
+      description: details?.description ?? bot?.description,
+      translations: baseTranslations,
+      displayName: details?.displayName ?? bot?.displayName,
+      shortDescription: details?.shortDescription ?? bot?.shortDescription
+    };
+
+    const translation = this.pickTranslation(baseTranslations, fallbackChain);
+    if (translation) {
+      merged.displayName = translation.displayName ?? merged.displayName;
+      merged.shortDescription = translation.shortDescription ?? merged.shortDescription;
+      merged.description = translation.description ?? merged.description;
+      merged.startCommand = translation.startCommand ?? merged.startCommand;
+    }
+
+    const uiStrings = this.i18n.getUiStrings(requestedLanguage);
+
+    merged.displayName = merged.displayName ?? merged.botName ?? uiStrings.missingValueFallback;
+
+    if (!merged.description) {
+      merged.description = merged.shortDescription ?? uiStrings.noDescriptionFallback;
+    }
+
+    if (!merged.shortDescription) {
+      merged.shortDescription = merged.description ?? uiStrings.noDescriptionFallback;
+    }
+
+    if (!merged.startCommand) {
+      merged.startCommand = '';
+    }
+
+    return merged;
+  }
+
+  private mergeTranslations(
+    existing: Record<string, BotTranslation> | undefined,
+    incoming: Record<string, BotTranslation> | undefined
+  ): Record<string, BotTranslation> | undefined {
+    if (!existing && !incoming) {
+      return undefined;
+    }
+
+    const result: Record<string, BotTranslation> = {};
+    const assign = (source?: Record<string, BotTranslation>) => {
+      if (!source) {
+        return;
+      }
+      for (const [language, translation] of Object.entries(source)) {
+        if (!translation || typeof translation !== 'object') {
+          continue;
+        }
+        const normalizedLanguage = language.toLowerCase();
+        result[normalizedLanguage] = {
+          ...result[normalizedLanguage],
+          ...translation
+        };
+      }
+    };
+
+    assign(existing);
+    assign(incoming);
+
+    return Object.keys(result).length ? result : undefined;
+  }
+
+  private pickTranslation(
+    translations: Record<string, BotTranslation> | undefined,
+    fallbackChain: string[]
+  ): BotTranslation | undefined {
+    if (!translations) {
+      return undefined;
+    }
+
+    for (const language of fallbackChain) {
+      const translation = translations[language];
+      if (translation) {
+        return translation;
+      }
+    }
+
+    return undefined;
+  }
+
+  private buildFallbackBotDetails(bot: any): BotDetails {
+    const uiStrings = this.i18n.getUiStrings();
+    const botName = bot?.botName ?? uiStrings.missingValueFallback;
+    const description = bot?.description ?? uiStrings.noDescriptionFallback;
+
+    return {
+      ...(bot ?? {}),
+      botName,
+      language: bot?.language ?? '',
+      displayName: bot?.displayName ?? botName,
+      shortDescription: bot?.shortDescription ?? description,
+      description,
+      startCommand: bot?.startCommand ?? '',
+      translations: bot?.translations as Record<string, BotTranslation> | undefined
+    };
   }
 
   /**
@@ -1216,6 +1392,46 @@ interface GitHubFileContent {
   sha: string;
   size: number;
   url: string;
+}
+
+export interface BotsConfiguration {
+  sections: Record<string, BotSectionConfiguration>;
+  bots: Record<string, BotSummary[]>;
+}
+
+export interface BotSectionConfiguration {
+  translations: Record<string, SectionTranslation>;
+}
+
+export interface SectionTranslation {
+  title?: string;
+  summary?: string;
+  [key: string]: unknown;
+}
+
+export interface BotSummary {
+  botName: string;
+  path?: string;
+  startCommand?: string;
+  description?: string;
+  shortDescription?: string;
+  displayName?: string;
+  language?: string;
+  translations?: Record<string, BotTranslation>;
+  [key: string]: unknown;
+}
+
+export interface BotTranslation {
+  displayName?: string;
+  shortDescription?: string;
+  description?: string;
+  startCommand?: string;
+  [key: string]: unknown;
+}
+
+export interface BotDetails extends BotSummary {
+  displayName?: string;
+  shortDescription?: string;
 }
 
 export interface InstallerMetadata {

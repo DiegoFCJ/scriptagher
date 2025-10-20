@@ -5,13 +5,17 @@
 ></app-installer-section>
 
 <main class="bot-list" id="bots" *ngIf="botSections.length; else errorTemplate">
-  <app-bot-section *ngFor="let section of botSections" [language]="section.language"
+  <app-bot-section *ngFor="let section of botSections"
+    [language]="section.language"
+    [languageLabel]="section.languageLabel"
+    [title]="section.title"
+    [summary]="section.summary"
     [bots]="section.botDetails"></app-bot-section>
 </main>
 <ng-template #errorTemplate>
   <div class="error-state">
-    <h2>Ops, qualcosa è andato storto.</h2>
-    <p>{{ errorMessage || 'No bots available.' }}</p>
+    <h2>{{ uiText.genericErrorTitle }}</h2>
+    <p>{{ errorMessage || uiText.genericErrorMessage }}</p>
   </div>
 </ng-template>
 <app-footer></app-footer>
