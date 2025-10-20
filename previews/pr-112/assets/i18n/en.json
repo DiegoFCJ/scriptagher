@@ -1,0 +1,138 @@
+{
+  "app": {
+    "name": "Scriptagher"
+  },
+  "languages": {
+    "it": {
+      "label": "Italian",
+      "short": "IT"
+    },
+    "en": {
+      "label": "English",
+      "short": "EN"
+    },
+    "no": {
+      "label": "Norwegian",
+      "short": "NO"
+    },
+    "de": {
+      "label": "German",
+      "short": "DE"
+    },
+    "ru": {
+      "label": "Russian",
+      "short": "RU"
+    },
+    "es": {
+      "label": "Spanish",
+      "short": "ES"
+    }
+  },
+  "languageSwitcher": {
+    "label": "Language"
+  },
+  "header": {
+    "pdf": {
+      "currentPage": "PDF to Txt",
+      "home": "Home"
+    },
+    "hero": {
+      "eyebrow": "A toolkit of creative automations",
+      "title": "Scriptagher Bot Library",
+      "description": "Browse a curated collection of multi-language bots, crafted for immersive and engaging experiences.",
+      "cta": "Explore the bots"
+    }
+  },
+  "botSection": {
+    "languageBadge": "{{language}}",
+    "title": "Bots in {{language}}",
+    "downloadErrorAlert": "We couldn't download the bot. Please try again.",
+    "downloadErrorLog": "Error while downloading the bot"
+  },
+  "botCard": {
+    "noDescription": "No description available",
+    "startCommand": "Start command",
+    "noStartCommand": "No start commands provided",
+    "pdfCta": "Go to the PDF to Txt converter",
+    "viewSource": "View source",
+    "download": "Download",
+    "navigationError": "Error while navigating to the PDF to Txt page"
+  },
+  "botList": {
+    "errorTitle": "Oops, something went wrong.",
+    "errorDefault": "No bots available.",
+    "loadError": "We couldn't load the bot list.",
+    "cardLoadError": "Error loading details",
+    "installersLoadError": "Unable to load the installer list.",
+    "noBotsAvailable": "No bots available in this language yet."
+  },
+  "installerSection": {
+    "title": "Installers",
+    "subtitle": "Ready-to-use packages with verifiable checksums, release notes, and licences front and centre.",
+    "download": "Download",
+    "sizeLabel": "Size",
+    "licenseLabel": "Licence",
+    "maintainerLabel": "Maintainer",
+    "checksumLabel": "Checksum",
+    "releaseNotesLabel": "Release notes",
+    "releaseNotesAction": "Open",
+    "sourceLabel": "Source"
+  },
+  "pdfToTxt": {
+    "intro": {
+      "eyebrow": "Utility",
+      "title": "Convert PDFs into text without the fuss",
+      "description": "Upload your PDF and extract text in seconds. Nothing is sent to remote servers: everything happens directly in your browser."
+    },
+    "highlights": {
+      "fast": "Lightning-fast conversion",
+      "privacy": "Privacy ensured",
+      "ready": "Text ready to copy"
+    },
+    "dropzone": {
+      "badge": "PDF",
+      "title": "Drop your PDF here",
+      "subtitle": "Or click to pick it from your device",
+      "button": "Choose a file"
+    },
+    "status": {
+      "replaceFile": "Replace file",
+      "progressComplete": "Conversion finished ({{total}} pages)",
+      "progress": "Converting: page {{current}} of {{total}}",
+      "noText": "No text could be extracted from the document.",
+      "error": "We couldn't read the PDF. Make sure it isn't protected and try again later."
+    },
+    "result": {
+      "title": "Extracted text",
+      "copy": "Copy all"
+    },
+    "fallback": {
+      "title": "No PDF selected",
+      "description": "Upload a document to get started. If the tool becomes unavailable, the top bar button will automatically hide to avoid confusion."
+    },
+    "errors": {
+      "conversion": "Error during PDF conversion",
+      "copy": "Unable to copy text to the clipboard"
+    }
+  },
+  "notFound": {
+    "title": "404 - Page not found",
+    "message": "The page you're looking for doesn't exist.",
+    "cta": "Back to Home"
+  },
+  "footer": {
+    "copy": "© 2024 Scriptagher · Crafted with passion for automation",
+    "legal": "Shared with the maker community: always review release notes and licences before using automation bots.",
+    "links": {
+      "portfolio": "Portfolio",
+      "github": "GitHub",
+      "license": "License"
+    }
+  },
+  "license": {
+  "title": "Repository license",
+  "loading": "Loading license…",
+  "error": "We couldn't load the license file. Please refresh or try again later.",
+  "backToHome": "Back to home"
+}
+}
