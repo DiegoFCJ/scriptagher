@@ -1,0 +1,62 @@
+<app-header></app-header>
+
+<main class="home-page">
+  <section class="home-intro">
+    <h2>{{ 'home.intro.title' | translate }}</h2>
+    <p>{{ 'home.intro.lead' | translate }}</p>
+    <div class="home-intro__actions">
+      <a class="btn btn-primary" routerLink="/bots">{{ 'home.intro.primaryCta' | translate }}</a>
+      <a class="btn btn-secondary" routerLink="/installers">{{ 'home.intro.secondaryCta' | translate }}</a>
+    </div>
+  </section>
+
+  <section class="home-features">
+    <h3>{{ 'home.features.title' | translate }}</h3>
+    <div class="home-features__grid">
+      <article class="home-feature" *ngFor="let feature of featureCards">
+        <h4>{{ feature.titleKey | translate }}</h4>
+        <p>{{ feature.descriptionKey | translate }}</p>
+      </article>
+    </div>
+  </section>
+
+  <section class="home-languages">
+    <div class="home-languages__header">
+      <h3>{{ 'home.languages.title' | translate }}</h3>
+      <p>{{ 'home.languages.description' | translate }}</p>
+    </div>
+    <ul class="home-languages__list">
+      <li *ngFor="let language of highlightedLanguages">
+        <span class="language-code">{{ ('languages.' + language + '.short') | translate }}</span>
+        <span class="language-label">{{ ('languages.' + language + '.label') | translate }}</span>
+      </li>
+    </ul>
+    <a class="home-languages__link" routerLink="/bots">{{ 'home.languages.cta' | translate }}</a>
+  </section>
+
+  <section class="home-installers" *ngIf="!loadingInstallers && installers.length">
+    <div class="home-installers__header">
+      <h3>{{ 'home.installers.title' | translate }}</h3>
+      <p>{{ 'home.installers.description' | translate }}</p>
+    </div>
+    <app-installer-section [installers]="installers"></app-installer-section>
+    <a class="home-installers__link" routerLink="/installers">{{ 'home.installers.viewAll' | translate }}</a>
+  </section>
+
+  <section
+    class="home-installers home-installers--empty"
+    *ngIf="!loadingInstallers && !installers.length && !installersErrorKey"
+  >
+    <div class="home-installers__header">
+      <h3>{{ 'home.installers.title' | translate }}</h3>
+      <p>{{ 'installers.empty' | translate }}</p>
+    </div>
+    <a class="home-installers__link" routerLink="/installers">{{ 'home.installers.viewAll' | translate }}</a>
+  </section>
+
+  <section class="home-status home-status--error" *ngIf="!loadingInstallers && installersErrorKey">
+    {{ installersErrorKey | translate }}
+  </section>
+</main>
+
+<app-footer></app-footer>

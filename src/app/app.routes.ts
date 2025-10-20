@@ -5,7 +5,7 @@ export const routes: Routes = [
   {
     path: '',
     pathMatch: 'full',
-    component: BotListComponent
+    loadComponent: () => import('./pages/home/home-page.component').then(m => m.HomePageComponent)
   },
   {
     path: 'bots',

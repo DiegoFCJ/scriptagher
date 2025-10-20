@@ -1,13 +1,11 @@
 import { Component, OnDestroy, OnInit } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { Subject, combineLatest, of } from 'rxjs';
-import { catchError, filter, map, startWith, switchMap, takeUntil } from 'rxjs/operators';
-import { NavigationEnd, Router } from '@angular/router';
+import { catchError, map, startWith, switchMap, takeUntil } from 'rxjs/operators';
 
 import {
   BotConfiguration,
   BotService,
-  InstallerAsset,
   LocalizedBotDetails,
   NormalizedBotSection
 } from '../../services/bot.service';
@@ -16,7 +14,6 @@ import { TranslationService } from '../../core/i18n/translation.service';
 import { BotSectionComponent } from '../bot-section/bot-section.component';
 import { HeaderComponent } from '../header/header.component';
 import { FooterComponent } from '../footer/footer.component';
-import { InstallerSectionComponent } from '../installer-section/installer-section.component';
 
 @Component({
   selector: 'app-bot-list',
@@ -27,7 +24,6 @@ import { InstallerSectionComponent } from '../installer-section/installer-sectio
     CommonModule,
     HeaderComponent,
     BotSectionComponent,
-    InstallerSectionComponent,
     FooterComponent,
     TranslatePipe
   ]
@@ -35,46 +31,20 @@ import { InstallerSectionComponent } from '../installer-section/installer-sectio
 export class BotListComponent implements OnInit, OnDestroy {
   botSections: LocalizedBotSectionView[] = [];
   errorMessageKey: string | null = null;
-  installerAssets: InstallerAsset[] = [];
-  showHero: boolean = true;
-  showInstallerSection: boolean = true;
   private readonly destroy$ = new Subject<void>();
 
   constructor(
     private botService: BotService,
-    private translation: TranslationService,
-    private router: Router
+    private translation: TranslationService
   ) {}
 
   ngOnInit() {
-    this.updateLayoutForRoute(this.router.url);
-    this.router.events
-      .pipe(
-        filter((event): event is NavigationEnd => event instanceof NavigationEnd),
-        takeUntil(this.destroy$)
-      )
-      .subscribe((event) => this.updateLayoutForRoute(event.urlAfterRedirects));
-
-    this.listenForInstallers();
     this.listenForBotSections();
   }
 
   ngOnDestroy(): void {
     this.destroy$.next();
     this.destroy$.complete();
-  }
-
-  private listenForInstallers(): void {
-    this.botService.listInstallerAssets()
-      .pipe(takeUntil(this.destroy$))
-      .subscribe({
-        next: (installers) => {
-          this.installerAssets = installers ?? [];
-        },
-        error: (error) => {
-          console.error(this.translation.translate('botList.installersLoadError') + ':', error);
-        }
-      });
   }
 
   private listenForBotSections(): void {
@@ -204,18 +174,6 @@ export class BotListComponent implements OnInit, OnDestroy {
     return order;
   }
 
-  private updateLayoutForRoute(url: string): void {
-    const normalizedUrl = this.normalizeUrl(url);
-    const isHomePage = normalizedUrl === '' || normalizedUrl === '/';
-    this.showHero = isHomePage;
-    this.showInstallerSection = isHomePage;
-  }
-
-  private normalizeUrl(url: string): string {
-    const [pathWithQuery] = url.split('#');
-    const [path] = pathWithQuery.split('?');
-    return path;
-  }
 }
 
 interface LocalizedBotSectionView {
