@@ -1,8 +1,7 @@
 import { Injectable, Signal, computed, inject, signal } from '@angular/core';
 import { isPlatformBrowser } from '@angular/common';
 import { PLATFORM_ID } from '@angular/core';
-import { toObservable } from '@angular/core/rxjs-interop';
-import { Observable } from 'rxjs';
+import { BehaviorSubject, Observable } from 'rxjs';
 
 export type TranslationDictionaries = Record<string, Record<string, unknown>>;
 export type TranslationParams = Record<string, string | number | boolean>;
@@ -18,14 +17,16 @@ export class TranslationService {
 
   private readonly dictionaries = signal<TranslationDictionaries>({});
   private readonly currentLanguageSignal = signal<SupportedLanguage>(this.fallbackLanguage);
+  private readonly languageSubject = new BehaviorSubject<SupportedLanguage>(this.fallbackLanguage);
 
   readonly language: Signal<SupportedLanguage> = computed(() => this.currentLanguageSignal());
-  readonly language$ = toObservable(this.currentLanguageSignal) as Observable<SupportedLanguage>;
+  readonly language$: Observable<SupportedLanguage> = this.languageSubject.asObservable();
 
   constructor() {
     const stored = this.getStoredLanguage();
     if (stored && this.isSupported(stored)) {
       this.currentLanguageSignal.set(stored);
+      this.languageSubject.next(stored);
     }
   }
 
@@ -60,6 +61,7 @@ export class TranslationService {
     }
     const normalized = language as SupportedLanguage;
     this.currentLanguageSignal.set(normalized);
+    this.languageSubject.next(normalized);
     this.storeLanguage(normalized);
   }
 
