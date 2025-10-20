@@ -130,8 +130,9 @@
     }
   },
   "license": {
-    "title": "Repository-Lizenz",
-    "loading": "Lizenz wird geladen …",
-    "error": "Die Lizenzdatei konnte nicht geladen werden. Bitte aktualisiere die Seite oder versuche es später erneut."
-  }
+  "title": "Repository-Lizenz",
+  "loading": "Lizenz wird geladen …",
+  "error": "Die Lizenzdatei konnte nicht geladen werden. Bitte aktualisiere die Seite oder versuche es später erneut.",
+  "backToHome": "Zur Startseite zurück"
+}
 }

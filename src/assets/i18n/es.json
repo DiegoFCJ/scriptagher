@@ -130,8 +130,9 @@
     }
   },
   "license": {
-    "title": "Licencia del repositorio",
-    "loading": "Cargando la licencia…",
-    "error": "No se pudo cargar el archivo de licencia. Actualiza o inténtalo de nuevo más tarde."
-  }
+  "title": "Licencia del repositorio",
+  "loading": "Cargando la licencia…",
+  "error": "No se pudo cargar el archivo de licencia. Actualiza o inténtalo de nuevo más tarde.",
+  "backToHome": "Volver al inicio"
+}
 }

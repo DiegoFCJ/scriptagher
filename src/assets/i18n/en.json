@@ -130,8 +130,9 @@
     }
   },
   "license": {
-    "title": "Repository license",
-    "loading": "Loading license…",
-    "error": "We couldn't load the license file. Please refresh or try again later."
-  }
+  "title": "Repository license",
+  "loading": "Loading license…",
+  "error": "We couldn't load the license file. Please refresh or try again later.",
+  "backToHome": "Back to home"
+}
 }

@@ -130,8 +130,9 @@
     }
   },
   "license": {
-    "title": "Repo-lisens",
-    "loading": "Laster inn lisensen …",
-    "error": "Kunne ikke laste lisensfilen. Oppdater eller prøv igjen senere."
-  }
+  "title": "Repo-lisens",
+  "loading": "Laster inn lisensen …",
+  "error": "Kunne ikke laste lisensfilen. Oppdater eller prøv igjen senere.",
+  "backToHome": "Tilbake til forsiden"
+}
 }
