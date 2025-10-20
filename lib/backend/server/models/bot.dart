@@ -204,6 +204,7 @@ class BotCompat {
   final String? browserReason;
   final String? browserRunner;
   final BrowserPayloads browserPayloads;
+  final MobileCompat mobile;
 
   const BotCompat({
     this.desktopRuntimes = const [],
@@ -212,6 +213,7 @@ class BotCompat {
     this.browserReason,
     this.browserRunner,
     this.browserPayloads = const BrowserPayloads(),
+    this.mobile = const MobileCompat(),
   });
 
   BotCompat copyWith({
@@ -223,6 +225,7 @@ class BotCompat {
     bool setBrowserReasonNull = false,
     String? browserRunner,
     BrowserPayloads? browserPayloads,
+    MobileCompat? mobile,
   }) {
     return BotCompat(
       desktopRuntimes: desktopRuntimes ?? this.desktopRuntimes,
@@ -236,6 +239,7 @@ class BotCompat {
           : (browserReason ?? this.browserReason),
       browserRunner: browserRunner ?? this.browserRunner,
       browserPayloads: browserPayloads ?? this.browserPayloads,
+      mobile: mobile ?? this.mobile,
     );
   }
 
@@ -267,6 +271,7 @@ class BotCompat {
         if (browserRunner != null) 'runner': browserRunner,
         if (!browserPayloads.isEmpty) 'payloads': browserPayloads.toJson(),
       },
+      if (!mobile.isEmpty) 'mobile': mobile.toJson(),
     };
   }
 
@@ -277,6 +282,7 @@ class BotCompat {
 
     final desktop = json['desktop'];
     final browser = json['browser'];
+    final mobileJson = json['mobile'];
 
     List<String> runtimes = const [];
     List<String> missing = const [];
@@ -284,6 +290,7 @@ class BotCompat {
     String? browserReason;
     String? browserRunner;
     BrowserPayloads payloads = const BrowserPayloads();
+    MobileCompat mobile = const MobileCompat();
 
     if (desktop is Map<String, dynamic>) {
       final runtimeList = desktop['runtimes'] ?? desktop['requires'];
@@ -317,6 +324,10 @@ class BotCompat {
       browserSupported = browser;
     }
 
+    if (mobileJson != null) {
+      mobile = MobileCompat.fromJson(mobileJson);
+    }
+
     return BotCompat(
       desktopRuntimes: runtimes,
       missingDesktopRuntimes: missing,
@@ -324,6 +335,7 @@ class BotCompat {
       browserReason: browserReason,
       browserRunner: browserRunner,
       browserPayloads: payloads,
+      mobile: mobile,
     );
   }
 
@@ -333,12 +345,14 @@ class BotCompat {
     }
     final desktop = json['desktop'];
     final browser = json['browser'];
+    final mobileJson = json['mobile'];
 
     List<String> runtimes = const [];
     bool? browserSupported;
     String? browserReason;
     String? browserRunner;
     BrowserPayloads payloads = const BrowserPayloads();
+    MobileCompat mobile = const MobileCompat();
 
     if (desktop is Map<String, dynamic>) {
       final runtimeList = desktop['runtimes'] ?? desktop['requires'];
@@ -368,12 +382,99 @@ class BotCompat {
       browserSupported = browser;
     }
 
+    if (mobileJson != null) {
+      mobile = MobileCompat.fromJson(mobileJson);
+    }
+
     return BotCompat(
       desktopRuntimes: runtimes,
       browserSupported: browserSupported,
       browserReason: browserReason,
       browserRunner: browserRunner,
       browserPayloads: payloads,
+      mobile: mobile,
+    );
+  }
+}
+
+class MobileCompat {
+  const MobileCompat({
+    this.supported,
+    this.platforms = const [],
+    this.reason,
+  });
+
+  final bool? supported;
+  final List<String> platforms;
+  final String? reason;
+
+  bool get isSupported => supported == true;
+  bool get isUnsupported => supported == false;
+  bool get isUnknown => supported == null && platforms.isEmpty && reason == null;
+  bool get isEmpty => isUnknown;
+
+  bool supportsPlatform(String platform) {
+    if (!isSupported) {
+      return false;
+    }
+    if (platforms.isEmpty) {
+      return true;
+    }
+    final normalized = platform.toLowerCase();
+    return platforms.map((p) => p.toLowerCase()).any((entry) {
+      if (entry == normalized || entry == 'mobile') {
+        return true;
+      }
+      if (entry == 'ios' && normalized == 'ios') {
+        return true;
+      }
+      if (entry == 'android' && normalized == 'android') {
+        return true;
+      }
+      return false;
+    });
+  }
+
+  Map<String, dynamic> toJson() {
+    return {
+      'supported': supported,
+      if (platforms.isNotEmpty) 'platforms': platforms,
+      if (reason != null) 'reason': reason,
+    };
+  }
+
+  MobileCompat copyWith({
+    bool? supported,
+    List<String>? platforms,
+    String? reason,
+  }) {
+    return MobileCompat(
+      supported: supported ?? this.supported,
+      platforms: platforms ?? this.platforms,
+      reason: reason ?? this.reason,
+    );
+  }
+
+  static MobileCompat fromJson(dynamic json) {
+    if (json is! Map<String, dynamic>) {
+      if (json is bool) {
+        return MobileCompat(supported: json);
+      }
+      return const MobileCompat();
+    }
+
+    final supported = json['supported'];
+    final reason = json['reason'];
+    List<String> platforms = const [];
+    final platformsJson = json['platforms'] ?? json['devices'];
+    if (platformsJson is List) {
+      platforms = platformsJson.whereType<String>().toList();
+    }
+
+    return MobileCompat(
+      supported: supported is bool ? supported : null,
+      platforms: platforms,
+      reason: reason is String ? reason : null,
     );
   }
 }

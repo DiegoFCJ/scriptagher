@@ -17,10 +17,16 @@ import '../../services/browser_runner/browser_runner_models.dart';
 
 class BotDetailView extends StatefulWidget {
   const BotDetailView(
-      {super.key, required this.bot, this.baseUrl = 'http://localhost:8080'});
+      {super.key,
+      required this.bot,
+      this.baseUrl = 'http://localhost:8080',
+      this.botGetService,
+      this.botDownloadService});
 
   final Bot bot;
   final String baseUrl;
+  final BotGetService? botGetService;
+  final BotDownloadService? botDownloadService;
 
   @override
   State<BotDetailView> createState() => _BotDetailViewState();
@@ -30,6 +36,8 @@ class _BotDetailViewState extends State<BotDetailView> {
   final ScrollController _scrollController = ScrollController();
   final List<_ConsoleEntry> _entries = [];
   final List<ExecutionLog> _logHistory = [];
+  static const ValueKey<String> _runButtonKey =
+      ValueKey<String>('bot-detail-run-button');
   late final BotGetService _botGetService;
   late final BotDownloadService _botDownloadService;
   Bot? _downloadedBot;
@@ -59,8 +67,12 @@ class _BotDetailViewState extends State<BotDetailView> {
   Bot? get _installedBot => _downloadedBot;
   bool get _isDesktopPlatform => !kIsWeb &&
       (Platform.isLinux || Platform.isMacOS || Platform.isWindows);
+  bool get _isMobilePlatform =>
+      !kIsWeb && (Platform.isAndroid || Platform.isIOS);
   bool get _canOpenFolderAction =>
       _isDesktopPlatform && _isDownloaded && !_isDeletingBot;
+  bool get _hasRunnableArtifacts =>
+      _isDownloaded || _primaryBot.isLocal || _shouldUseBrowserRunner;
 
   void _openTutorial() {
     Navigator.pushNamed(context, '/tutorial');
@@ -69,8 +81,10 @@ class _BotDetailViewState extends State<BotDetailView> {
   @override
   void initState() {
     super.initState();
-    _botGetService = BotGetService(baseUrl: widget.baseUrl);
-    _botDownloadService = BotDownloadService(baseUrl: widget.baseUrl);
+    _botGetService =
+        widget.botGetService ?? BotGetService(baseUrl: widget.baseUrl);
+    _botDownloadService = widget.botDownloadService ??
+        BotDownloadService(baseUrl: widget.baseUrl);
     if (!widget.bot.isDownloaded && !widget.bot.isLocal) {
       _remoteBot = widget.bot;
     }
@@ -404,6 +418,15 @@ class _BotDetailViewState extends State<BotDetailView> {
   }
 
   Future<void> _startExecution({List<String>? grantedPermissions}) async {
+    final reason = _executionDisabledReason;
+    assert(_hasRunnableArtifacts,
+        'Cannot start execution without local artifacts');
+    assert(_canExecuteBot, 'Cannot start execution on incompatible platform');
+    if (reason != null) {
+      _showSnackBar(reason);
+      return;
+    }
+
     if (_shouldUseBrowserRunner) {
       await _startBrowserExecution();
       return;
@@ -742,10 +765,77 @@ class _BotDetailViewState extends State<BotDetailView> {
       kIsWeb && BrowserBotRunner.isSupported && _primaryBot.compat.canRunInBrowser;
 
   bool get _canExecuteBot {
+    final compat = _primaryBot.compat;
+
     if (kIsWeb) {
-      return _shouldUseBrowserRunner;
+      if (!BrowserBotRunner.isSupported) {
+        return false;
+      }
+      return compat.canRunInBrowser;
     }
+
+    if (_isDesktopPlatform) {
+      if (compat.desktopRuntimes.isEmpty) {
+        return true;
+      }
+      return compat.missingDesktopRuntimes.isEmpty;
+    }
+
+    if (_isMobilePlatform) {
+      final mobileCompat = compat.mobile;
+      if (!mobileCompat.isSupported) {
+        return false;
+      }
+      final platformKey = Platform.isIOS ? 'ios' : 'android';
+      return mobileCompat.supportsPlatform(platformKey);
+    }
+
     return true;
+  }
+
+  String? get _executionDisabledReason {
+    if (!_hasRunnableArtifacts) {
+      if (!_isDownloaded && !_primaryBot.isLocal) {
+        return 'Scarica il bot per eseguirlo prima di avviare l\'esecuzione.';
+      }
+      return 'Il bot non dispone dei file necessari per essere eseguito.';
+    }
+
+    if (_canExecuteBot) {
+      return null;
+    }
+
+    final compat = _primaryBot.compat;
+    if (kIsWeb) {
+      if (!BrowserBotRunner.isSupported) {
+        return 'Il browser corrente non supporta l\'esecuzione dei bot.';
+      }
+      return compat.browserReason?.isNotEmpty == true
+          ? compat.browserReason
+          : 'Il bot non è compatibile con l\'esecuzione nel browser.';
+    }
+
+    if (_isDesktopPlatform) {
+      final missing = compat.missingDesktopRuntimes;
+      if (missing.isNotEmpty) {
+        return 'Runtime mancanti: ${missing.join(', ')}.';
+      }
+      if (!compat.isDesktopCompatible && compat.desktopRuntimes.isNotEmpty) {
+        return 'Il bot non è compatibile con questo ambiente desktop.';
+      }
+      return 'Il bot non può essere eseguito su questo computer.';
+    }
+
+    if (_isMobilePlatform) {
+      final reason = compat.mobile.reason;
+      if (reason != null && reason.isNotEmpty) {
+        return reason;
+      }
+      final platformName = Platform.isIOS ? 'iOS' : 'Android';
+      return 'Il bot non è compatibile con $platformName.';
+    }
+
+    return 'Il bot non è compatibile con questo dispositivo.';
   }
 
   Future<void> _startBrowserExecution() async {
@@ -1382,6 +1472,35 @@ class _BotDetailViewState extends State<BotDetailView> {
         : const Icon(Icons.delete);
     final String deleteLabel =
         deleteSpinner ? 'Eliminazione...' : 'Elimina';
+    final bool isExecutionBusy =
+        _isRunning || _isTerminating || _activeProcessId != null;
+    final bool canRequestExecution =
+        _hasRunnableArtifacts && _canExecuteBot && !isExecutionBusy;
+    final bool shouldShowExecutionTooltip =
+        !_hasRunnableArtifacts || !_canExecuteBot;
+    final String? executionTooltip =
+        shouldShowExecutionTooltip ? _executionDisabledReason : null;
+
+    Widget executeButton = ElevatedButton.icon(
+      key: _runButtonKey,
+      onPressed: canRequestExecution ? _requestExecution : null,
+      icon: const Icon(Icons.play_arrow),
+      label: Text(_isRunning
+          ? 'Esecuzione in corso...'
+          : _isTerminating
+              ? 'Terminazione in corso...'
+              : _activeProcessId != null
+                  ? 'Processo attivo'
+                  : 'Esegui'),
+    );
+
+    if (shouldShowExecutionTooltip && executionTooltip != null) {
+      executeButton = Tooltip(
+        message: executionTooltip,
+        waitDuration: const Duration(milliseconds: 500),
+        child: executeButton,
+      );
+    }
 
     return Wrap(
       spacing: 12,
@@ -1397,19 +1516,7 @@ class _BotDetailViewState extends State<BotDetailView> {
           icon: const Icon(Icons.folder_open),
           label: const Text('Apri cartella'),
         ),
-        ElevatedButton.icon(
-          onPressed: (_isRunning || _isTerminating || _activeProcessId != null)
-              ? null
-              : _requestExecution,
-          icon: const Icon(Icons.play_arrow),
-          label: Text(_isRunning
-              ? 'Esecuzione in corso...'
-              : _isTerminating
-                  ? 'Terminazione in corso...'
-                  : _activeProcessId != null
-                      ? 'Processo attivo'
-                      : 'Esegui'),
-        ),
+        executeButton,
         if (showDelete)
           ElevatedButton.icon(
             onPressed: deleteSpinner ? null : _confirmAndDeleteBot,
