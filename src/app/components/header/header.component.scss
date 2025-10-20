@@ -46,6 +46,14 @@ header {
     z-index: 1;
     width: min(1100px, 100% - 3rem);
     margin: 0 auto;
+    display: flex;
+    flex-direction: column;
+    gap: 2rem;
+  }
+
+  .header-toolbar {
+    display: flex;
+    justify-content: flex-end;
   }
 
   .pdf-header {
@@ -146,6 +154,10 @@ header {
     .pdf-header {
       align-items: flex-start;
       flex-direction: column;
+    }
+
+    .header-toolbar {
+      justify-content: center;
     }
 
     .hero {

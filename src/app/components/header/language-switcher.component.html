@@ -1,0 +1,13 @@
+<label class="language-switcher">
+  <span class="language-switcher__label">{{ 'languageSwitcher.label' | translate }}</span>
+  <select
+    class="language-switcher__select"
+    [value]="currentLanguage()"
+    (change)="onLanguageChange($any($event.target).value)"
+    [attr.aria-label]="('languageSwitcher.label' | translate)"
+  >
+    <option *ngFor="let language of languages" [value]="language">
+      {{ ('languages.' + language + '.label') | translate }}
+    </option>
+  </select>
+</label>

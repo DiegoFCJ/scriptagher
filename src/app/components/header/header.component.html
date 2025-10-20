@@ -1,29 +1,30 @@
 <header [class.pdf-page]="isPdfToTxtPage">
-    <div class="header-content">
-        <!-- Header PDF to Txt -->
-        <div *ngIf="isPdfToTxtPage; else normalHeader" class="pdf-header">
-            <div class="pdf-copy">
-                <span class="app-name">Scriptagher</span>
-                <span class="current-page">PDF to Txt</span>
-            </div>
-            <button class="btn btn-secondary" (click)="navigateHome()">
-                <span>Home</span>
-            </button>
-        </div>
-
-        <!-- Header normale -->
-        <ng-template #normalHeader>
-            <div class="hero">
-                <span class="hero-eyebrow">Un arsenale di automazioni creative</span>
-                <h1 class="hero-title">Scriptagher Bot Library</h1>
-                <p class="hero-description">
-                    Esplora una raccolta curata di bot multi-lingua, con design e interazioni pensate per un'esperienza
-                    immersiva e coinvolgente.
-                </p>
-                <div class="hero-actions">
-                    <a class="btn btn-primary" href="#bots">Esplora i bot</a>
-                </div>
-            </div>
-        </ng-template>
+  <div class="header-content">
+    <div class="header-toolbar">
+      <app-language-switcher></app-language-switcher>
     </div>
+
+    <div *ngIf="isPdfToTxtPage; else normalHeader" class="pdf-header">
+      <div class="pdf-copy">
+        <span class="app-name">{{ 'app.name' | translate }}</span>
+        <span class="current-page">{{ 'header.pdf.currentPage' | translate }}</span>
+      </div>
+      <button class="btn btn-secondary" (click)="navigateHome()">
+        <span>{{ 'header.pdf.home' | translate }}</span>
+      </button>
+    </div>
+
+    <ng-template #normalHeader>
+      <div class="hero">
+        <span class="hero-eyebrow">{{ 'header.hero.eyebrow' | translate }}</span>
+        <h1 class="hero-title">{{ 'header.hero.title' | translate }}</h1>
+        <p class="hero-description">
+          {{ 'header.hero.description' | translate }}
+        </p>
+        <div class="hero-actions">
+          <a class="btn btn-primary" href="#bots">{{ 'header.hero.cta' | translate }}</a>
+        </div>
+      </div>
+    </ng-template>
+  </div>
 </header>

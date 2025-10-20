@@ -1,10 +1,13 @@
 import { CommonModule } from '@angular/common';
-import { Component, Signal, computed, signal } from '@angular/core';
+import { Component, Signal, computed, inject, signal } from '@angular/core';
+
+import { TranslatePipe } from '../../core/i18n/translate.pipe';
+import { TranslationService } from '../../core/i18n/translation.service';
 
 @Component({
   selector: 'app-pdf-to-txt',
   standalone: true,
-  imports: [CommonModule],
+  imports: [CommonModule, TranslatePipe],
   templateUrl: './pdf-to-txt.component.html',
   styleUrls: ['./pdf-to-txt.component.scss']
 })
@@ -15,6 +18,7 @@ export class PdfToTxtComponent {
   readonly errorMessage = signal<string>('');
   readonly processedPages = signal<number>(0);
   readonly totalPages = signal<number>(0);
+  private readonly translation = inject(TranslationService);
 
   readonly hasText: Signal<boolean> = computed(() => this.extractedText().length > 0);
 
@@ -25,9 +29,12 @@ export class PdfToTxtComponent {
       return '';
     }
     if (processed >= total) {
-      return `Conversione completata (${total} pagine)`;
+      return this.translation.translate('pdfToTxt.status.progressComplete', { total });
     }
-    return `Conversione in corso: pagina ${processed + 1} di ${total}`;
+    return this.translation.translate('pdfToTxt.status.progress', {
+      current: processed + 1,
+      total,
+    });
   });
 
   async onFileSelected(event: Event): Promise<void> {
@@ -80,10 +87,10 @@ export class PdfToTxtComponent {
       }
 
       const finalText = textAccumulator.join('\n\n');
-      this.extractedText.set(finalText || 'Nessun testo estratto dal documento.');
+      this.extractedText.set(finalText || this.translation.translate('pdfToTxt.status.noText'));
     } catch (error) {
-      console.error('Errore durante la conversione PDF:', error);
-      this.errorMessage.set('Non è stato possibile leggere il PDF. Verifica che il file non sia protetto o riprova più tardi.');
+      console.error(this.translation.translate('pdfToTxt.errors.conversion') + ':', error);
+      this.errorMessage.set(this.translation.translate('pdfToTxt.status.error'));
     } finally {
       this.isProcessing.set(false);
     }
@@ -105,7 +112,7 @@ export class PdfToTxtComponent {
     try {
       await navigator.clipboard.writeText(this.extractedText());
     } catch (error) {
-      console.warn('Impossibile copiare il testo negli appunti:', error);
+      console.warn(this.translation.translate('pdfToTxt.errors.copy') + ':', error);
     }
   }
 }

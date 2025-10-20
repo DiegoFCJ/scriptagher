@@ -1,8 +1,8 @@
 <section class="installer-section" *ngIf="installers?.length">
   <header class="installer-section__intro">
-    <h2 class="installer-section__title">Installers</h2>
+    <h2 class="installer-section__title">{{ 'installerSection.title' | translate }}</h2>
     <p class="installer-section__subtitle">
-      Pacchetti pronti all'uso con checksum verificabili, note di rilascio e licenze sempre in evidenza.
+      {{ 'installerSection.subtitle' | translate }}
     </p>
   </header>
 
@@ -54,7 +54,7 @@
         rel="noopener"
         [attr.download]="installer.filename"
       >
-        <span>Download</span>
+        <span>{{ 'installerSection.download' | translate }}</span>
       </a>
     </header>
 
@@ -69,14 +69,14 @@
     <div class="installer-card__meta">
       <ng-container *ngIf="formatSize(installer.size) as sizeLabel">
         <div class="installer-card__meta-item">
-          <span class="installer-card__meta-label">Dimensione</span>
+          <span class="installer-card__meta-label">{{ 'installerSection.sizeLabel' | translate }}</span>
           <span class="installer-card__meta-value">{{ sizeLabel }}</span>
         </div>
       </ng-container>
 
       <ng-container *ngIf="getLicense(installer) as license">
         <div class="installer-card__meta-item">
-          <span class="installer-card__meta-label">Licenza</span>
+          <span class="installer-card__meta-label">{{ 'installerSection.licenseLabel' | translate }}</span>
           <ng-container *ngIf="license.url; else plainLicense">
             <a
               class="installer-card__meta-value installer-card__link"
@@ -95,31 +95,31 @@
 
       <ng-container *ngIf="getMaintainer(installer) as maintainer">
         <div class="installer-card__meta-item">
-          <span class="installer-card__meta-label">Maintainer</span>
+          <span class="installer-card__meta-label">{{ 'installerSection.maintainerLabel' | translate }}</span>
           <span class="installer-card__meta-value">{{ maintainer }}</span>
         </div>
       </ng-container>
 
       <div class="installer-card__meta-item" *ngIf="installer.metadata?.checksum">
-        <span class="installer-card__meta-label">Checksum</span>
+        <span class="installer-card__meta-label">{{ 'installerSection.checksumLabel' | translate }}</span>
         <code class="installer-card__code">{{ installer.metadata?.checksum }}</code>
       </div>
 
       <div class="installer-card__meta-item" *ngIf="installer.metadata?.releaseNotesUrl">
-        <span class="installer-card__meta-label">Note di rilascio</span>
+        <span class="installer-card__meta-label">{{ 'installerSection.releaseNotesLabel' | translate }}</span>
         <a
           class="installer-card__meta-value installer-card__link"
           [href]="installer.metadata?.releaseNotesUrl"
           target="_blank"
           rel="noopener"
         >
-          Apri
+          {{ 'installerSection.releaseNotesAction' | translate }}
         </a>
       </div>
 
       <ng-container *ngIf="getHomepage(installer) as homepage">
         <div class="installer-card__meta-item">
-          <span class="installer-card__meta-label">Sorgente</span>
+          <span class="installer-card__meta-label">{{ 'installerSection.sourceLabel' | translate }}</span>
           <a
             class="installer-card__meta-value installer-card__link"
             [href]="homepage"

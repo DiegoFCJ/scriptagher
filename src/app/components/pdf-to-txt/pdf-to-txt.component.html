@@ -1,23 +1,22 @@
 <section class="pdf-wrapper">
   <div class="intro-card">
-    <span class="eyebrow">Utility</span>
-    <h1>Converti PDF in testo, senza complicazioni</h1>
+    <span class="eyebrow">{{ 'pdfToTxt.intro.eyebrow' | translate }}</span>
+    <h1>{{ 'pdfToTxt.intro.title' | translate }}</h1>
     <p>
-      Carica il tuo documento PDF per estrarne il testo in pochi secondi. Nessun upload verso server remoti:
-      tutta l'elaborazione avviene direttamente nel tuo browser.
+      {{ 'pdfToTxt.intro.description' | translate }}
     </p>
     <div class="highlights">
       <div class="highlight">
         <span class="icon">⚡</span>
-        <span>Conversione rapida</span>
+        <span>{{ 'pdfToTxt.highlights.fast' | translate }}</span>
       </div>
       <div class="highlight">
         <span class="icon">🔒</span>
-        <span>Privacy garantita</span>
+        <span>{{ 'pdfToTxt.highlights.privacy' | translate }}</span>
       </div>
       <div class="highlight">
         <span class="icon">📝</span>
-        <span>Testo pronto da copiare</span>
+        <span>{{ 'pdfToTxt.highlights.ready' | translate }}</span>
       </div>
     </div>
   </div>
@@ -26,11 +25,11 @@
     <div class="dropzone" (click)="fileInput.click()">
       <input #fileInput type="file" accept="application/pdf" (change)="onFileSelected($event)" hidden>
       <div class="dropzone-visual">
-        <div class="badge">PDF</div>
-        <h2>Trascina qui il tuo PDF</h2>
-        <p>Oppure clicca per selezionarlo dal tuo dispositivo</p>
+        <div class="badge">{{ 'pdfToTxt.dropzone.badge' | translate }}</div>
+        <h2>{{ 'pdfToTxt.dropzone.title' | translate }}</h2>
+        <p>{{ 'pdfToTxt.dropzone.subtitle' | translate }}</p>
       </div>
-      <button type="button" class="btn btn-secondary">Scegli un file</button>
+      <button type="button" class="btn btn-secondary">{{ 'pdfToTxt.dropzone.button' | translate }}</button>
     </div>
 
     <div class="status" *ngIf="selectedFile() || isProcessing() || errorMessage()">
@@ -39,7 +38,7 @@
           <h3>{{ selectedFile()?.name }}</h3>
           <span>{{ (selectedFile()?.size || 0) / 1024 | number:'1.0-0' }} KB</span>
         </div>
-        <button type="button" class="link" (click)="clearSelection()">Sostituisci file</button>
+        <button type="button" class="link" (click)="clearSelection()">{{ 'pdfToTxt.status.replaceFile' | translate }}</button>
       </div>
 
       <div class="progress" *ngIf="isProcessing()">
@@ -55,19 +54,18 @@
 
   <div class="result" *ngIf="hasText() && !errorMessage()">
     <div class="result-header">
-      <h2>Testo estratto</h2>
+      <h2>{{ 'pdfToTxt.result.title' | translate }}</h2>
       <button type="button" class="btn btn-ghost" (click)="copyExtractedText()">
-        Copia tutto
+        {{ 'pdfToTxt.result.copy' | translate }}
       </button>
     </div>
     <textarea readonly [value]="extractedText()"></textarea>
   </div>
 
   <div class="fallback" *ngIf="!isProcessing() && !selectedFile() && !hasText() && !errorMessage()">
-    <h3>Nessun PDF selezionato</h3>
+    <h3>{{ 'pdfToTxt.fallback.title' | translate }}</h3>
     <p>
-      Carica un documento per iniziare. Se la pagina non dovesse più essere disponibile, il pulsante nella barra in alto verrà
-      nascosto automaticamente per evitare confusione.
+      {{ 'pdfToTxt.fallback.description' | translate }}
     </p>
   </div>
 </section>
