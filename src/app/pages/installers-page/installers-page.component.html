@@ -1,0 +1,20 @@
+<app-header></app-header>
+
+<main class="installers-page">
+  <section *ngIf="loading" class="installers-page__status" aria-live="polite">
+    <h2>{{ 'installersPage.loading' | translate }}</h2>
+    <p>{{ 'installersPage.loadingHint' | translate }}</p>
+  </section>
+
+  <app-installer-section
+    *ngIf="!loading && installers.length"
+    [installers]="installers"
+  ></app-installer-section>
+
+  <section *ngIf="!loading && !installers.length" class="installers-page__status">
+    <h2>{{ (errorMessageKey || 'installersPage.empty') | translate }}</h2>
+    <p>{{ (errorMessageKey === 'installersPage.error' ? 'installersPage.errorHint' : 'installersPage.fallbackHint') | translate }}</p>
+  </section>
+</main>
+
+<app-footer></app-footer>

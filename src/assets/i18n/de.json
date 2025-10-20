@@ -32,6 +32,12 @@
     "label": "Sprache"
   },
   "header": {
+    "nav": {
+      "ariaLabel": "Hauptnavigation",
+      "home": "Start",
+      "bots": "Bots",
+      "installers": "Installer"
+    },
     "pdf": {
       "currentPage": "PDF zu Txt",
       "home": "Start"
@@ -40,7 +46,8 @@
       "eyebrow": "Ein Arsenal kreativer Automationen",
       "title": "Scriptagher Bot-Bibliothek",
       "description": "Entdecke eine kuratierte Sammlung mehrsprachiger Bots, gestaltet für ein fesselndes und intensives Erlebnis.",
-      "cta": "Bots entdecken"
+      "cta": "Bots entdecken",
+      "installersCta": "Installer anzeigen"
     }
   },
   "botSection": {
@@ -54,6 +61,7 @@
     "startCommand": "Startbefehl",
     "noStartCommand": "Kein Startbefehl angegeben",
     "pdfCta": "Zum PDF-zu-Txt-Konverter",
+    "viewDetails": "Details anzeigen",
     "viewSource": "Quellcode anzeigen",
     "download": "Herunterladen",
     "navigationError": "Fehler bei der Navigation zur PDF-zu-Txt-Seite"
@@ -77,6 +85,14 @@
     "releaseNotesLabel": "Release Notes",
     "releaseNotesAction": "Öffnen",
     "sourceLabel": "Quelle"
+  },
+  "installersPage": {
+    "loading": "Installer werden geladen…",
+    "loadingHint": "Wir sammeln die neuesten verifizierten Installer aus dem Repository.",
+    "empty": "Noch keine Installer verfügbar",
+    "fallbackHint": "Schau später noch einmal vorbei oder kontaktiere die Maintainer, wenn du ein bestimmtes Paket erwartet hast.",
+    "error": "Installer-Liste konnte nicht geladen werden",
+    "errorHint": "Aktualisiere die Seite oder versuche es später erneut."
   },
   "pdfToTxt": {
     "intro": {
@@ -120,10 +136,28 @@
     "message": "Die gesuchte Seite existiert nicht.",
     "cta": "Zurück zur Startseite"
   },
+  "botDetail": {
+    "loading": "Bot-Details werden geladen…",
+    "loadingHint": "Die neuesten Metadaten und Aktionen für diesen Bot werden geladen.",
+    "backToBots": "Zurück zu den Bots",
+    "noSummary": "Noch keine Zusammenfassung vorhanden.",
+    "aboutTitle": "Über diesen Bot",
+    "startCommandTitle": "Startbefehl",
+    "actionsTitle": "Bot-Aktionen",
+    "error": "Dieser Bot konnte nicht geladen werden",
+    "errorHint": "Aktualisiere die Seite oder kehre zur Bibliothek zurück, um einen anderen Bot zu wählen.",
+    "missing": "Bot nicht gefunden",
+    "missingHint": "Der Bot wurde möglicherweise entfernt oder umbenannt. Kehre zur Bibliothek zurück, um weiter zu stöbern.",
+    "loadErrorLog": "Fehler beim Laden der Bot-Details"
+  },
   "footer": {
     "copy": "© 2024 Scriptagher · Mit Leidenschaft für Automatisierung gefertigt",
     "legal": "Für die Maker-Community bereitgestellt: Lies vor der Nutzung von Automatisierungsbots immer die Release Notes und Lizenzen.",
     "links": {
+      "ariaLabel": "Links für Entwickler",
+      "home": "Start",
+      "bots": "Bots",
+      "installers": "Installer",
       "portfolio": "Portfolio",
       "github": "GitHub",
       "license": "Lizenz"

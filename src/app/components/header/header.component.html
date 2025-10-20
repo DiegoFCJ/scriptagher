@@ -1,7 +1,25 @@
 <header [class.pdf-page]="isPdfToTxtPage">
   <div class="header-content">
     <div class="header-toolbar">
-      <app-language-switcher></app-language-switcher>
+      <nav class="header-nav" [attr.aria-label]="'header.nav.ariaLabel' | translate">
+        <a
+          routerLink="/"
+          routerLinkActive="active"
+          [routerLinkActiveOptions]="{ exact: true }"
+          class="header-nav__link"
+        >
+          {{ 'header.nav.home' | translate }}
+        </a>
+        <a routerLink="/bots" routerLinkActive="active" class="header-nav__link">
+          {{ 'header.nav.bots' | translate }}
+        </a>
+        <a routerLink="/installers" routerLinkActive="active" class="header-nav__link">
+          {{ 'header.nav.installers' | translate }}
+        </a>
+      </nav>
+      <div class="header-toolbar__actions">
+        <app-language-switcher></app-language-switcher>
+      </div>
     </div>
 
     <div *ngIf="isPdfToTxtPage; else normalHeader" class="pdf-header">
@@ -22,7 +40,12 @@
           {{ 'header.hero.description' | translate }}
         </p>
         <div class="hero-actions">
-          <a class="btn btn-primary" href="#bots">{{ 'header.hero.cta' | translate }}</a>
+          <button class="btn btn-primary" type="button" (click)="handleExploreBots()">
+            {{ 'header.hero.cta' | translate }}
+          </button>
+          <a class="btn btn-secondary" routerLink="/installers">
+            {{ 'header.hero.installersCta' | translate }}
+          </a>
         </div>
       </div>
     </ng-template>

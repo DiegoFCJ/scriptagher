@@ -32,6 +32,10 @@ export class BotCardComponent {
     this.download.emit();
   }
 
+  viewDetails(): void {
+    this.router.navigate(['/bots', this.language, this.bot.botName]);
+  }
+
   navigateToPdfToTxt() {
     try {
       this.router.navigate(['/pdf-to-txt']);

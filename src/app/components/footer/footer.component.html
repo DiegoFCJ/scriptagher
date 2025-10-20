@@ -4,7 +4,16 @@
     <p class="site-footer__legal">
       {{ 'footer.legal' | translate }}
     </p>
-    <nav class="site-footer__links" aria-label="Link sviluppatore">
+    <nav class="site-footer__links" [attr.aria-label]="'footer.links.ariaLabel' | translate">
+      <a routerLink="/" class="site-footer__link">
+        {{ 'footer.links.home' | translate }}
+      </a>
+      <a routerLink="/bots" class="site-footer__link">
+        {{ 'footer.links.bots' | translate }}
+      </a>
+      <a routerLink="/installers" class="site-footer__link">
+        {{ 'footer.links.installers' | translate }}
+      </a>
       <a routerLink="/license" class="site-footer__link">
         {{ 'footer.links.license' | translate }}
       </a>

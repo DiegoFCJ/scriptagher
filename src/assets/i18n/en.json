@@ -32,6 +32,12 @@
     "label": "Language"
   },
   "header": {
+    "nav": {
+      "ariaLabel": "Primary",
+      "home": "Home",
+      "bots": "Bots",
+      "installers": "Installers"
+    },
     "pdf": {
       "currentPage": "PDF to Txt",
       "home": "Home"
@@ -40,7 +46,8 @@
       "eyebrow": "A toolkit of creative automations",
       "title": "Scriptagher Bot Library",
       "description": "Browse a curated collection of multi-language bots, crafted for immersive and engaging experiences.",
-      "cta": "Explore the bots"
+      "cta": "Explore the bots",
+      "installersCta": "Browse installers"
     }
   },
   "botSection": {
@@ -54,6 +61,7 @@
     "startCommand": "Start command",
     "noStartCommand": "No start commands provided",
     "pdfCta": "Go to the PDF to Txt converter",
+    "viewDetails": "View details",
     "viewSource": "View source",
     "download": "Download",
     "navigationError": "Error while navigating to the PDF to Txt page"
@@ -77,6 +85,14 @@
     "releaseNotesLabel": "Release notes",
     "releaseNotesAction": "Open",
     "sourceLabel": "Source"
+  },
+  "installersPage": {
+    "loading": "Loading installers…",
+    "loadingHint": "We are collecting the latest verified installers from the repository.",
+    "empty": "No installers available yet",
+    "fallbackHint": "Check back soon or reach out to the maintainers if you were expecting a specific package.",
+    "error": "Unable to load the installer list",
+    "errorHint": "Please refresh the page or try again later."
   },
   "pdfToTxt": {
     "intro": {
@@ -120,10 +136,28 @@
     "message": "The page you're looking for doesn't exist.",
     "cta": "Back to Home"
   },
+  "botDetail": {
+    "loading": "Loading bot details…",
+    "loadingHint": "Fetching the latest metadata and actions for this bot.",
+    "backToBots": "Back to bots",
+    "noSummary": "No summary has been provided yet.",
+    "aboutTitle": "About this bot",
+    "startCommandTitle": "Start command",
+    "actionsTitle": "Bot actions",
+    "error": "Unable to load this bot",
+    "errorHint": "Try refreshing the page or return to the bot library to pick another entry.",
+    "missing": "Bot not found",
+    "missingHint": "The bot may have been removed or renamed. Return to the bot library to continue exploring.",
+    "loadErrorLog": "Error while loading the bot details"
+  },
   "footer": {
     "copy": "© 2024 Scriptagher · Crafted with passion for automation",
     "legal": "Shared with the maker community: always review release notes and licences before using automation bots.",
     "links": {
+      "ariaLabel": "Developer links",
+      "home": "Home",
+      "bots": "Bots",
+      "installers": "Installers",
       "portfolio": "Portfolio",
       "github": "GitHub",
       "license": "License"

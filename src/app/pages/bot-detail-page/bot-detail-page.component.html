@@ -1,0 +1,56 @@
+<app-header></app-header>
+
+<main class="bot-detail-page">
+  <section *ngIf="loading" class="bot-detail-page__status" aria-live="polite">
+    <h2>{{ 'botDetail.loading' | translate }}</h2>
+    <p>{{ 'botDetail.loadingHint' | translate }}</p>
+  </section>
+
+  <section *ngIf="!loading && bot" class="bot-detail-page__content">
+    <nav class="bot-detail-page__breadcrumbs" aria-label="Breadcrumb">
+      <a routerLink="/bots" class="bot-detail-page__breadcrumb">{{ 'botDetail.backToBots' | translate }}</a>
+      <span class="bot-detail-page__breadcrumb-separator">/</span>
+      <span class="bot-detail-page__breadcrumb-current">{{ bot.displayName || bot.botName }}</span>
+    </nav>
+
+    <header class="bot-detail-page__header">
+      <span class="bot-detail-page__language">{{ ('languages.' + language + '.short') | translate }}</span>
+      <h1>{{ bot.displayName || bot.botName }}</h1>
+      <p class="bot-detail-page__summary">
+        {{ bot.shortDescription || ('botDetail.noSummary' | translate) }}
+      </p>
+    </header>
+
+    <section *ngIf="bot.longDescription" class="bot-detail-page__section">
+      <h2>{{ 'botDetail.aboutTitle' | translate }}</h2>
+      <p>{{ bot.longDescription }}</p>
+    </section>
+
+    <section class="bot-detail-page__section">
+      <h2>{{ 'botDetail.startCommandTitle' | translate }}</h2>
+      <code>{{ bot.startCommand || ('botCard.noStartCommand' | translate) }}</code>
+    </section>
+
+    <section class="bot-detail-page__section bot-detail-page__section--actions">
+      <h2 class="sr-only">{{ 'botDetail.actionsTitle' | translate }}</h2>
+      <button type="button" class="btn btn-secondary" (click)="openSource()">
+        {{ bot.actions['viewSource'] || ('botCard.viewSource' | translate) }}
+      </button>
+      <button type="button" class="btn btn-primary" (click)="downloadBot()">
+        {{ bot.actions['download'] || ('botCard.download' | translate) }}
+      </button>
+    </section>
+
+    <section *ngIf="bot.description && !bot.longDescription" class="bot-detail-page__section">
+      <h2>{{ 'botDetail.aboutTitle' | translate }}</h2>
+      <p>{{ bot.description }}</p>
+    </section>
+  </section>
+
+  <section *ngIf="!loading && !bot" class="bot-detail-page__status">
+    <h2>{{ (errorMessageKey || 'botDetail.missing') | translate }}</h2>
+    <p>{{ (errorMessageKey === 'botDetail.error' ? 'botDetail.errorHint' : 'botDetail.missingHint') | translate }}</p>
+  </section>
+</main>
+
+<app-footer></app-footer>

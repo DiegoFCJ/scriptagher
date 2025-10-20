@@ -7,6 +7,18 @@ export const routes: Routes = [
     component: BotListComponent
   },
   {
+    path: 'bots',
+    loadComponent: () => import('./pages/bots-page/bots-page.component').then((m) => m.BotsPageComponent)
+  },
+  {
+    path: 'bots/:language/:botName',
+    loadComponent: () => import('./pages/bot-detail-page/bot-detail-page.component').then((m) => m.BotDetailPageComponent)
+  },
+  {
+    path: 'installers',
+    loadComponent: () => import('./pages/installers-page/installers-page.component').then((m) => m.InstallersPageComponent)
+  },
+  {
     path: 'pdf-to-txt',
     loadComponent: () => import('./components/pdf-to-txt/pdf-to-txt.component').then(m => m.PdfToTxtComponent)
   },
