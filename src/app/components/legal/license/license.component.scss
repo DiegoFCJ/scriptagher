@@ -1,0 +1,46 @@
+.license {
+  display: grid;
+  gap: 1.5rem;
+  padding: 2rem 1rem;
+  max-width: 960px;
+  margin: 0 auto;
+
+  &__header {
+    text-align: center;
+  }
+
+  &__title {
+    font-size: 2rem;
+    margin-bottom: 0.5rem;
+  }
+
+  &__subtitle {
+    color: #6b7280;
+    margin: 0;
+  }
+
+  &__content {
+    background: #0f172a;
+    border-radius: 0.75rem;
+    padding: 1.5rem;
+    box-shadow: 0 10px 30px rgba(15, 23, 42, 0.25);
+    overflow: auto;
+  }
+
+  &__text {
+    white-space: pre-wrap;
+    font-family: 'Fira Code', monospace;
+    color: #e2e8f0;
+    margin: 0;
+  }
+
+  &__state {
+    text-align: center;
+    color: #fbbf24;
+    font-weight: 600;
+
+    &--error {
+      color: #f87171;
+    }
+  }
+}

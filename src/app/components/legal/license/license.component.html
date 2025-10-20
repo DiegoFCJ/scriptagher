@@ -1,0 +1,20 @@
+<section class="license">
+  <header class="license__header">
+    <h1 class="license__title">Licenza del progetto</h1>
+    <p class="license__subtitle">Consulta il testo completo della licenza MIT applicata a Scriptagher.</p>
+  </header>
+
+  <div *ngIf="isLoading(); else content" class="license__state" aria-live="polite">
+    Caricamento della licenza in corso…
+  </div>
+
+  <ng-template #content>
+    <article *ngIf="!errorMessage(); else error" class="license__content">
+      <pre class="license__text">{{ licenseText() }}</pre>
+    </article>
+  </ng-template>
+
+  <ng-template #error>
+    <p class="license__state license__state--error" role="alert">{{ errorMessage() }}</p>
+  </ng-template>
+</section>

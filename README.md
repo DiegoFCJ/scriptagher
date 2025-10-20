@@ -110,6 +110,16 @@ bots/
 ### 🛡 License
 By contributing, you agree that your bot will be open-sourced under the same license as this repository. Ensure you have the rights to share the bot.
 
+#### Aggiornare la licenza prima del deploy
+Per mantenere il file di licenza allineato durante il processo di pubblicazione esegui questi passaggi:
+
+1. **Aggiorna il testo di `LICENSE`** nella radice del repository con eventuali modifiche necessarie.
+2. **Verifica `package.json`**: assicurati che il campo `license` e i metadati dell'autore riflettano la licenza in vigore.
+3. **Rigenera l'applicazione**: esegui `npm run build` (o lo script di build utilizzato nel tuo flusso CI) per includere la nuova versione della licenza negli asset distribuiti.
+4. **Procedi al deploy**: utilizza `npm run deploy` o il tuo processo di pubblicazione preferito dopo aver completato il build aggiornato.
+
+> ℹ️ Il file `LICENSE` viene copiato automaticamente nella root degli artefatti generati grazie alla configurazione degli asset in `angular.json`. Dopo ogni modifica al file ricordati di rigenerare il build prima della distribuzione.
+
 ## ⚙️ GitHub installer configuration
 
 The application now fetches installer binaries directly from the `installers/` directory of a GitHub repository (default branch: `gh-pages`).

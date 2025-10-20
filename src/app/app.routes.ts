@@ -11,6 +11,10 @@ export const routes: Routes = [
     loadComponent: () => import('./components/pdf-to-txt/pdf-to-txt.component').then(m => m.PdfToTxtComponent)
   },
   {
+    path: 'license',
+    loadComponent: () => import('./components/legal/license/license.component').then(m => m.LicenseComponent)
+  },
+  {
     path: '**', // Rotta per errori 404
     loadComponent: () => import('./components/not-found/not-found.component').then(m => m.NotFoundComponent)
   }

@@ -30,6 +30,11 @@
               {
                 "glob": "**/*",
                 "input": "public"
+              },
+              {
+                "input": ".",
+                "glob": "LICENSE",
+                "output": "/"
               }
             ],
             "styles": [
