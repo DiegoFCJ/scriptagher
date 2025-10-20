@@ -15,6 +15,14 @@ import { InstallerSectionComponent } from '../installer-section/installer-sectio
 import { Subscription, firstValueFrom, forkJoin } from 'rxjs';
 import { I18nService, UiStrings } from '../../services/i18n.service';
 
+interface BotSectionView {
+  language: string;
+  languageLabel: string;
+  title: string;
+  summary?: string;
+  botDetails: BotDetails[];
+}
+
 @Component({
   selector: 'app-bot-list',
   templateUrl: './bot-list.component.html',
@@ -28,14 +36,6 @@ import { I18nService, UiStrings } from '../../services/i18n.service';
     FooterComponent
   ]
 })
-interface BotSectionView {
-  language: string;
-  languageLabel: string;
-  title: string;
-  summary?: string;
-  botDetails: BotDetails[];
-}
-
 export class BotListComponent implements OnInit, OnDestroy {
   botSections: BotSectionView[] = [];
   errorMessage: string = '';
