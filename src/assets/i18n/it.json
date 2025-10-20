@@ -134,9 +134,32 @@
     }
   },
   "license": {
-  "title": "Licenza del repository",
-  "loading": "Caricamento della licenza in corso…",
-  "error": "Non è stato possibile caricare il file della licenza. Aggiorna o riprova più tardi.",
-  "backToHome": "Torna alla home"
-}
+    "title": "Licenza del repository",
+    "loading": "Caricamento della licenza in corso…",
+    "error": "Non è stato possibile caricare il file della licenza. Aggiorna o riprova più tardi.",
+    "backToHome": "Torna alla home"
+  },
+  "navigation": {
+    "home": "Home",
+    "bots": "Bot",
+    "installers": "Installer"
+  },
+  "installers": {
+    "loading": "Caricamento degli installer…",
+    "empty": "Nessun installer disponibile.",
+    "error": "Impossibile caricare l'elenco degli installer."
+  },
+  "botDetail": {
+    "loading": "Caricamento dettagli del bot…",
+    "backToBots": "Torna ai bot",
+    "download": "Scarica",
+    "viewSource": "Vedi sorgente",
+    "noDescription": "Descrizione non disponibile",
+    "startCommand": "Comando di avvio",
+    "actionsTitle": "Azioni disponibili",
+    "notFound": "Non abbiamo trovato questo bot.",
+    "loadError": "Impossibile caricare i dettagli del bot.",
+    "loadErrorLog": "Errore durante il caricamento dei dettagli del bot",
+    "missingParams": "Informazioni sul bot mancanti."
+  }
 }

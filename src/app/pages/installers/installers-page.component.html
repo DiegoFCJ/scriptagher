@@ -1,0 +1,22 @@
+<app-header></app-header>
+
+<main class="installers-page">
+  <section *ngIf="loading" class="status status--loading">
+    {{ 'installers.loading' | translate }}
+  </section>
+
+  <ng-container *ngIf="!loading">
+    <app-installer-section
+      *ngIf="installers.length; else statusTemplate"
+      [installers]="installers"
+    ></app-installer-section>
+  </ng-container>
+
+  <ng-template #statusTemplate>
+    <section class="status" [class.status--error]="errorKey === 'installers.error'">
+      {{ (errorKey || 'installers.empty') | translate }}
+    </section>
+  </ng-template>
+</main>
+
+<app-footer></app-footer>

@@ -1,6 +1,21 @@
 <header [class.pdf-page]="isPdfToTxtPage">
   <div class="header-content">
     <div class="header-toolbar">
+      <nav class="header-nav" aria-label="Primary navigation">
+        <a
+          routerLink="/"
+          routerLinkActive="is-active"
+          [routerLinkActiveOptions]="{ exact: true }"
+        >
+          {{ 'navigation.home' | translate }}
+        </a>
+        <a routerLink="/bots" routerLinkActive="is-active">
+          {{ 'navigation.bots' | translate }}
+        </a>
+        <a routerLink="/installers" routerLinkActive="is-active">
+          {{ 'navigation.installers' | translate }}
+        </a>
+      </nav>
       <app-language-switcher></app-language-switcher>
     </div>
 
@@ -22,7 +37,8 @@
           {{ 'header.hero.description' | translate }}
         </p>
         <div class="hero-actions">
-          <a class="btn btn-primary" href="#bots">{{ 'header.hero.cta' | translate }}</a>
+          <a class="btn btn-primary" routerLink="/bots" fragment="bots">{{ 'header.hero.cta' | translate }}</a>
+          <a class="btn btn-secondary" routerLink="/installers">{{ 'navigation.installers' | translate }}</a>
         </div>
       </div>
     </ng-template>

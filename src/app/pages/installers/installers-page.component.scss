@@ -1,0 +1,39 @@
+.installers-page {
+  width: min(1100px, 100% - 3rem);
+  margin: clamp(2.5rem, 6vw, 3.5rem) auto clamp(3rem, 7vw, 4.5rem);
+  display: flex;
+  flex-direction: column;
+  gap: 2rem;
+}
+
+.status {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: clamp(2rem, 5vw, 3rem);
+  border-radius: 24px;
+  background: rgba(15, 23, 42, 0.6);
+  border: 1px solid rgba(148, 163, 184, 0.25);
+  color: rgba(226, 232, 240, 0.85);
+  text-align: center;
+  font-size: 1.05rem;
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+
+  &--loading {
+    background: rgba(8, 47, 73, 0.5);
+    border-color: rgba(56, 189, 248, 0.25);
+  }
+
+  &--error {
+    background: rgba(136, 19, 55, 0.35);
+    border-color: rgba(244, 63, 94, 0.35);
+  }
+}
+
+@media (max-width: 640px) {
+  .installers-page {
+    width: calc(100% - 2rem);
+    margin-inline: auto;
+  }
+}

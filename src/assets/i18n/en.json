@@ -134,9 +134,32 @@
     }
   },
   "license": {
-  "title": "Repository license",
-  "loading": "Loading license…",
-  "error": "We couldn't load the license file. Please refresh or try again later.",
-  "backToHome": "Back to home"
-}
+    "title": "Repository license",
+    "loading": "Loading license…",
+    "error": "We couldn't load the license file. Please refresh or try again later.",
+    "backToHome": "Back to home"
+  },
+  "navigation": {
+    "home": "Home",
+    "bots": "Bots",
+    "installers": "Installers"
+  },
+  "installers": {
+    "loading": "Loading installers…",
+    "empty": "No installers available yet.",
+    "error": "We couldn't load the installer list."
+  },
+  "botDetail": {
+    "loading": "Loading bot details…",
+    "backToBots": "Back to bots",
+    "download": "Download",
+    "viewSource": "View source",
+    "noDescription": "No description available",
+    "startCommand": "Start command",
+    "actionsTitle": "Available actions",
+    "notFound": "We couldn't find that bot.",
+    "loadError": "We couldn't load the bot details.",
+    "loadErrorLog": "Error while loading bot details",
+    "missingParams": "Missing bot information."
+  }
 }

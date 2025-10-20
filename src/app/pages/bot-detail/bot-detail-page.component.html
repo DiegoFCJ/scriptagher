@@ -1,0 +1,60 @@
+<app-header></app-header>
+
+<main class="bot-detail-page">
+  <section *ngIf="loading" class="status status--loading">
+    {{ 'botDetail.loading' | translate }}
+  </section>
+
+  <section *ngIf="!loading && detail" class="bot-detail">
+    <a class="back-link" [routerLink]="['/bots']">{{ 'botDetail.backToBots' | translate }}</a>
+
+    <header class="bot-detail__header">
+      <div class="bot-detail__heading">
+        <span class="bot-detail__language">{{ ('languages.' + detail.language + '.label') | translate }}</span>
+        <h2>{{ detail.displayName || detail.botName }}</h2>
+      </div>
+      <div class="bot-detail__actions">
+        <button type="button" class="btn btn-primary" (click)="downloadBot()">
+          {{ detail.actions['download'] || ('botDetail.download' | translate) }}
+        </button>
+        <a
+          *ngIf="detail.sourceUrl"
+          class="btn btn-secondary"
+          (click)="openSource()"
+        >
+          {{ detail.actions['viewSource'] || ('botDetail.viewSource' | translate) }}
+        </a>
+      </div>
+    </header>
+
+    <p class="bot-detail__description" *ngIf="detail.longDescription; else shortDescription">
+      {{ detail.longDescription }}
+    </p>
+    <ng-template #shortDescription>
+      <p class="bot-detail__description">
+        {{ detail.shortDescription || ('botDetail.noDescription' | translate) }}
+      </p>
+    </ng-template>
+
+    <div class="bot-detail__meta" *ngIf="detail.startCommand">
+      <span class="meta-label">{{ 'botDetail.startCommand' | translate }}</span>
+      <code>{{ detail.startCommand }}</code>
+    </div>
+
+    <section *ngIf="actionEntries.length" class="bot-detail__extra">
+      <h3>{{ 'botDetail.actionsTitle' | translate }}</h3>
+      <ul>
+        <li *ngFor="let action of actionEntries">
+          <span class="action-key">{{ action.key }}</span>
+          <span class="action-value">{{ action.value }}</span>
+        </li>
+      </ul>
+    </section>
+  </section>
+
+  <section *ngIf="!loading && !detail" class="status" [class.status--error]="!!errorKey">
+    {{ (errorKey || 'botDetail.notFound') | translate }}
+  </section>
+</main>
+
+<app-footer></app-footer>
