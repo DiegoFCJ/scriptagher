@@ -1,25 +1,73 @@
 <footer class="site-footer">
   <div class="site-footer__content">
-    <p class="site-footer__copy">{{ 'footer.copy' | translate }}</p>
-    <p class="site-footer__legal">
-      {{ 'footer.legal' | translate }}
-    </p>
-    <nav class="site-footer__links" aria-label="Developer and legal links">
-      <a routerLink="/bots" class="site-footer__link">
-        {{ 'navigation.bots' | translate }}
-      </a>
-      <a routerLink="/installers" class="site-footer__link">
-        {{ 'navigation.installers' | translate }}
-      </a>
-      <a routerLink="/license" class="site-footer__link">
-        {{ 'footer.links.license' | translate }}
-      </a>
-      <a href="https://diegofcj.github.io/portfolio/" target="_blank" rel="noopener" class="site-footer__link">
-        {{ 'footer.links.portfolio' | translate }}
-      </a>
-      <a href="https://github.com/DiegoFCJ" target="_blank" rel="noopener" class="site-footer__link">
-        {{ 'footer.links.github' | translate }}
-      </a>
-    </nav>
+    <div class="site-footer__intro">
+      <p class="site-footer__copy">{{ 'footer.copy' | translate }}</p>
+    </div>
+
+    <div class="site-footer__sections">
+      <nav
+        class="site-footer__section"
+        aria-labelledby="footer-navigation-heading"
+      >
+        <h2 id="footer-navigation-heading" class="site-footer__section-title">
+          {{ 'footer.sections.navigation' | translate }}
+        </h2>
+        <ul class="site-footer__list">
+          <li>
+            <a routerLink="/bots" class="site-footer__link">
+              {{ 'navigation.bots' | translate }}
+            </a>
+          </li>
+          <li>
+            <a routerLink="/installers" class="site-footer__link">
+              {{ 'navigation.installers' | translate }}
+            </a>
+          </li>
+        </ul>
+      </nav>
+
+      <div
+        class="site-footer__section"
+        role="group"
+        aria-labelledby="footer-resources-heading"
+      >
+        <h2 id="footer-resources-heading" class="site-footer__section-title">
+          {{ 'footer.sections.resources' | translate }}
+        </h2>
+        <ul class="site-footer__list">
+          <li>
+            <a routerLink="/license" class="site-footer__link">
+              {{ 'footer.links.license' | translate }}
+            </a>
+          </li>
+          <li>
+            <a
+              href="https://diegofcj.github.io/portfolio/"
+              target="_blank"
+              rel="noopener"
+              class="site-footer__link"
+            >
+              {{ 'footer.links.portfolio' | translate }}
+            </a>
+          </li>
+          <li>
+            <a
+              href="https://github.com/DiegoFCJ"
+              target="_blank"
+              rel="noopener"
+              class="site-footer__link"
+            >
+              {{ 'footer.links.github' | translate }}
+            </a>
+          </li>
+        </ul>
+      </div>
+    </div>
+
+    <div class="site-footer__bottom">
+      <p class="site-footer__legal">
+        {{ 'footer.legal' | translate }}
+      </p>
+    </div>
   </div>
 </footer>

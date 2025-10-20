@@ -20,11 +20,14 @@
     position: relative;
     display: flex;
     flex-direction: column;
-    gap: 1.25rem;
+    gap: clamp(2rem, 5vw, 3rem);
     align-items: center;
-    text-align: center;
     max-width: 960px;
     margin: 0 auto;
+  }
+
+  &__intro {
+    text-align: center;
   }
 
   &__copy {
@@ -37,26 +40,47 @@
     -webkit-text-fill-color: transparent;
   }
 
-  &__legal {
-    margin: 0;
-    max-width: 640px;
-    color: rgba(148, 163, 184, 0.85);
-    font-size: 0.95rem;
-    line-height: 1.6;
+  &__sections {
+    display: grid;
+    width: 100%;
+    gap: clamp(1.75rem, 4vw, 3rem);
+    grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
   }
 
-  &__links {
-    display: inline-flex;
-    align-items: center;
+  &__section {
+    display: flex;
+    flex-direction: column;
     gap: 1.25rem;
+    padding: 1.5rem;
+    border-radius: 1.25rem;
+    border: 1px solid rgba(56, 189, 248, 0.18);
+    background: rgba(15, 23, 42, 0.55);
+    box-shadow: 0 15px 35px rgba(15, 118, 210, 0.08);
+  }
+
+  &__section-title {
+    margin: 0;
+    font-size: 0.95rem;
+    letter-spacing: 0.18em;
+    text-transform: uppercase;
+    color: rgba(226, 232, 240, 0.95);
+  }
+
+  &__list {
+    display: grid;
+    gap: 0.65rem;
+    margin: 0;
+    padding: 0;
+    list-style: none;
   }
 
   &__link {
     position: relative;
     display: inline-flex;
     align-items: center;
+    justify-content: flex-start;
     gap: 0.35rem;
-    padding: 0.45rem 1.15rem;
+    padding: 0.6rem 1.1rem;
     border-radius: 999px;
     border: 1px solid rgba(56, 189, 248, 0.25);
     background: rgba(8, 47, 73, 0.28);
@@ -73,13 +97,24 @@
       box-shadow: 0 18px 35px rgba(14, 165, 233, 0.15);
     }
   }
+
+  &__bottom {
+    max-width: 640px;
+    text-align: center;
+  }
+
+  &__legal {
+    margin: 0;
+    color: rgba(148, 163, 184, 0.85);
+    font-size: 0.95rem;
+    line-height: 1.6;
+  }
 }
 
-@media (max-width: 480px) {
+@media (max-width: 600px) {
   .site-footer {
-    &__links {
-      flex-direction: column;
-      width: 100%;
+    &__section {
+      padding: 1.25rem;
     }
 
     &__link {

@@ -131,6 +131,10 @@
       "portfolio": "Portfolio",
       "github": "GitHub",
       "license": "Licenza"
+    },
+    "sections": {
+      "navigation": "Navigazione",
+      "resources": "Risorse"
     }
   },
   "license": {
