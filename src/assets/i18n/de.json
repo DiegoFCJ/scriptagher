@@ -155,8 +155,8 @@
     "cta": "Zurück zur Startseite"
   },
   "footer": {
-    "copy": "© 2024 Scriptagher · Mit Leidenschaft für Automatisierung gefertigt",
-    "legal": "Für die Maker-Community bereitgestellt: Lies vor der Nutzung von Automatisierungsbots immer die Release Notes und Lizenzen.",
+    "copy": "© 2024 Scriptagher · Automatisierung mit Herz",
+    "legal": "Wir sind selbst Maker – schau vor dem Einsatz eines Bots kurz in Release Notes und Lizenzen.",
     "links": {
       "portfolio": "Portfolio",
       "github": "GitHub",
@@ -168,11 +168,11 @@
       "contact": "Kontakt"
     },
     "brand": "Scriptagher",
-    "tagline": "Automatisierungsrezepte, Tools und Guides für Maker.",
+    "tagline": "Scriptagher | Passion For Automation",
     "contact": {
       "email": "hello@scriptagher.dev",
       "issues": "GitHub-Issue erstellen",
-      "availability": "Wir antworten in der Regel innerhalb von zwei Werktagen."
+      "availability": "Wir melden uns meistens innerhalb von zwei Tagen."
     }
   },
   "license": {

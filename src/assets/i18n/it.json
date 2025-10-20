@@ -155,8 +155,8 @@
     "cta": "Torna alla Home"
   },
   "footer": {
-    "copy": "© 2024 Scriptagher · Creato con passione per l'automazione",
-    "legal": "Distribuito per la community maker: controlla sempre le note di rilascio e le licenze prima di utilizzare gli automation bot.",
+    "copy": "© 2024 Scriptagher · Automazione fatta con cura",
+    "legal": "Siamo maker come te: dai sempre uno sguardo a note di rilascio e licenze prima di usare i bot.",
     "links": {
       "portfolio": "Portfolio",
       "github": "GitHub",
@@ -168,11 +168,11 @@
       "contact": "Contatti"
     },
     "brand": "Scriptagher",
-    "tagline": "Ricette di automazione, strumenti e guide per maker.",
+    "tagline": "Scriptagher | Passion For Automation",
     "contact": {
       "email": "hello@scriptagher.dev",
       "issues": "Apri una issue su GitHub",
-      "availability": "Rispondiamo di solito entro due giorni lavorativi."
+      "availability": "Di solito rispondiamo entro un paio di giorni."
     }
   },
   "license": {
