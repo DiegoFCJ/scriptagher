@@ -1,0 +1,62 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 256 256" role="img" aria-labelledby="title desc">
+  <title id="title">Scriptagher Mini Droid</title>
+  <desc id="desc">Rounded robot assistant holding a hanging tag with curly braces on its display</desc>
+  <defs>
+    <linearGradient id="droid-shell" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#0F172A" />
+      <stop offset="45%" stop-color="#1E3A8A" />
+      <stop offset="100%" stop-color="#0EA5E9" />
+    </linearGradient>
+    <linearGradient id="droid-highlight" x1="20%" y1="20%" x2="80%" y2="80%">
+      <stop offset="0%" stop-color="#38BDF8" stop-opacity="0.65" />
+      <stop offset="100%" stop-color="#38BDF8" stop-opacity="0" />
+    </linearGradient>
+    <linearGradient id="tag-fill" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#0EA5E9" />
+      <stop offset="100%" stop-color="#22D3EE" />
+    </linearGradient>
+    <linearGradient id="body-gradient" x1="0%" y1="0%" x2="0%" y2="100%">
+      <stop offset="0%" stop-color="#111827" />
+      <stop offset="100%" stop-color="#1F2937" />
+    </linearGradient>
+    <filter id="shadow" x="-10%" y="-10%" width="120%" height="120%">
+      <feDropShadow dx="0" dy="8" stdDeviation="8" flood-color="#0F172A" flood-opacity="0.25" />
+    </filter>
+  </defs>
+  <g filter="url(#shadow)">
+    <rect x="60" y="32" width="136" height="112" rx="28" fill="url(#droid-shell)" />
+    <rect x="60" y="32" width="136" height="112" rx="28" fill="url(#droid-highlight)" />
+    <path
+      fill="#F8FAFC"
+      d="M116 78c4-8 12-12 22-12h4v16h-4c-4 0-6 2-8 6-2 3-2 8 0 11 2 4 4 6 8 6h4v16h-4c-10 0-18-4-22-12-3-6-3-15 0-21zm36 40c4-8 12-12 22-12h4v-16h-4c-4 0-6-2-8-6-2-3-2-8 0-11 2-4 4-6 8-6h4V51h-4c-10 0-18 4-22 12-3 6-3 15 0 21 4 8 12 12 22 12h4v16h-4c-4 0-6 2-8 6-2 3-2 8 0 11 2 4 4 6 8 6h4v15h-4c-10 0-18-4-22-12-3-6-3-15 0-21z"
+    />
+    <path
+      fill="url(#body-gradient)"
+      d="M84 136h88l12 56c4 20-10 40-30 40H102c-20 0-34-20-30-40l12-56z"
+    />
+    <circle cx="104" cy="164" r="10" fill="#0EA5E9" />
+    <circle cx="104" cy="164" r="6" fill="#38BDF8" />
+    <rect x="116" y="192" width="24" height="36" rx="10" fill="#111827" />
+    <rect x="152" y="192" width="24" height="36" rx="10" fill="#111827" />
+    <path
+      fill="#1F2937"
+      d="M80 132c-9-1-16-8-17-17-1-8 3-15 10-19l16-8v22c0 10-4 18-9 22z"
+    />
+    <path
+      fill="#1F2937"
+      d="M176 132c9-1 16-8 17-17 1-8-3-15-10-19l-16-8v22c0 10 4 18 9 22z"
+    />
+    <circle cx="186" cy="122" r="10" fill="#EAB308" />
+    <circle cx="186" cy="122" r="5" fill="#FACC15" />
+    <path
+      fill="#0F172A"
+      d="M196 104l28 20c8 6 9 18 2 25l-20 20c-6 6-16 7-22 1s-5-16 1-22l9-9-18-13z"
+    />
+    <path
+      fill="url(#tag-fill)"
+      d="M214.5 134.5l16 11.5c4 3 5 9 1 13l-14 14c-3 3-8 3-11 0-3-4-3-9 0-12l6-6-12-9z"
+    />
+    <circle cx="200" cy="126" r="6" fill="#0F172A" />
+    <circle cx="200" cy="126" r="3" fill="#38BDF8" />
+  </g>
+</svg>
