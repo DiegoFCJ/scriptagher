@@ -1,0 +1,97 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <base href="./">
+    <meta charset="UTF-8">
+    <meta content="IE=Edge" http-equiv="X-UA-Compatible">
+    <meta name="description" content="Scriptagher web experience">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Scriptagher</title>
+    <link rel="manifest" href="manifest.json">
+    <link rel="icon" type="image/svg+xml" href="favicon.svg">
+    <meta name="theme-color" content="#0175C2">
+  </head>
+  <body>
+    <script>
+      (function () {
+        const baseElement = document.querySelector('base');
+        if (!baseElement) {
+          return;
+        }
+
+        const rawBaseHref = baseElement.getAttribute('href') || '';
+        const resolvedBaseUrl = new URL(
+          !rawBaseHref || rawBaseHref === '/prev-software/pr-99/'
+            ? './'
+            : rawBaseHref,
+          window.location.href
+        );
+
+        let normalizedBasePath = resolvedBaseUrl.pathname;
+        if (!normalizedBasePath.endsWith('/')) {
+          normalizedBasePath = `${normalizedBasePath}/`;
+        }
+
+        baseElement.setAttribute('href', normalizedBasePath);
+
+        const serviceWorkerUrl = new URL(
+          'flutter_service_worker.js',
+          resolvedBaseUrl
+        ).toString();
+
+        window.flutterConfiguration = window.flutterConfiguration || {};
+        if (!window.flutterConfiguration.assetBase) {
+          window.flutterConfiguration.assetBase = normalizedBasePath;
+        }
+
+        if (!window.flutterConfiguration.serviceWorkerUrl) {
+          window.flutterConfiguration.serviceWorkerUrl = serviceWorkerUrl;
+        }
+
+        window.__flutterServiceWorkerUrl = serviceWorkerUrl;
+      })();
+    </script>
+    <script src="flutter.js" defer></script>
+    <script>
+      window.addEventListener('load', function () {
+        const serviceWorkerUrl =
+          window.__flutterServiceWorkerUrl || 'flutter_service_worker.js';
+
+        if ('serviceWorker' in navigator) {
+          navigator.serviceWorker.register(serviceWorkerUrl).catch(function (error) {
+            console.error('Registrazione ServiceWorker fallita', error);
+          });
+        }
+
+        if (!window._flutter || !window._flutter.loader) {
+          console.error('Flutter loader non disponibile: controlla flutter.js');
+          return;
+        }
+
+        const serviceWorkerConfig = {
+          serviceWorkerVersion:
+            window.flutterConfiguration?.serviceWorkerVersion,
+        };
+
+        if (serviceWorkerUrl) {
+          serviceWorkerConfig.serviceWorkerUrl = serviceWorkerUrl;
+        }
+
+        window._flutter.loader
+          .loadEntrypoint({
+            serviceWorker: serviceWorkerConfig,
+            onEntrypointLoaded: function (engineInitializer) {
+              engineInitializer
+                .initializeEngine()
+                .then(function (appRunner) {
+                  return appRunner.runApp();
+                });
+            },
+          })
+          .catch(function (error) {
+            console.error('Impossibile inizializzare Flutter', error);
+          });
+      });
+    </script>
+  </body>
+</html>
