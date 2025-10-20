@@ -1,7 +1,7 @@
 {
   "botName": "facebook-images-remover",
   "startCommand": "./image-remover.sh",
-  "description": "A Python bot that automates the process of deleting Facebook photos by interacting with the web interface using Selenium.",
+  "description": "Use the helper shell script to prepare dependencies and launch the Selenium automation that deletes Facebook photos.",
   "language": "Python",
   "sourceUrl": "https://github.com/scriptagle/scriptagher/tree/main/public/bots/python/facebook-images-remover",
   "translations": {
