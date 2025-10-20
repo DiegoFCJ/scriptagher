@@ -1,25 +1,107 @@
 <footer class="site-footer">
-  <div class="site-footer__content">
-    <p class="site-footer__copy">{{ 'footer.copy' | translate }}</p>
-    <p class="site-footer__legal">
-      {{ 'footer.legal' | translate }}
-    </p>
-    <nav class="site-footer__links" aria-label="Developer and legal links">
-      <a routerLink="/bots" class="site-footer__link">
-        {{ 'navigation.bots' | translate }}
-      </a>
-      <a routerLink="/installers" class="site-footer__link">
-        {{ 'navigation.installers' | translate }}
-      </a>
-      <a routerLink="/license" class="site-footer__link">
-        {{ 'footer.links.license' | translate }}
-      </a>
-      <a href="https://diegofcj.github.io/portfolio/" target="_blank" rel="noopener" class="site-footer__link">
-        {{ 'footer.links.portfolio' | translate }}
-      </a>
-      <a href="https://github.com/DiegoFCJ" target="_blank" rel="noopener" class="site-footer__link">
-        {{ 'footer.links.github' | translate }}
-      </a>
-    </nav>
+  <div class="site-footer__inner">
+    <div class="site-footer__top">
+      <section class="site-footer__brand">
+        <h2 class="site-footer__logo">
+          <a routerLink="/" class="site-footer__logo-link">
+            {{ 'footer.brand' | translate }}
+          </a>
+        </h2>
+        <span class="site-footer__accent" aria-hidden="true"></span>
+        <p class="site-footer__tagline">{{ 'footer.tagline' | translate }}</p>
+      </section>
+
+      <nav class="site-footer__group" aria-labelledby="footer-navigation-heading">
+        <h2 id="footer-navigation-heading" class="site-footer__title">
+          {{ 'footer.sections.navigation' | translate }}
+        </h2>
+        <ul class="site-footer__list">
+          <li>
+            <a routerLink="/" class="site-footer__link">
+              {{ 'navigation.home' | translate }}
+            </a>
+          </li>
+          <li>
+            <a routerLink="/bots" class="site-footer__link">
+              {{ 'navigation.bots' | translate }}
+            </a>
+          </li>
+          <li>
+            <a routerLink="/installers" class="site-footer__link">
+              {{ 'navigation.installers' | translate }}
+            </a>
+          </li>
+        </ul>
+      </nav>
+
+      <section class="site-footer__group" aria-labelledby="footer-resources-heading">
+        <h2 id="footer-resources-heading" class="site-footer__title">
+          {{ 'footer.sections.resources' | translate }}
+        </h2>
+        <ul class="site-footer__list">
+          <li>
+            <a routerLink="/license" class="site-footer__link">
+              {{ 'footer.links.license' | translate }}
+            </a>
+          </li>
+          <li>
+            <a
+              href="https://diegofcj.github.io/portfolio/"
+              target="_blank"
+              rel="noopener"
+              class="site-footer__link"
+            >
+              {{ 'footer.links.portfolio' | translate }}
+            </a>
+          </li>
+          <li>
+            <a
+              href="https://github.com/DiegoFCJ"
+              target="_blank"
+              rel="noopener"
+              class="site-footer__link"
+            >
+              {{ 'footer.links.github' | translate }}
+            </a>
+          </li>
+        </ul>
+      </section>
+
+      <section class="site-footer__group" aria-labelledby="footer-contact-heading">
+        <h2 id="footer-contact-heading" class="site-footer__title">
+          {{ 'footer.sections.contact' | translate }}
+        </h2>
+        <ul class="site-footer__list site-footer__list--contact">
+          <li>
+            <a
+              [href]="'mailto:' + ('footer.contact.email' | translate)"
+              class="site-footer__text-link"
+            >
+              {{ 'footer.contact.email' | translate }}
+            </a>
+          </li>
+          <li>
+            <a
+              href="https://github.com/DiegoFCJ/scriptagher/issues/new"
+              target="_blank"
+              rel="noopener"
+              class="site-footer__text-link"
+            >
+              {{ 'footer.contact.issues' | translate }}
+            </a>
+          </li>
+          <li>
+            <span class="site-footer__meta">
+              {{ 'footer.contact.availability' | translate }}
+            </span>
+          </li>
+        </ul>
+      </section>
+    </div>
+
+    <div class="site-footer__bottom">
+      <p class="site-footer__copy">{{ 'footer.copy' | translate }}</p>
+      <p class="site-footer__legal">{{ 'footer.legal' | translate }}</p>
+    </div>
   </div>
 </footer>

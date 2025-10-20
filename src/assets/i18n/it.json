@@ -131,6 +131,18 @@
       "portfolio": "Portfolio",
       "github": "GitHub",
       "license": "Licenza"
+    },
+    "sections": {
+      "navigation": "Navigazione",
+      "resources": "Risorse",
+      "contact": "Contatti"
+    },
+    "brand": "Scriptagher",
+    "tagline": "Ricette di automazione, strumenti e guide per maker.",
+    "contact": {
+      "email": "hello@scriptagher.dev",
+      "issues": "Apri una issue su GitHub",
+      "availability": "Rispondiamo di solito entro due giorni lavorativi."
     }
   },
   "license": {
