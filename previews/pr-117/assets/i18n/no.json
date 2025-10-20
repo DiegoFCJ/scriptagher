@@ -1,0 +1,141 @@
+{
+  "app": {
+    "name": "Scriptagher"
+  },
+  "languages": {
+    "it": {
+      "label": "Italiensk",
+      "short": "IT"
+    },
+    "en": {
+      "label": "Engelsk",
+      "short": "EN"
+    },
+    "no": {
+      "label": "Norsk",
+      "short": "NO"
+    },
+    "de": {
+      "label": "Tysk",
+      "short": "DE"
+    },
+    "ru": {
+      "label": "Russisk",
+      "short": "RU"
+    },
+    "es": {
+      "label": "Spansk",
+      "short": "ES"
+    },
+    "python": {
+      "label": "Python",
+      "short": "PY"
+    }
+  },
+  "languageSwitcher": {
+    "label": "Språk"
+  },
+  "header": {
+    "pdf": {
+      "currentPage": "PDF til Txt",
+      "home": "Hjem"
+    },
+    "hero": {
+      "eyebrow": "Et arsenal av kreative automasjoner",
+      "title": "Scriptagher Bot-bibliotek",
+      "description": "Utforsk en kuratert samling flerspråklige bot-er, designet for en engasjerende og oppslukende opplevelse.",
+      "cta": "Utforsk bot-ene"
+    }
+  },
+  "botSection": {
+    "languageBadge": "{{language}}",
+    "title": "Bot-er på {{language}}",
+    "downloadErrorAlert": "Kunne ikke laste ned bot-en. Prøv igjen.",
+    "downloadErrorLog": "Feil under nedlasting av bot"
+  },
+  "botCard": {
+    "noDescription": "Ingen beskrivelse tilgjengelig",
+    "startCommand": "Start-kommando",
+    "noStartCommand": "Ingen startkommando oppgitt",
+    "pdfCta": "Gå til PDF til Txt-verktøyet",
+    "viewSource": "Se kilde",
+    "download": "Last ned",
+    "navigationError": "Feil ved navigering til PDF til Txt-siden"
+  },
+  "botList": {
+    "errorTitle": "Oops, noe gikk galt.",
+    "errorDefault": "Ingen bot-er tilgjengelig.",
+    "loadError": "Kunne ikke laste bot-listen.",
+    "cardLoadError": "Feil ved lasting av detaljer",
+    "installersLoadError": "Kunne ikke laste installasjonslisten.",
+    "noBotsAvailable": "Ingen bot-er er tilgjengelige på dette språket ennå."
+  },
+  "installerSection": {
+    "title": "Installasjoner",
+    "subtitle": "Klar-til-bruk pakker med verifiserbare sjekksummer, utgivelsesnotater og lisenser lett tilgjengelig.",
+    "download": "Last ned",
+    "sizeLabel": "Størrelse",
+    "licenseLabel": "Lisens",
+    "maintainerLabel": "Vedlikeholder",
+    "checksumLabel": "Kontrollsum",
+    "releaseNotesLabel": "Utgivelsesnotater",
+    "releaseNotesAction": "Åpne",
+    "sourceLabel": "Kilde"
+  },
+  "pdfToTxt": {
+    "intro": {
+      "eyebrow": "Verktøy",
+      "title": "Konverter PDF til tekst uten stress",
+      "description": "Last opp PDF-en din og hent ut tekst på sekunder. Ingenting sendes til eksterne servere: alt skjer direkte i nettleseren."
+    },
+    "highlights": {
+      "fast": "Rask konvertering",
+      "privacy": "Garantert personvern",
+      "ready": "Tekst klar til å kopieres"
+    },
+    "dropzone": {
+      "badge": "PDF",
+      "title": "Slipp PDF-en din her",
+      "subtitle": "Eller klikk for å velge fra enheten din",
+      "button": "Velg fil"
+    },
+    "status": {
+      "replaceFile": "Bytt fil",
+      "progressComplete": "Konvertering fullført ({{total}} sider)",
+      "progress": "Konverterer: side {{current}} av {{total}}",
+      "noText": "Ingen tekst kunne hentes fra dokumentet.",
+      "error": "Kunne ikke lese PDF-en. Sjekk at filen ikke er beskyttet og prøv igjen senere."
+    },
+    "result": {
+      "title": "Ekstrahert tekst",
+      "copy": "Kopier alt"
+    },
+    "fallback": {
+      "title": "Ingen PDF valgt",
+      "description": "Last opp et dokument for å komme i gang. Hvis verktøyet ikke lenger er tilgjengelig, skjules knappen i topplinjen automatisk for å unngå forvirring."
+    },
+    "errors": {
+      "conversion": "Feil under PDF-konvertering",
+      "copy": "Kan ikke kopiere tekst til utklippstavlen"
+    }
+  },
+  "notFound": {
+    "title": "404 - Siden ble ikke funnet",
+    "message": "Siden du leter etter finnes ikke.",
+    "cta": "Tilbake til forsiden"
+  },
+  "footer": {
+    "copy": "© 2024 Scriptagher · Laget med lidenskap for automatisering",
+    "legal": "Delt med maker-fellesskapet: les alltid utgivelsesnotater og lisenser før du bruker automasjonsbot-er.",
+    "links": {
+      "portfolio": "Portefølje",
+      "github": "GitHub",
+      "license": "Lisens"
+    }
+  },
+  "license": {
+    "title": "Repo-lisens",
+    "loading": "Laster inn lisensen …",
+    "error": "Kunne ikke laste lisensfilen. Oppdater eller prøv igjen senere."
+  }
+}
