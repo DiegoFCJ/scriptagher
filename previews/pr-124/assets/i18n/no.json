@@ -134,7 +134,15 @@
     },
     "sections": {
       "navigation": "Navigasjon",
-      "resources": "Ressurser"
+      "resources": "Ressurser",
+      "contact": "Kontakt"
+    },
+    "brand": "Scriptagher",
+    "tagline": "Automatiseringsoppskrifter, verktøy og guider for skapere.",
+    "contact": {
+      "email": "hello@scriptagher.dev",
+      "issues": "Opprett en GitHub-issue",
+      "availability": "Vi svarer vanligvis innen to virkedager."
     }
   },
   "license": {

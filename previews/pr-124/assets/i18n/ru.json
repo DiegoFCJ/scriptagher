@@ -134,7 +134,15 @@
     },
     "sections": {
       "navigation": "Навигация",
-      "resources": "Ресурсы"
+      "resources": "Ресурсы",
+      "contact": "Контакты"
+    },
+    "brand": "Scriptagher",
+    "tagline": "Рецепты автоматизации, инструменты и руководства для мейкеров.",
+    "contact": {
+      "email": "hello@scriptagher.dev",
+      "issues": "Создать обращение на GitHub",
+      "availability": "Обычно отвечаем в течение двух рабочих дней."
     }
   },
   "license": {

@@ -134,7 +134,15 @@
     },
     "sections": {
       "navigation": "Navegación",
-      "resources": "Recursos"
+      "resources": "Recursos",
+      "contact": "Contacto"
+    },
+    "brand": "Scriptagher",
+    "tagline": "Recetas de automatización, herramientas y guías para makers.",
+    "contact": {
+      "email": "hello@scriptagher.dev",
+      "issues": "Abre una incidencia en GitHub",
+      "availability": "Respondemos normalmente en dos días laborables."
     }
   },
   "license": {
