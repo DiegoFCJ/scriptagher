@@ -47,6 +47,34 @@
       "cta": "Explore the bots"
     }
   },
+  "home": {
+    "intro": {
+      "title": "The Scriptagher automation hub",
+      "lead": "Discover ready-made bots and installers curated for the community.",
+      "primaryCta": "Browse all bots",
+      "secondaryCta": "Download installers"
+    },
+    "features": {
+      "title": "What makes our bots different",
+      "automation": {
+        "title": "Automation that fits your workflow",
+        "description": "Trigger bots for customer support, e-commerce, and more without rewriting your stack."
+      },
+      "localization": {
+        "title": "Built for multilingual teams",
+        "description": "Switch languages instantly with human-reviewed translations so every teammate can stay in sync."
+      },
+      "trust": {
+        "title": "Transparent and verifiable",
+        "description": "Every release ships with checksums, licences, and source links you can audit."
+      }
+    },
+    "installers": {
+      "title": "Grab an installer and get started",
+      "description": "Download signed packages with the essentials for the first run.",
+      "viewAll": "View all installers"
+    }
+  },
   "botSection": {
     "languageBadge": "{{language}}",
     "title": "Bots in {{language}}",
@@ -63,6 +91,8 @@
     "navigationError": "Error while navigating to the PDF to Txt page"
   },
   "botList": {
+    "pageTitle": "All automation bots",
+    "pageDescription": "Browse every bot we maintain, organised by language and ready to download.",
     "errorTitle": "Oops, something went wrong.",
     "errorDefault": "No bots available.",
     "loadError": "We couldn't load the bot list.",

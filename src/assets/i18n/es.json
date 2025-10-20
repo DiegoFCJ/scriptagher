@@ -47,6 +47,34 @@
       "cta": "Explorar bots"
     }
   },
+  "home": {
+    "intro": {
+      "title": "El centro de automatización de Scriptagher",
+      "lead": "Descubre bots listos para usar e instaladores seleccionados para la comunidad.",
+      "primaryCta": "Ver todos los bots",
+      "secondaryCta": "Descargar instaladores"
+    },
+    "features": {
+      "title": "Qué hace diferentes a nuestros bots",
+      "automation": {
+        "title": "Automatización que encaja con tu flujo",
+        "description": "Activa bots para soporte, comercio electrónico y más sin rehacer tu infraestructura."
+      },
+      "localization": {
+        "title": "Diseñados para equipos multilingües",
+        "description": "Cambia de idioma al instante con traducciones revisadas para que todos sigan alineados."
+      },
+      "trust": {
+        "title": "Transparencia y verificación",
+        "description": "Cada versión incluye sumas de verificación, licencias y enlaces al código para auditar."
+      }
+    },
+    "installers": {
+      "title": "Descarga un instalador y comienza",
+      "description": "Obtén paquetes firmados con todo lo necesario para el primer arranque.",
+      "viewAll": "Ver todos los instaladores"
+    }
+  },
   "botSection": {
     "languageBadge": "{{language}}",
     "title": "Bots en {{language}}",
@@ -63,6 +91,8 @@
     "navigationError": "Error al navegar a la página PDF a Txt"
   },
   "botList": {
+    "pageTitle": "Todos los bots de automatización",
+    "pageDescription": "Recorre cada bot que mantenemos, organizado por idioma y listo para descargar.",
     "errorTitle": "Ups, algo salió mal.",
     "errorDefault": "No hay bots disponibles.",
     "loadError": "No se pudo cargar la lista de bots.",

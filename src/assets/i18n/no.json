@@ -47,6 +47,34 @@
       "cta": "Utforsk bot-ene"
     }
   },
+  "home": {
+    "intro": {
+      "title": "Scriptagher sitt automasjonssenter",
+      "lead": "Oppdag ferdige roboter og installasjonsfiler håndplukket for fellesskapet.",
+      "primaryCta": "Se alle botene",
+      "secondaryCta": "Last ned installere"
+    },
+    "features": {
+      "title": "Derfor skiller botene våre seg ut",
+      "automation": {
+        "title": "Automatisering som passer arbeidsflyten din",
+        "description": "Start roboter for kundestøtte, netthandel og mer uten å bygge om stakken din."
+      },
+      "localization": {
+        "title": "Laget for flerspråklige team",
+        "description": "Bytt språk umiddelbart med kvalitetssikrede oversettelser så alle henger med."
+      },
+      "trust": {
+        "title": "Åpent og etterprøvbart",
+        "description": "Hver versjon leveres med sjekksummer, lisenser og kildekode du kan kontrollere."
+      }
+    },
+    "installers": {
+      "title": "Hent en installasjonsfil og kom i gang",
+      "description": "Last ned signerte pakker med alt du trenger for første oppstart.",
+      "viewAll": "Se alle installasjonsfiler"
+    }
+  },
   "botSection": {
     "languageBadge": "{{language}}",
     "title": "Bot-er på {{language}}",
@@ -63,6 +91,8 @@
     "navigationError": "Feil ved navigering til PDF til Txt-siden"
   },
   "botList": {
+    "pageTitle": "Alle automasjonsbotene",
+    "pageDescription": "Bla gjennom hver bot vi vedlikeholder, sortert etter språk og klar for nedlasting.",
     "errorTitle": "Oops, noe gikk galt.",
     "errorDefault": "Ingen bot-er tilgjengelig.",
     "loadError": "Kunne ikke laste bot-listen.",

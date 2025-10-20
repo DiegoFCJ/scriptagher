@@ -124,6 +124,10 @@ describe('BotService localization', () => {
 
     const details$ = service.getBotDetails({ botName: 'Fallback', language: 'python' });
     const valuePromise = firstValueFrom(details$.pipe(take(1)));
+
+    const repoRequest = httpMock.expectOne('https://api.github.com/repos/test-owner/test-repo');
+    repoRequest.flush({ private: false });
+
     const request = httpMock.expectOne((req) => req.url.endsWith('/bots/python/Fallback/Bot.json'));
     request.flush({
       botName: 'Fallback',

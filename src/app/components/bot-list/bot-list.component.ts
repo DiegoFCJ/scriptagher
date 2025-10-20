@@ -6,7 +6,6 @@ import { catchError, map, startWith, switchMap, takeUntil } from 'rxjs/operators
 import {
   BotConfiguration,
   BotService,
-  InstallerAsset,
   LocalizedBotDetails,
   NormalizedBotSection
 } from '../../services/bot.service';
@@ -15,7 +14,6 @@ import { TranslationService } from '../../core/i18n/translation.service';
 import { BotSectionComponent } from '../bot-section/bot-section.component';
 import { HeaderComponent } from '../header/header.component';
 import { FooterComponent } from '../footer/footer.component';
-import { InstallerSectionComponent } from '../installer-section/installer-section.component';
 
 @Component({
   selector: 'app-bot-list',
@@ -26,7 +24,6 @@ import { InstallerSectionComponent } from '../installer-section/installer-sectio
     CommonModule,
     HeaderComponent,
     BotSectionComponent,
-    InstallerSectionComponent,
     FooterComponent,
     TranslatePipe
   ]
@@ -34,32 +31,20 @@ import { InstallerSectionComponent } from '../installer-section/installer-sectio
 export class BotListComponent implements OnInit, OnDestroy {
   botSections: LocalizedBotSectionView[] = [];
   errorMessageKey: string | null = null;
-  installerAssets: InstallerAsset[] = [];
   private readonly destroy$ = new Subject<void>();
 
-  constructor(private botService: BotService, private translation: TranslationService) {}
+  constructor(
+    private botService: BotService,
+    private translation: TranslationService
+  ) {}
 
   ngOnInit() {
-    this.listenForInstallers();
     this.listenForBotSections();
   }
 
   ngOnDestroy(): void {
     this.destroy$.next();
     this.destroy$.complete();
-  }
-
-  private listenForInstallers(): void {
-    this.botService.listInstallerAssets()
-      .pipe(takeUntil(this.destroy$))
-      .subscribe({
-        next: (installers) => {
-          this.installerAssets = installers ?? [];
-        },
-        error: (error) => {
-          console.error(this.translation.translate('botList.installersLoadError') + ':', error);
-        }
-      });
   }
 
   private listenForBotSections(): void {
@@ -188,6 +173,7 @@ export class BotListComponent implements OnInit, OnDestroy {
 
     return order;
   }
+
 }
 
 interface LocalizedBotSectionView {

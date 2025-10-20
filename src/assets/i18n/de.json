@@ -47,6 +47,34 @@
       "cta": "Bots entdecken"
     }
   },
+  "home": {
+    "intro": {
+      "title": "Das Scriptagher-Automatisierungszentrum",
+      "lead": "Entdecke einsatzbereite Bots und Installer, sorgfältig für die Community zusammengestellt.",
+      "primaryCta": "Alle Bots durchsuchen",
+      "secondaryCta": "Installer herunterladen"
+    },
+    "features": {
+      "title": "Was unsere Bots besonders macht",
+      "automation": {
+        "title": "Automatisierung, die zu deinen Abläufen passt",
+        "description": "Aktiviere Bots für Support, E-Commerce und mehr, ohne deinen Stack neu zu bauen."
+      },
+      "localization": {
+        "title": "Für mehrsprachige Teams entwickelt",
+        "description": "Wechsle sofort die Sprache mit geprüften Übersetzungen, damit alle im Takt bleiben."
+      },
+      "trust": {
+        "title": "Transparent und überprüfbar",
+        "description": "Jede Version liefert Checksummen, Lizenzen und Quelllinks zum Prüfen."
+      }
+    },
+    "installers": {
+      "title": "Hol dir einen Installer und leg los",
+      "description": "Lade signierte Pakete mit allem Nötigen für den ersten Start herunter.",
+      "viewAll": "Alle Installer ansehen"
+    }
+  },
   "botSection": {
     "languageBadge": "{{language}}",
     "title": "Bots auf {{language}}",
@@ -63,6 +91,8 @@
     "navigationError": "Fehler bei der Navigation zur PDF-zu-Txt-Seite"
   },
   "botList": {
+    "pageTitle": "Alle Automatisierungs-Bots",
+    "pageDescription": "Durchsuche jeden von uns gepflegten Bot, nach Sprache sortiert und sofort downloadbar.",
     "errorTitle": "Ups, etwas ist schiefgelaufen.",
     "errorDefault": "Keine Bots verfügbar.",
     "loadError": "Die Bot-Liste konnte nicht geladen werden.",

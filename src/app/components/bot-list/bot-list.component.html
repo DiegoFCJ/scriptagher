@@ -1,19 +1,27 @@
-<app-header></app-header>
-<app-installer-section *ngIf="installerAssets.length" [installers]="installerAssets"></app-installer-section>
+<app-header [showHero]="false"></app-header>
 
-<main class="bot-list" id="bots" *ngIf="botSections.length; else errorTemplate">
-  <app-bot-section
-    *ngFor="let section of botSections"
-    [language]="section.language"
-    [title]="section.title"
-    [summary]="section.summary"
-    [bots]="section.bots"
-  ></app-bot-section>
+<main class="bot-list" id="bots">
+  <header class="bot-list__intro">
+    <h1>{{ 'botList.pageTitle' | translate }}</h1>
+    <p>{{ 'botList.pageDescription' | translate }}</p>
+  </header>
+
+  <section class="bot-list__sections" *ngIf="botSections.length; else errorTemplate">
+    <app-bot-section
+      *ngFor="let section of botSections"
+      [language]="section.language"
+      [title]="section.title"
+      [summary]="section.summary"
+      [bots]="section.bots"
+    ></app-bot-section>
+  </section>
 </main>
+
 <ng-template #errorTemplate>
   <div class="error-state">
     <h2>{{ 'botList.errorTitle' | translate }}</h2>
     <p>{{ errorMessageKey ? (errorMessageKey | translate) : ('botList.errorDefault' | translate) }}</p>
   </div>
 </ng-template>
+
 <app-footer></app-footer>
