@@ -1,9 +1,11 @@
 # Bot List - Documentation
 
-Welcome to the **Bot List**, a curated collection of runnable bots organized by language. 
-This repository provides a framework for managing, downloading, and executing bots seamlessly. 
-Below you'll find instructions on how to add your own bot to the list, 
+Welcome to the **Bot List**, a curated collection of runnable bots organized by language.
+This repository provides a framework for managing, downloading, and executing bots seamlessly.
+Below you'll find instructions on how to add your own bot to the list,
 the rules to follow, and how bots are structured.
+
+> 📘 **Need the full deployment and operations playbook?** Read the [Bot List User Guide](docs/user-guide.md) for details on the application architecture, environment variables, authoring workflows, and GitHub Pages deployment steps. Regenerate and republish that guide whenever you refresh the GitHub Pages assets so production documentation stays in sync with the live site.
 
 ---
 
