@@ -1,5 +1,5 @@
 import { ComponentFixture, TestBed } from '@angular/core/testing';
-import { ActivatedRoute, Router } from '@angular/router';
+import { RouterTestingModule } from '@angular/router/testing';
 import { Subject } from 'rxjs';
 
 import { BotCardComponent } from './bot-card.component';
@@ -24,7 +24,7 @@ describe('BotCardComponent', () => {
     visibilitySubject = new Subject<boolean>();
 
     await TestBed.configureTestingModule({
-      imports: [BotCardComponent],
+      imports: [BotCardComponent, RouterTestingModule],
       providers: [
         {
           provide: BotService,
@@ -35,10 +35,11 @@ describe('BotCardComponent', () => {
         },
         {
           provide: TranslationService,
-          useValue: { translate: jasmine.createSpy('translate').and.callFake((key: string) => key) }
-        },
-        { provide: Router, useValue: { navigate: jasmine.createSpy('navigate') } },
-        { provide: ActivatedRoute, useValue: {} }
+          useValue: {
+            translate: jasmine.createSpy('translate').and.callFake((key: string) => key),
+            language: jasmine.createSpy('language').and.returnValue(undefined)
+          }
+        }
       ]
     }).compileComponents();
 
@@ -48,6 +49,7 @@ describe('BotCardComponent', () => {
   });
 
   afterEach(() => {
+    visibilitySubject.complete();
     fixture.destroy();
   });
 
