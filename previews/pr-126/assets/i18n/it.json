@@ -69,11 +69,6 @@
         "description": "Ogni release include checksum, licenze e sorgenti da controllare."
       }
     },
-    "languages": {
-      "title": "Inizia da dove ti senti a casa",
-      "description": "Le lingue più richieste sono pronte con raccolte curate da esplorare.",
-      "cta": "Esplora i bot per lingua"
-    },
     "installers": {
       "title": "Scarica un installer e parti subito",
       "description": "Ottieni pacchetti firmati con tutto l'indispensabile per il primo avvio.",

@@ -69,11 +69,6 @@
         "description": "Every release ships with checksums, licences, and source links you can audit."
       }
     },
-    "languages": {
-      "title": "Start where you feel at home",
-      "description": "Popular languages are ready with curated collections to explore.",
-      "cta": "Explore bots by language"
-    },
     "installers": {
       "title": "Grab an installer and get started",
       "description": "Download signed packages with the essentials for the first run.",

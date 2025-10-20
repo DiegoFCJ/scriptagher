@@ -69,11 +69,6 @@
         "description": "Cada versión incluye sumas de verificación, licencias y enlaces al código para auditar."
       }
     },
-    "languages": {
-      "title": "Empieza donde te sientas cómodo",
-      "description": "Los idiomas más populares ya cuentan con colecciones seleccionadas para explorar.",
-      "cta": "Explora bots por idioma"
-    },
     "installers": {
       "title": "Descarga un instalador y comienza",
       "description": "Obtén paquetes firmados con todo lo necesario para el primer arranque.",
