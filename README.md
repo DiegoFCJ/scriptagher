@@ -110,6 +110,14 @@ bots/
 ### 🛡 License
 By contributing, you agree that your bot will be open-sourced under the same license as this repository. Ensure you have the rights to share the bot.
 
+#### Maintaining the license during deploy
+To keep the published application aligned with the current licence terms:
+
+1. Update the root `LICENSE` file with the approved text whenever the terms change.
+2. Regenerate the production bundle with `npm run build` so the updated file is copied to `dist/bot-list/browser/LICENSE` through the Angular asset pipeline.
+3. Deploy the freshly built `dist/bot-list/browser` directory (e.g. via `npm run deploy`) to publish both the static file and the `/license` page with the new content.
+4. After deployment, open `/license` in the hosted site to confirm the rendered text matches the committed `LICENSE` file.
+
 ## ⚙️ GitHub installer configuration
 
 The application now fetches installer binaries directly from the `installers/` directory of a GitHub repository (default branch: `gh-pages`).

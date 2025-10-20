@@ -1,0 +1,47 @@
+.license {
+  display: flex;
+  justify-content: center;
+  padding: 2rem 1rem 4rem;
+  background-color: #0d1117;
+  color: #f0f6fc;
+
+  &__container {
+    width: min(960px, 100%);
+  }
+
+  &__title {
+    margin-bottom: 1.5rem;
+    font-size: clamp(1.75rem, 2vw + 1rem, 2.5rem);
+    font-weight: 600;
+  }
+
+  &__status {
+    margin: 1rem 0;
+    padding: 1rem;
+    border-radius: 0.5rem;
+    background-color: rgba(240, 246, 252, 0.08);
+    font-size: 1rem;
+
+    &--loading {
+      border: 1px solid rgba(240, 246, 252, 0.25);
+    }
+
+    &--error {
+      border: 1px solid rgba(248, 81, 73, 0.6);
+      color: #f85149;
+    }
+  }
+
+  &__text {
+    margin: 0;
+    padding: 1.5rem;
+    border-radius: 0.75rem;
+    background-color: rgba(13, 17, 23, 0.9);
+    border: 1px solid rgba(240, 246, 252, 0.1);
+    font-family: 'Fira Code', 'SFMono-Regular', Consolas, 'Liberation Mono', Menlo, Courier, monospace;
+    font-size: 0.95rem;
+    line-height: 1.6;
+    white-space: pre-wrap;
+    overflow-x: auto;
+  }
+}

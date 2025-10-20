@@ -3,12 +3,30 @@
     "name": "Scriptagher"
   },
   "languages": {
-    "it": { "label": "Italiano", "short": "IT" },
-    "en": { "label": "Inglés", "short": "EN" },
-    "no": { "label": "Noruego", "short": "NO" },
-    "de": { "label": "Alemán", "short": "DE" },
-    "ru": { "label": "Ruso", "short": "RU" },
-    "es": { "label": "Español", "short": "ES" }
+    "it": {
+      "label": "Italiano",
+      "short": "IT"
+    },
+    "en": {
+      "label": "Inglés",
+      "short": "EN"
+    },
+    "no": {
+      "label": "Noruego",
+      "short": "NO"
+    },
+    "de": {
+      "label": "Alemán",
+      "short": "DE"
+    },
+    "ru": {
+      "label": "Ruso",
+      "short": "RU"
+    },
+    "es": {
+      "label": "Español",
+      "short": "ES"
+    }
   },
   "languageSwitcher": {
     "label": "Idioma"
@@ -105,7 +123,13 @@
     "legal": "Compartido con la comunidad maker: revisa siempre las notas de lanzamiento y licencias antes de usar bots de automatización.",
     "links": {
       "portfolio": "Portafolio",
-      "github": "GitHub"
+      "github": "GitHub",
+      "license": "Licencia"
     }
+  },
+  "license": {
+    "title": "Licencia del repositorio",
+    "loading": "Cargando la licencia…",
+    "error": "No se pudo cargar el archivo de licencia. Actualiza o inténtalo de nuevo más tarde."
   }
 }

@@ -1,0 +1,15 @@
+<section class="license" [attr.aria-busy]="isLoading">
+  <div class="license__container">
+    <h1 class="license__title">{{ 'license.title' | translate }}</h1>
+
+    <p *ngIf="isLoading" class="license__status license__status--loading">
+      {{ 'license.loading' | translate }}
+    </p>
+
+    <p *ngIf="!isLoading && hasError" class="license__status license__status--error">
+      {{ 'license.error' | translate }}
+    </p>
+
+    <pre *ngIf="!isLoading && !hasError" class="license__text">{{ licenseText }}</pre>
+  </div>
+</section>

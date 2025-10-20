@@ -3,12 +3,30 @@
     "name": "Scriptagher"
   },
   "languages": {
-    "it": { "label": "Italienisch", "short": "IT" },
-    "en": { "label": "Englisch", "short": "EN" },
-    "no": { "label": "Norwegisch", "short": "NO" },
-    "de": { "label": "Deutsch", "short": "DE" },
-    "ru": { "label": "Russisch", "short": "RU" },
-    "es": { "label": "Spanisch", "short": "ES" }
+    "it": {
+      "label": "Italienisch",
+      "short": "IT"
+    },
+    "en": {
+      "label": "Englisch",
+      "short": "EN"
+    },
+    "no": {
+      "label": "Norwegisch",
+      "short": "NO"
+    },
+    "de": {
+      "label": "Deutsch",
+      "short": "DE"
+    },
+    "ru": {
+      "label": "Russisch",
+      "short": "RU"
+    },
+    "es": {
+      "label": "Spanisch",
+      "short": "ES"
+    }
   },
   "languageSwitcher": {
     "label": "Sprache"
@@ -105,7 +123,13 @@
     "legal": "Für die Maker-Community bereitgestellt: Lies vor der Nutzung von Automatisierungsbots immer die Release Notes und Lizenzen.",
     "links": {
       "portfolio": "Portfolio",
-      "github": "GitHub"
+      "github": "GitHub",
+      "license": "Lizenz"
     }
+  },
+  "license": {
+    "title": "Repository-Lizenz",
+    "loading": "Lizenz wird geladen …",
+    "error": "Die Lizenzdatei konnte nicht geladen werden. Bitte aktualisiere die Seite oder versuche es später erneut."
   }
 }
