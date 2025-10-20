@@ -18,7 +18,11 @@ class ExecutionService {
   final BotDatabase _botDatabase;
   final ExecutionLogManager _logManager;
   final CustomLogger _logger = CustomLogger();
-  static const Utf8Decoder _lossyUtf8Decoder = Utf8Decoder(allowMalformed: true);
+  static Stream<String> lossyUtf8LineStream(Stream<List<int>> source) {
+    return source
+        .transform(const Utf8Decoder(allowMalformed: true))
+        .transform(const LineSplitter());
+  }
   final Map<String, _ManagedProcess> _runningProcesses = {};
   final Map<String, _CompletedProcess> _completedProcesses = {};
   final List<String> _completedOrder = [];
@@ -75,10 +79,7 @@ class ExecutionService {
     try {
       final process = await _spawnProcess(bot);
 
-      final stdoutSub = process.stdout
-          .transform(_lossyUtf8Decoder)
-          .transform(const LineSplitter())
-          .listen((line) {
+      final stdoutSub = lossyUtf8LineStream(process.stdout).listen((line) {
         _handleLine(session, line,
             isError: false, emitter: (event) {});
       }, onError: (Object error, StackTrace stackTrace) {
@@ -91,10 +92,7 @@ class ExecutionService {
         session.logSink.writeln(stackTrace.toString());
       });
 
-      final stderrSub = process.stderr
-          .transform(_lossyUtf8Decoder)
-          .transform(const LineSplitter())
-          .listen((line) {
+      final stderrSub = lossyUtf8LineStream(process.stderr).listen((line) {
         _handleLine(session, line,
             isError: true, emitter: (event) {});
       }, onError: (Object error, StackTrace stackTrace) {
@@ -272,18 +270,12 @@ class ExecutionService {
 
         process = await _spawnProcess(bot);
 
-        stdoutSub = process!.stdout
-            .transform(_lossyUtf8Decoder)
-            .transform(const LineSplitter())
-            .listen((line) {
+        stdoutSub = lossyUtf8LineStream(process!.stdout).listen((line) {
           _handleLine(session, line,
               isError: false, emitter: (event) => addEvent(event));
         });
 
-        stderrSub = process!.stderr
-            .transform(_lossyUtf8Decoder)
-            .transform(const LineSplitter())
-            .listen((line) {
+        stderrSub = lossyUtf8LineStream(process!.stderr).listen((line) {
           _handleLine(session, line,
               isError: true, emitter: (event) => addEvent(event));
         });
