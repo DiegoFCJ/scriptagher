@@ -21,6 +21,7 @@ import { BOT_CONFIG, BotRuntimeConfig } from './bot-config';
 export class BotService {
   private readonly botsBaseUrl: URL;
   private readonly botsSourceBaseUrl: URL;
+  private readonly botsRepositoryBaseUrl?: URL;
   private installersBaseUrl: URL;
   private readonly remoteInstallersBaseUrl?: URL;
   private readonly githubApiBaseUrl: string;
@@ -80,6 +81,14 @@ export class BotService {
         ? `https://${this.githubRepoOwner}.github.io/${this.githubRepoName}/installers/`
         : undefined);
     this.remoteInstallersBaseUrl = this.tryCreateUrl(installersBaseUrlFromConfig, baseUrl);
+
+    const botsRepositoryBaseUrlFromConfig = config.botsRepositoryBaseUrl
+      || this.getEnvironmentValue('NG_APP_BOTS_REPOSITORY_BASE_URL')
+      || this.getEnvironmentValue('BOTS_REPOSITORY_BASE_URL')
+      || (this.githubRepoOwner && this.githubRepoName
+        ? `https://github.com/${this.githubRepoOwner}/${this.githubRepoName}/tree/${this.githubInstallersBranch}/bots/`
+        : undefined);
+    this.botsRepositoryBaseUrl = this.tryCreateUrl(botsRepositoryBaseUrlFromConfig);
   }
 
   private resolveBaseUrl(): string {
@@ -1111,6 +1120,14 @@ export class BotService {
 
     if (this.isAbsoluteUrl(value)) {
       return value;
+    }
+
+    if (this.botsRepositoryBaseUrl) {
+      try {
+        return new URL(value, this.botsRepositoryBaseUrl).toString();
+      } catch {
+        // fall back to bots source base URL
+      }
     }
 
     try {

@@ -8,6 +8,10 @@ export interface BotRuntimeConfig {
    * Absolute URL to the public installers directory published via GitHub Pages.
    */
   publicInstallersBaseUrl?: string;
+  /**
+   * Absolute URL to the base directory that hosts the bot sources (e.g. GitHub tree).
+   */
+  botsRepositoryBaseUrl?: string;
 }
 
 export const BOT_CONFIG = new InjectionToken<BotRuntimeConfig>('BOT_CONFIG', {
@@ -37,11 +41,18 @@ function createBotRuntimeConfig(overrides: Partial<BotRuntimeConfig> = {}): BotR
     readEnvironmentValue('INSTALLERS_BASE_URL') ??
     (owner && repo ? `https://${owner}.github.io/${repo}/installers/` : undefined);
 
+  const botsRepositoryBaseUrl =
+    overrides.botsRepositoryBaseUrl ??
+    readEnvironmentValue('NG_APP_BOTS_REPOSITORY_BASE_URL') ??
+    readEnvironmentValue('BOTS_REPOSITORY_BASE_URL') ??
+    (owner && repo ? `https://github.com/${owner}/${repo}/tree/${branch}/bots/` : undefined);
+
   return {
     githubRepoOwner: owner,
     githubRepoName: repo,
     githubInstallersBranch: branch,
     publicInstallersBaseUrl: installersBaseUrl,
+    botsRepositoryBaseUrl,
   };
 }
 
