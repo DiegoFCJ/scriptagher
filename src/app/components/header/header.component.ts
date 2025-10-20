@@ -1,5 +1,5 @@
 import { CommonModule } from '@angular/common';
-import { Component, OnDestroy, OnInit } from '@angular/core';
+import { Component, Input, OnDestroy, OnInit } from '@angular/core';
 import { Router, NavigationEnd, RouterLink, RouterLinkActive } from '@angular/router';
 import { filter } from 'rxjs/operators';
 import { Subscription } from 'rxjs';
@@ -15,6 +15,7 @@ import { LanguageSwitcherComponent } from './language-switcher.component';
 })
 export class HeaderComponent implements OnInit, OnDestroy {
   isPdfToTxtPage: boolean = false;
+  @Input() showHero: boolean = true;
   private readonly pdfRouteExists: boolean;
   private navigationSubscription?: Subscription;
 

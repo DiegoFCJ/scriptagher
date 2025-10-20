@@ -1,7 +1,8 @@
 import { Component, OnDestroy, OnInit } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { Subject, combineLatest, of } from 'rxjs';
-import { catchError, map, startWith, switchMap, takeUntil } from 'rxjs/operators';
+import { catchError, filter, map, startWith, switchMap, takeUntil } from 'rxjs/operators';
+import { NavigationEnd, Router } from '@angular/router';
 
 import {
   BotConfiguration,
@@ -35,11 +36,25 @@ export class BotListComponent implements OnInit, OnDestroy {
   botSections: LocalizedBotSectionView[] = [];
   errorMessageKey: string | null = null;
   installerAssets: InstallerAsset[] = [];
+  showHero: boolean = true;
+  showInstallerSection: boolean = true;
   private readonly destroy$ = new Subject<void>();
 
-  constructor(private botService: BotService, private translation: TranslationService) {}
+  constructor(
+    private botService: BotService,
+    private translation: TranslationService,
+    private router: Router
+  ) {}
 
   ngOnInit() {
+    this.updateLayoutForRoute(this.router.url);
+    this.router.events
+      .pipe(
+        filter((event): event is NavigationEnd => event instanceof NavigationEnd),
+        takeUntil(this.destroy$)
+      )
+      .subscribe((event) => this.updateLayoutForRoute(event.urlAfterRedirects));
+
     this.listenForInstallers();
     this.listenForBotSections();
   }
@@ -187,6 +202,19 @@ export class BotListComponent implements OnInit, OnDestroy {
     }
 
     return order;
+  }
+
+  private updateLayoutForRoute(url: string): void {
+    const normalizedUrl = this.normalizeUrl(url);
+    const isHomePage = normalizedUrl === '' || normalizedUrl === '/';
+    this.showHero = isHomePage;
+    this.showInstallerSection = isHomePage;
+  }
+
+  private normalizeUrl(url: string): string {
+    const [pathWithQuery] = url.split('#');
+    const [path] = pathWithQuery.split('?');
+    return path;
   }
 }
 

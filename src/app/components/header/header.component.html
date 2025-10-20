@@ -30,7 +30,7 @@
     </div>
 
     <ng-template #normalHeader>
-      <div class="hero">
+      <div class="hero" *ngIf="showHero">
         <span class="hero-eyebrow">{{ 'header.hero.eyebrow' | translate }}</span>
         <h1 class="hero-title">{{ 'header.hero.title' | translate }}</h1>
         <p class="hero-description">

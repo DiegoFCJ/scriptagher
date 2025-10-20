@@ -1,5 +1,8 @@
-<app-header></app-header>
-<app-installer-section *ngIf="installerAssets.length" [installers]="installerAssets"></app-installer-section>
+<app-header [showHero]="showHero"></app-header>
+<app-installer-section
+  *ngIf="showInstallerSection && installerAssets.length"
+  [installers]="installerAssets"
+></app-installer-section>
 
 <main class="bot-list" id="bots" *ngIf="botSections.length; else errorTemplate">
   <app-bot-section
