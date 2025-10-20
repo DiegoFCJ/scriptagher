@@ -48,5 +48,10 @@
   "overrides": {
     "esbuild": "^0.25.0",
     "tmp": "^0.2.5"
+  },
+  "license": "MIT",
+  "author": {
+    "name": "Scriptagher Maintainers",
+    "url": "https://github.com/DiegoFCJ/scriptagher"
   }
 }

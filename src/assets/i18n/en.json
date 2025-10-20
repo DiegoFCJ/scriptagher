@@ -3,12 +3,30 @@
     "name": "Scriptagher"
   },
   "languages": {
-    "it": { "label": "Italian", "short": "IT" },
-    "en": { "label": "English", "short": "EN" },
-    "no": { "label": "Norwegian", "short": "NO" },
-    "de": { "label": "German", "short": "DE" },
-    "ru": { "label": "Russian", "short": "RU" },
-    "es": { "label": "Spanish", "short": "ES" }
+    "it": {
+      "label": "Italian",
+      "short": "IT"
+    },
+    "en": {
+      "label": "English",
+      "short": "EN"
+    },
+    "no": {
+      "label": "Norwegian",
+      "short": "NO"
+    },
+    "de": {
+      "label": "German",
+      "short": "DE"
+    },
+    "ru": {
+      "label": "Russian",
+      "short": "RU"
+    },
+    "es": {
+      "label": "Spanish",
+      "short": "ES"
+    }
   },
   "languageSwitcher": {
     "label": "Language"
@@ -105,7 +123,13 @@
     "legal": "Shared with the maker community: always review release notes and licences before using automation bots.",
     "links": {
       "portfolio": "Portfolio",
-      "github": "GitHub"
+      "github": "GitHub",
+      "license": "License"
     }
+  },
+  "license": {
+    "title": "Repository license",
+    "loading": "Loading license…",
+    "error": "We couldn't load the license file. Please refresh or try again later."
   }
 }

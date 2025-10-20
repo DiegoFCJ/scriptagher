@@ -35,6 +35,11 @@
                 "glob": "**/*",
                 "input": "src/assets",
                 "output": "assets"
+              },
+              {
+                "input": ".",
+                "glob": "LICENSE",
+                "output": "/"
               }
             ],
             "styles": [

@@ -3,12 +3,30 @@
     "name": "Scriptagher"
   },
   "languages": {
-    "it": { "label": "Italiensk", "short": "IT" },
-    "en": { "label": "Engelsk", "short": "EN" },
-    "no": { "label": "Norsk", "short": "NO" },
-    "de": { "label": "Tysk", "short": "DE" },
-    "ru": { "label": "Russisk", "short": "RU" },
-    "es": { "label": "Spansk", "short": "ES" }
+    "it": {
+      "label": "Italiensk",
+      "short": "IT"
+    },
+    "en": {
+      "label": "Engelsk",
+      "short": "EN"
+    },
+    "no": {
+      "label": "Norsk",
+      "short": "NO"
+    },
+    "de": {
+      "label": "Tysk",
+      "short": "DE"
+    },
+    "ru": {
+      "label": "Russisk",
+      "short": "RU"
+    },
+    "es": {
+      "label": "Spansk",
+      "short": "ES"
+    }
   },
   "languageSwitcher": {
     "label": "Språk"
@@ -105,7 +123,13 @@
     "legal": "Delt med maker-fellesskapet: les alltid utgivelsesnotater og lisenser før du bruker automasjonsbot-er.",
     "links": {
       "portfolio": "Portefølje",
-      "github": "GitHub"
+      "github": "GitHub",
+      "license": "Lisens"
     }
+  },
+  "license": {
+    "title": "Repo-lisens",
+    "loading": "Laster inn lisensen …",
+    "error": "Kunne ikke laste lisensfilen. Oppdater eller prøv igjen senere."
   }
 }
