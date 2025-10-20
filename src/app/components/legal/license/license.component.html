@@ -2,6 +2,15 @@
   <div class="license__container">
     <h1 class="license__title">{{ 'license.title' | translate }}</h1>
 
+    <div class="license__actions">
+      <a
+        class="btn btn-secondary license__home-button"
+        routerLink="/"
+      >
+        {{ 'license.backToHome' | translate }}
+      </a>
+    </div>
+
     <p *ngIf="isLoading" class="license__status license__status--loading">
       {{ 'license.loading' | translate }}
     </p>

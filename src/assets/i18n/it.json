@@ -130,8 +130,9 @@
     }
   },
   "license": {
-    "title": "Licenza del repository",
-    "loading": "Caricamento della licenza in corso…",
-    "error": "Non è stato possibile caricare il file della licenza. Aggiorna o riprova più tardi."
-  }
+  "title": "Licenza del repository",
+  "loading": "Caricamento della licenza in corso…",
+  "error": "Non è stato possibile caricare il file della licenza. Aggiorna o riprova più tardi.",
+  "backToHome": "Torna alla home"
+}
 }
