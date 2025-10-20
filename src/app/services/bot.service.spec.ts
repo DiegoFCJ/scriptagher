@@ -4,6 +4,7 @@ import { APP_BASE_HREF } from '@angular/common';
 import { PLATFORM_ID } from '@angular/core';
 import { firstValueFrom, take } from 'rxjs';
 
+import { BOT_CONFIG } from './bot-config';
 import { BotService, LocalizedBotDetails } from './bot.service';
 import { TranslationService } from '../core/i18n/translation.service';
 
@@ -18,6 +19,7 @@ describe('BotService localization', () => {
       providers: [
         BotService,
         TranslationService,
+        { provide: BOT_CONFIG, useValue: { githubRepoOwner: 'test-owner', githubRepoName: 'test-repo' } },
         { provide: PLATFORM_ID, useValue: 'server' },
         { provide: APP_BASE_HREF, useValue: '/' }
       ]
@@ -63,6 +65,9 @@ describe('BotService localization', () => {
       .getBotDetails({ botName: 'Zipper', path: 'Zipper.zip', language: 'python' })
       .subscribe((value) => results.push(value));
 
+    const repoRequest = httpMock.expectOne('https://api.github.com/repos/test-owner/test-repo');
+    repoRequest.flush({ private: false });
+
     const request = httpMock.expectOne((req) => req.url.endsWith('/bots/python/Zipper/Bot.json'));
     request.flush({
       botName: 'Zipper',
@@ -85,6 +90,31 @@ describe('BotService localization', () => {
     expect(results[results.length - 1].displayName).toBe('Zipper EN');
     expect(results[results.length - 1].shortDescription).toBe('English description');
     expect(results[results.length - 1].sourceUrl).toBe('https://example.com/zipper');
+
+    subscription.unsubscribe();
+  }));
+
+  it('omits sourceUrl when repository is private', fakeAsync(() => {
+    const results: LocalizedBotDetails[] = [];
+    const subscription = service
+      .getBotDetails({ botName: 'HiddenBot', path: 'HiddenBot.zip', language: 'python' })
+      .subscribe((value) => results.push(value));
+
+    const repoRequest = httpMock.expectOne('https://api.github.com/repos/test-owner/test-repo');
+    repoRequest.flush({ private: true });
+
+    const request = httpMock.expectOne((req) => req.url.endsWith('/bots/python/HiddenBot/Bot.json'));
+    request.flush({
+      botName: 'HiddenBot',
+      sourceUrl: 'https://example.com/hidden',
+      translations: {
+        en: { displayName: 'Hidden', shortDescription: 'Hidden description' }
+      }
+    });
+
+    tick();
+
+    expect(results[0].sourceUrl).toBeUndefined();
 
     subscription.unsubscribe();
   }));

@@ -1,6 +1,7 @@
 import { CommonModule } from '@angular/common';
-import { Component, Input, Output, EventEmitter } from '@angular/core';
+import { Component, Input, Output, EventEmitter, OnDestroy } from '@angular/core';
 import { Router, RouterLink } from '@angular/router';
+import { Subscription } from 'rxjs';
 
 import { BotService, LocalizedBotDetails } from '../../services/bot.service';
 import { TranslatePipe } from '../../core/i18n/translate.pipe';
@@ -13,19 +14,32 @@ import { TranslationService } from '../../core/i18n/translation.service';
   templateUrl: './bot-card.component.html',
   styleUrls: ['./bot-card.component.scss']
 })
-export class BotCardComponent {
+export class BotCardComponent implements OnDestroy {
   @Input() bot!: LocalizedBotDetails;
   @Input() language: string = '';
   @Output() download = new EventEmitter<void>();
+
+  private isSourceRepoPublic = true;
+  private readonly sourceVisibilitySubscription: Subscription;
 
   constructor(
     private router: Router,
     private botService: BotService,
     private translation: TranslationService
-  ) {}
+  ) {
+    this.sourceVisibilitySubscription = this.botService.isSourceRepoPublic$.subscribe(
+      (isPublic) => {
+        this.isSourceRepoPublic = isPublic;
+      }
+    );
+  }
 
   get canViewSource(): boolean {
-    return !!this.bot?.sourceUrl;
+    return !!this.bot?.sourceUrl && this.isSourceRepoPublic;
+  }
+
+  ngOnDestroy(): void {
+    this.sourceVisibilitySubscription.unsubscribe();
   }
 
   openBot() {
