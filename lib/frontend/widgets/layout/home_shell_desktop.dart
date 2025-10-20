@@ -4,6 +4,7 @@ import 'package:flutter/foundation.dart' show kIsWeb;
 import 'package:flutter/material.dart';
 import 'package:bitsdojo_window/bitsdojo_window.dart';
 
+import '../components/navigation_sidebar.dart';
 import '../components/window_title_bar.dart';
 import '../pages/home_page_view.dart';
 
@@ -20,11 +21,20 @@ class HomeShell extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final content = Column(
-      children: const [
-        WindowTitleBar(),
-        Expanded(
+    const pageContent = Row(
+      children: [
+        NavigationSidebar(),
+        const Expanded(
           child: HomePage(),
+        ),
+      ],
+    );
+
+    const content = Column(
+      children: [
+        WindowTitleBar(),
+        const Expanded(
+          child: pageContent,
         ),
       ],
     );

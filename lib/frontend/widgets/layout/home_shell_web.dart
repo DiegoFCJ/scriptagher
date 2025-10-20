@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 
-import '../components/window_title_bar.dart';
+import '../components/navigation_sidebar.dart';
 import '../pages/home_page_view.dart';
 
 class HomeShell extends StatelessWidget {
@@ -8,12 +8,15 @@ class HomeShell extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
-      appBar: PreferredSize(
-        preferredSize: const Size.fromHeight(56),
-        child: const WindowTitleBar(),
+    return const Scaffold(
+      body: Row(
+        children: [
+          NavigationSidebar(),
+          Expanded(
+            child: HomePage(),
+          ),
+        ],
       ),
-      body: const HomePage(),
     );
   }
 }
