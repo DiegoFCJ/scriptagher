@@ -3,11 +3,11 @@
   "platform": "iOS",
   "version": "1.0.0+1",
   "file_name": "Scriptagher-ios.ipa",
-  "file_size": 8352760,
-  "sha256": "9254c122d1dcc0cba2c6d2de73be68a2d0fd6baae602a0d84da1810638d6e9f8",
+  "file_size": 8379515,
+  "sha256": "72d8e8396a14e85be0d1046e1cc4145457ca16442a32f08f546b9e628228125c",
   "download_url": "https://DiegoFCJ.github.io/scriptagher/installers/ios/Scriptagher-ios.ipa",
   "format": "IPA",
-  "last_updated": "2025-10-20T03:08:21Z",
+  "last_updated": "2025-10-20T11:44:44Z",
   "build_variant": "Release",
   "distribution": "IPA Package"
 }
