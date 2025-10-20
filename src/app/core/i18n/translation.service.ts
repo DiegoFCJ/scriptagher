@@ -4,7 +4,7 @@ import { PLATFORM_ID } from '@angular/core';
 import { toObservable } from '@angular/core/rxjs-interop';
 import { Observable } from 'rxjs';
 
-export type TranslationDictionaries = Record<string, Record<string, string>>;
+export type TranslationDictionaries = Record<string, Record<string, unknown>>;
 export type TranslationParams = Record<string, string | number | boolean>;
 
 type SupportedLanguage = 'it' | 'en' | 'no' | 'de' | 'ru' | 'es';
@@ -38,7 +38,10 @@ export class TranslationService {
     const activeDictionary = this.dictionaries()[language] ?? {};
     const fallbackDictionary = this.dictionaries()[this.fallbackLanguage] ?? {};
 
-    let template = activeDictionary[key] ?? fallbackDictionary[key] ?? key;
+    let template =
+      this.getDictionaryValue(activeDictionary, key) ??
+      this.getDictionaryValue(fallbackDictionary, key) ??
+      key;
     if (!params || !template) {
       return template;
     }
@@ -60,8 +63,22 @@ export class TranslationService {
     this.storeLanguage(normalized);
   }
 
-  getDictionary(language: string): Record<string, string> | undefined {
+  getDictionary(language: string): Record<string, unknown> | undefined {
     return this.dictionaries()[language];
+  }
+
+  private getDictionaryValue(dictionary: Record<string, unknown>, key: string): string | undefined {
+    const parts = key.split('.');
+    let value: unknown = dictionary;
+
+    for (const part of parts) {
+      if (!value || typeof value !== 'object') {
+        return undefined;
+      }
+      value = (value as Record<string, unknown>)[part];
+    }
+
+    return typeof value === 'string' ? value : undefined;
   }
 
   private isSupported(language: string | null | undefined): language is SupportedLanguage {
