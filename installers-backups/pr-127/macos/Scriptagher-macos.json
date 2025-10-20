@@ -1,0 +1,13 @@
+{
+  "name": "Scriptagher for macOS (Release Build)",
+  "platform": "macOS",
+  "version": "1.0.0+1",
+  "file_name": "Scriptagher-macos.dmg",
+  "file_size": 20284720,
+  "sha256": "7324b83d67a02e5729ae57af2abb4af239f89a60225552015fe3d26a34a0bb08",
+  "download_url": "https://DiegoFCJ.github.io/scriptagher/installers/macos/Scriptagher-macos.dmg",
+  "format": "DMG",
+  "last_updated": "2025-10-20T03:08:21Z",
+  "build_variant": "Release",
+  "distribution": "Disk Image"
+}
