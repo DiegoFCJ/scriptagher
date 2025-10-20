@@ -69,11 +69,6 @@
         "description": "Hver versjon leveres med sjekksummer, lisenser og kildekode du kan kontrollere."
       }
     },
-    "languages": {
-      "title": "Start der du føler deg hjemme",
-      "description": "Populære språk er klare med utvalgte samlinger å utforske.",
-      "cta": "Utforsk bot-er etter språk"
-    },
     "installers": {
       "title": "Hent en installasjonsfil og kom i gang",
       "description": "Last ned signerte pakker med alt du trenger for første oppstart.",

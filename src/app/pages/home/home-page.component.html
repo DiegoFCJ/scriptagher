@@ -19,21 +19,6 @@
       </article>
     </div>
   </section>
-
-  <section class="home-languages">
-    <div class="home-languages__header">
-      <h3>{{ 'home.languages.title' | translate }}</h3>
-      <p>{{ 'home.languages.description' | translate }}</p>
-    </div>
-    <ul class="home-languages__list">
-      <li *ngFor="let language of highlightedLanguages">
-        <span class="language-code">{{ ('languages.' + language + '.short') | translate }}</span>
-        <span class="language-label">{{ ('languages.' + language + '.label') | translate }}</span>
-      </li>
-    </ul>
-    <a class="home-languages__link" routerLink="/bots">{{ 'home.languages.cta' | translate }}</a>
-  </section>
-
   <section class="home-installers" *ngIf="!loadingInstallers && installers.length">
     <div class="home-installers__header">
       <h3>{{ 'home.installers.title' | translate }}</h3>

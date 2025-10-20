@@ -76,64 +76,6 @@
   }
 }
 
-.home-languages {
-  display: flex;
-  flex-direction: column;
-  gap: clamp(1.5rem, 4vw, 2.5rem);
-  align-items: center;
-  text-align: center;
-}
-
-.home-languages__header {
-  max-width: 640px;
-  display: flex;
-  flex-direction: column;
-  gap: 0.75rem;
-
-  h3 {
-    margin: 0;
-    font-size: clamp(1.8rem, 5vw, 2.3rem);
-  }
-
-  p {
-    margin: 0;
-    color: var(--text-muted);
-  }
-}
-
-.home-languages__list {
-  list-style: none;
-  padding: 0;
-  margin: 0;
-  display: grid;
-  gap: 1rem;
-  grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));
-  width: min(720px, 100%);
-}
-
-.home-languages__list li {
-  padding: 1.25rem;
-  border-radius: 18px;
-  border: 1px solid var(--border-subtle);
-  background: rgba(15, 23, 42, 0.6);
-  display: flex;
-  flex-direction: column;
-  gap: 0.5rem;
-}
-
-.language-code {
-  font-size: 0.85rem;
-  letter-spacing: 0.12em;
-  text-transform: uppercase;
-  color: var(--text-muted);
-}
-
-.language-label {
-  font-size: clamp(1.1rem, 3vw, 1.4rem);
-  font-weight: 600;
-}
-
-.home-languages__link,
 .home-installers__link {
   align-self: center;
   font-weight: 600;

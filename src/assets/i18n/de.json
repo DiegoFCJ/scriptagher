@@ -69,11 +69,6 @@
         "description": "Jede Version liefert Checksummen, Lizenzen und Quelllinks zum Prüfen."
       }
     },
-    "languages": {
-      "title": "Starte dort, wo du dich zuhause fühlst",
-      "description": "Beliebte Sprachen stehen mit kuratierten Sammlungen bereit.",
-      "cta": "Bots nach Sprache entdecken"
-    },
     "installers": {
       "title": "Hol dir einen Installer und leg los",
       "description": "Lade signierte Pakete mit allem Nötigen für den ersten Start herunter.",

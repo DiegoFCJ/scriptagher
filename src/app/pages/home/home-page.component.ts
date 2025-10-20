@@ -44,8 +44,6 @@ export class HomePageComponent implements OnInit, OnDestroy {
       descriptionKey: 'home.features.trust.description'
     }
   ];
-  readonly highlightedLanguages: string[] = ['it', 'en', 'es', 'de'];
-
   installers: InstallerAsset[] = [];
   loadingInstallers = true;
   installersErrorKey: string | null = null;
