@@ -3,7 +3,7 @@
   "startCommand": "./image-remover.sh",
   "description": "Use the helper shell script to prepare dependencies and launch the Selenium automation that deletes Facebook photos.",
   "language": "Python",
-  "sourceUrl": "https://github.com/scriptagle/scriptagher/tree/main/public/bots/python/facebook-images-remover",
+  "sourceUrl": "https://github.com/DiegoFCJ/scriptagher/tree/gh-pages/bots/python/facebook-images-remover",
   "translations": {
     "it": {
       "displayName": "Facebook Images Remover",
