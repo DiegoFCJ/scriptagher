@@ -35,7 +35,7 @@ describe('BotService localization', () => {
   it('normalizes bot configuration including section translations', async () => {
     const configPromise = firstValueFrom(service.getBotsConfig());
 
-    const request = httpMock.expectOne('http://localhost/bots/bots.json');
+    const request = httpMock.expectOne((req) => req.url.endsWith('/bots/bots.json'));
     request.flush({
       sections: {
         python: {
@@ -63,7 +63,7 @@ describe('BotService localization', () => {
       .getBotDetails({ botName: 'Zipper', path: 'Zipper.zip', language: 'python' })
       .subscribe((value) => results.push(value));
 
-    const request = httpMock.expectOne('http://localhost/bots/python/Zipper/Bot.json');
+    const request = httpMock.expectOne((req) => req.url.endsWith('/bots/python/Zipper/Bot.json'));
     request.flush({
       botName: 'Zipper',
       startCommand: 'python3 bots/python/Zipper/Zipper.py',
@@ -90,7 +90,7 @@ describe('BotService localization', () => {
     translations.changeLanguage('no');
 
     const details$ = service.getBotDetails({ botName: 'Fallback', language: 'python' });
-    const request = httpMock.expectOne('http://localhost/bots/python/Fallback/Bot.json');
+    const request = httpMock.expectOne((req) => req.url.endsWith('/bots/python/Fallback/Bot.json'));
     request.flush({
       botName: 'Fallback',
       translations: {
