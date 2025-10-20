@@ -6,9 +6,12 @@ class NavigationMenuEntry {
     required this.label,
     this.route,
     List<NavigationMenuEntry> children = const <NavigationMenuEntry>[],
-  })  : children = List.unmodifiable(children),
-        assert(route != null || children.isNotEmpty,
-            'A menu entry must have either a route or children.');
+  }) : children = List.unmodifiable(children) {
+    assert(
+      route != null || this.children.isNotEmpty,
+      'A menu entry must have either a route or children.',
+    );
+  }
 
   final String label;
   final String? route;
