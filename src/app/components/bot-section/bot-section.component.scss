@@ -37,6 +37,14 @@
     justify-content: space-between;
     flex-wrap: wrap;
     gap: 1rem;
+
+    .section-summary {
+      flex: 1 1 100%;
+      margin: 0;
+      font-size: 1rem;
+      line-height: 1.6;
+      color: rgba(226, 232, 240, 0.82);
+    }
   }
 
   .section-language {

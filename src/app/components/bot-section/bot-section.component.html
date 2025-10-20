@@ -1,7 +1,8 @@
 <section class="bot-section">
   <div class="section-header">
     <span class="section-language">{{ ('languages.' + language + '.short') | translate }}</span>
-    <h2>{{ 'botSection.title' | translate: { language: ('languages.' + language + '.label') | translate } }}</h2>
+    <h2>{{ title }}</h2>
+    <p class="section-summary" *ngIf="summary">{{ summary }}</p>
   </div>
   <div class="bot-container">
     <app-bot-card

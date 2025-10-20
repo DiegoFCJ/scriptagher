@@ -44,7 +44,9 @@
     "errorTitle": "Oops, something went wrong.",
     "errorDefault": "No bots available.",
     "loadError": "We couldn't load the bot list.",
-    "cardLoadError": "Error loading details"
+    "cardLoadError": "Error loading details",
+    "installersLoadError": "Unable to load the installer list.",
+    "noBotsAvailable": "No bots available in this language yet."
   },
   "installerSection": {
     "title": "Installers",

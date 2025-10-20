@@ -44,7 +44,9 @@
     "errorTitle": "Ups, algo salió mal.",
     "errorDefault": "No hay bots disponibles.",
     "loadError": "No se pudo cargar la lista de bots.",
-    "cardLoadError": "Error al cargar los detalles"
+    "cardLoadError": "Error al cargar los detalles",
+    "installersLoadError": "No se pudo cargar la lista de instaladores.",
+    "noBotsAvailable": "Todavía no hay bots disponibles en este idioma."
   },
   "installerSection": {
     "title": "Instaladores",

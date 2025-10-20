@@ -1,7 +1,18 @@
 import { Inject, Injectable, Optional } from '@angular/core';
 import { HttpClient, HttpHeaders, HttpParams } from '@angular/common/http';
-import { Observable, forkJoin, map, of, switchMap, catchError } from 'rxjs';
+import {
+  Observable,
+  forkJoin,
+  map,
+  of,
+  switchMap,
+  catchError,
+  combineLatest,
+  startWith,
+  shareReplay
+} from 'rxjs';
 import { APP_BASE_HREF, DOCUMENT } from '@angular/common';
+import { TranslationService } from '../core/i18n/translation.service';
 
 @Injectable({
   providedIn: 'root'
@@ -18,8 +29,12 @@ export class BotService {
   private readonly githubInstallersBranch: string;
   private readonly githubInstallersPath: string;
 
+  private botsConfig$?: Observable<BotConfiguration>;
+  private readonly botDetailsCache = new Map<string, Observable<LocalizedBotDetails>>();
+
   constructor(
     private http: HttpClient,
+    private translations: TranslationService,
     @Optional() @Inject(DOCUMENT) private readonly documentRef: Document | null,
     @Optional() @Inject(APP_BASE_HREF) private readonly appBaseHref?: string
   ) {
@@ -796,9 +811,16 @@ export class BotService {
   /**
    * Fetch the bots configuration from bots.json.
    */
-  getBotsConfig(): Observable<any> {
-    const botsJsonPath = new URL('bots.json', this.botsBaseUrl).toString();
-    return this.http.get(botsJsonPath);
+  getBotsConfig(): Observable<BotConfiguration> {
+    if (!this.botsConfig$) {
+      const botsJsonPath = new URL('bots.json', this.botsBaseUrl).toString();
+      this.botsConfig$ = this.http.get<RawBotConfiguration>(botsJsonPath).pipe(
+        map((raw) => this.normalizeBotConfiguration(raw)),
+        shareReplay(1)
+      );
+    }
+
+    return this.botsConfig$;
   }
 
   /**
@@ -806,9 +828,30 @@ export class BotService {
    * Fetch detailed bot information from Bot.json.
    * @param bot - The bot's name.
    */
-  getBotDetails(bot: any): Observable<any> {
-    const botJsonPath = new URL(`${bot.language}/${bot.botName}/Bot.json`, this.botsBaseUrl).toString();
-    return this.http.get(botJsonPath);
+  getBotDetails(bot: BotSummary): Observable<LocalizedBotDetails> {
+    const cacheKey = `${bot.language}/${bot.botName}`;
+    if (!this.botDetailsCache.has(cacheKey)) {
+      const botJsonPath = new URL(`${bot.language}/${bot.botName}/Bot.json`, this.botsBaseUrl).toString();
+      const raw$ = this.http.get<BotDetails>(botJsonPath).pipe(
+        catchError((error) => {
+          console.error(`Failed to load bot details for ${cacheKey}`, error);
+          return of<BotDetails | null>(null);
+        }),
+        shareReplay(1)
+      );
+
+      const localized$ = combineLatest([
+        raw$,
+        this.translations.language$.pipe(startWith(this.translations.language()))
+      ]).pipe(
+        map(([raw, language]) => this.mergeBotDetails(raw, language, bot)),
+        catchError(() => of(this.buildFallbackBot(bot)))
+      );
+
+      this.botDetailsCache.set(cacheKey, localized$);
+    }
+
+    return this.botDetailsCache.get(cacheKey)!;
   }
 
   /**
@@ -829,6 +872,164 @@ export class BotService {
     const assetName = bot.path || `${bot.botName}.zip`;
     const sourcePath = new URL(`${bot.language}/${bot.botName}/${assetName}`, this.botsSourceBaseUrl).toString();
     window.open(sourcePath, '_blank');
+  }
+
+  private normalizeBotConfiguration(raw: RawBotConfiguration | null | undefined): BotConfiguration {
+    const sections: Record<string, NormalizedBotSection> = {};
+    const botsByLanguage: Record<string, BotSummary[]> = {};
+
+    if (!raw) {
+      return { sections, botsByLanguage };
+    }
+
+    const rawSections = raw.sections ?? {};
+    for (const [language, section] of Object.entries(rawSections)) {
+      const bots = this.normalizeBotSummaries(section?.bots, language);
+      sections[language] = {
+        translations: section?.translations ?? {},
+        bots
+      };
+
+      if (bots.length) {
+        botsByLanguage[language] = bots;
+      }
+    }
+
+    for (const [key, value] of Object.entries(raw)) {
+      if (key === 'sections') {
+        continue;
+      }
+
+      if (!Array.isArray(value)) {
+        continue;
+      }
+
+      const bots = this.normalizeBotSummaries(value, key);
+      if (bots.length) {
+        botsByLanguage[key] = bots;
+        if (sections[key]) {
+          sections[key].bots = sections[key].bots.length ? sections[key].bots : bots;
+        } else {
+          sections[key] = { translations: {}, bots };
+        }
+      }
+    }
+
+    return { sections, botsByLanguage };
+  }
+
+  private normalizeBotSummaries(entries: unknown, language?: string): BotSummary[] {
+    if (!Array.isArray(entries)) {
+      return [];
+    }
+
+    return entries
+      .map((entry) => this.normalizeBotSummary(entry, language))
+      .filter((entry): entry is BotSummary => !!entry);
+  }
+
+  private normalizeBotSummary(entry: unknown, language?: string): BotSummary | null {
+    if (!entry || typeof entry !== 'object') {
+      return null;
+    }
+
+    const value = entry as Record<string, unknown>;
+    const botNameValue = value['botName'];
+    const botName = typeof botNameValue === 'string' ? botNameValue : null;
+    if (!botName) {
+      return null;
+    }
+
+    const pathValue = value['path'];
+    const languageValue = value['language'];
+    const path = typeof pathValue === 'string' ? pathValue : undefined;
+    const detectedLanguage = typeof languageValue === 'string' ? languageValue : undefined;
+
+    return {
+      botName,
+      path,
+      language: language ?? detectedLanguage ?? ''
+    } satisfies BotSummary;
+  }
+
+  private mergeBotDetails(raw: BotDetails | null, language: string, fallback: BotSummary): LocalizedBotDetails {
+    if (!raw) {
+      return this.buildFallbackBot(fallback);
+    }
+
+    const translations = raw.translations ?? {};
+    const placeholder = '—';
+    const order = this.getLanguageFallbackOrder(language);
+
+    let selected: BotTranslation | undefined;
+    for (const candidate of order) {
+      if (candidate && translations[candidate]) {
+        selected = translations[candidate];
+        break;
+      }
+    }
+
+    const displayName = selected?.displayName
+      ?? raw.displayName
+      ?? raw.botName
+      ?? fallback.botName
+      ?? placeholder;
+
+    const shortDescription = selected?.shortDescription
+      ?? raw.shortDescription
+      ?? raw.description
+      ?? placeholder;
+
+    const longDescription = selected?.longDescription
+      ?? raw.longDescription
+      ?? raw.description;
+
+    const startCommand = selected?.startCommand ?? raw.startCommand;
+    const actions = { ...(raw.actions ?? {}), ...(selected?.actions ?? {}) };
+
+    return {
+      ...raw,
+      botName: raw.botName ?? fallback.botName ?? placeholder,
+      language: fallback.language || raw.language || '',
+      path: fallback.path ?? raw.path,
+      displayName: displayName || placeholder,
+      shortDescription: shortDescription || placeholder,
+      longDescription,
+      startCommand,
+      actions,
+      translations
+    } satisfies LocalizedBotDetails;
+  }
+
+  private getLanguageFallbackOrder(language: string): string[] {
+    const order: string[] = [];
+    if (language) {
+      order.push(language);
+    }
+
+    const fallback = this.translations.fallbackLanguage;
+    if (fallback && !order.includes(fallback)) {
+      order.push(fallback);
+    }
+
+    if (!order.includes('en')) {
+      order.push('en');
+    }
+
+    return order;
+  }
+
+  private buildFallbackBot(bot: BotSummary): LocalizedBotDetails {
+    const placeholder = '—';
+    return {
+      botName: bot.botName ?? placeholder,
+      language: bot.language,
+      path: bot.path,
+      displayName: bot.botName ?? placeholder,
+      shortDescription: placeholder,
+      actions: {},
+      translations: {}
+    } satisfies LocalizedBotDetails;
   }
 
   private buildContentsUrl(path: string): string {
@@ -1195,6 +1396,61 @@ export class BotService {
 
     return undefined;
   }
+}
+
+interface RawBotConfiguration {
+  sections?: Record<string, RawBotSection | null | undefined> | null;
+  [language: string]: unknown;
+}
+
+interface RawBotSection {
+  translations?: Record<string, BotSectionTranslation | null | undefined> | null;
+  bots?: unknown;
+}
+
+export interface BotSectionTranslation {
+  title?: string;
+  summary?: string;
+}
+
+export interface BotConfiguration {
+  sections: Record<string, NormalizedBotSection>;
+  botsByLanguage: Record<string, BotSummary[]>;
+}
+
+export interface NormalizedBotSection {
+  translations: Record<string, BotSectionTranslation | null | undefined>;
+  bots: BotSummary[];
+}
+
+export interface BotSummary {
+  botName: string;
+  path?: string;
+  language: string;
+}
+
+interface BotDetails extends BotSummary {
+  description?: string;
+  shortDescription?: string;
+  longDescription?: string;
+  displayName?: string;
+  startCommand?: string;
+  actions?: Record<string, string>;
+  translations?: Record<string, BotTranslation | null | undefined>;
+}
+
+export interface BotTranslation {
+  displayName?: string;
+  shortDescription?: string;
+  longDescription?: string;
+  startCommand?: string;
+  actions?: Record<string, string>;
+}
+
+export interface LocalizedBotDetails extends BotDetails {
+  displayName: string;
+  shortDescription: string;
+  actions: Record<string, string>;
 }
 
 interface GitHubContentItem {

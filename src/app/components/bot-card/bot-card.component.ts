@@ -1,7 +1,7 @@
 import { CommonModule } from '@angular/common';
 import { Component, Input, Output, EventEmitter } from '@angular/core';
 import { Router } from '@angular/router';
-import { BotService } from '../../services/bot.service';
+import { BotService, LocalizedBotDetails } from '../../services/bot.service';
 import { TranslatePipe } from '../../core/i18n/translate.pipe';
 import { TranslationService } from '../../core/i18n/translation.service';
 
@@ -13,7 +13,7 @@ import { TranslationService } from '../../core/i18n/translation.service';
   styleUrls: ['./bot-card.component.scss']
 })
 export class BotCardComponent {
-  @Input() bot: any;
+  @Input() bot!: LocalizedBotDetails;
   @Input() language: string = '';
   @Output() download = new EventEmitter<void>();
 

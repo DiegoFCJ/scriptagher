@@ -2,7 +2,7 @@ import { Component, Input } from '@angular/core';
 import { CommonModule } from '@angular/common';
 
 import { BotCardComponent } from '../bot-card/bot-card.component';
-import { BotService } from '../../services/bot.service';
+import { BotService, LocalizedBotDetails } from '../../services/bot.service';
 import { TranslatePipe } from '../../core/i18n/translate.pipe';
 import { TranslationService } from '../../core/i18n/translation.service';
 
@@ -15,11 +15,13 @@ import { TranslationService } from '../../core/i18n/translation.service';
 })
 export class BotSectionComponent {
   @Input() language: string = '';
-  @Input() bots: any[] = [];
+  @Input() title: string = '';
+  @Input() summary: string = '';
+  @Input() bots: LocalizedBotDetails[] = [];
 
   constructor(private botService: BotService, private translation: TranslationService) {}
 
-  downloadBot(bot: any) {
+  downloadBot(bot: LocalizedBotDetails) {
     bot.language = this.language;
     this.botService.downloadBot(bot).subscribe({
       next: (blob: Blob) => {
