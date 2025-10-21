@@ -7,7 +7,7 @@ import '../models/bot.dart';
 
 class BotUploadService {
   BotUploadService({String? baseUrl})
-      : baseUrl = baseUrl ?? ApiBaseUrl.resolve();
+      : baseUrl = baseUrl ?? ApiBaseUrl.require();
 
   final String baseUrl;
 

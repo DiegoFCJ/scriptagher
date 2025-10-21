@@ -11,7 +11,7 @@ class FakeBotGetService extends BotGetService {
   FakeBotGetService({
     this.downloadedBots = const [],
     this.remoteBots = const [],
-  }) : super(baseUrl: '');
+  }) : super.protected();
 
   final List<Bot> downloadedBots;
   final List<Bot> remoteBots;
@@ -48,6 +48,16 @@ class FakeBotGetService extends BotGetService {
     BotFilter? filter,
   }) async {
     return remoteBots;
+  }
+
+  @override
+  Future<Map<String, List<Bot>>> fetchLocalBots({BotFilter? filter}) async {
+    return const {};
+  }
+
+  @override
+  Future<List<Bot>> fetchLocalBotsFlat({BotFilter? filter}) async {
+    return const [];
   }
 }
 
