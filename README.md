@@ -5,8 +5,15 @@ Questo progetto è una semplice applicazione mobile/desktop/web sviluppata con F
 
 ## Risorse grafiche
 
-- `assets/icons/scriptagher_mini_droid.svg`: icona monocromatica del mini droid utilizzata nei componenti `WindowTitleBar` desktop e web per mostrare il marchio dell'app.
-- `web/favicon.svg`: variante solo testa impiegata come favicon tramite `web/index.html` e dichiarata nel `web/manifest.json`.
+- `assets/icons/scriptagher_mini_droid.svg`: logo ufficiale dell'app (mini droid monocromatico) utilizzato dalla UI e come sorgente unica per tutte le piattaforme.
+- `assets/icons/scriptagher_logo.svg`: alias dello stesso logo utilizzato per l'inclusione tramite `pubspec.yaml` e per i tool di packaging desktop/mobile.
+- `web/icons/app-icon.svg` e `web/favicon.svg`: versioni web e favicon generate dallo stesso SVG per garantire coerenza tra build browser e PWA.
+
+Per produrre le varianti raster richieste dagli store (Android/iOS) e dai pacchetti desktop (Windows/Linux/macOS) esegui lo script
+[`tool/generate_app_icons.py`](tool/generate_app_icons.py). Il comando crea PNG multipiattaforma e un file ICO all'interno di
+`assets/icons/generated/` e copia automaticamente le icone PWA (`icon-192.png`, `icon-512.png`) in `web/icons/`. Questi asset generati non
+sono versionati nel repository: esegui lo script localmente (dopo aver installato `cairosvg` e `Pillow`) per prepararli prima di un
+packaging o di una release.
 
 ## Bot per Scriptagher
 
