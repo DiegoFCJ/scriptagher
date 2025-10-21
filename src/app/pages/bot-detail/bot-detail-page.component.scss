@@ -1,4 +1,11 @@
+:host {
+  display: flex;
+  flex-direction: column;
+  min-height: 100vh;
+}
+
 .bot-detail-page {
+  flex: 1 0 auto;
   width: min(960px, 100% - 3rem);
   margin: clamp(2.5rem, 6vw, 4rem) auto clamp(3rem, 7vw, 5rem);
   display: flex;
