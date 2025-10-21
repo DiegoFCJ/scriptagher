@@ -6,6 +6,7 @@ import 'dart:math' as math;
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:http/http.dart' as http;
+import 'package:permission_handler/permission_handler.dart';
 import 'package:path_provider/path_provider.dart';
 import 'package:scriptagher/shared/config/api_base_url.dart';
 
@@ -15,6 +16,7 @@ import '../../services/bot_download_service.dart';
 import '../../services/bot_get_service.dart';
 import '../../services/browser_runner/browser_bot_runner.dart';
 import '../../services/browser_runner/browser_runner_models.dart';
+import '../components/feedback_banner.dart';
 
 class BotDetailView extends StatefulWidget {
   const BotDetailView(
@@ -152,7 +154,8 @@ class _BotDetailViewState extends State<BotDetailView> {
       downloaded = await _fetchDownloadedBot();
     } catch (e) {
       if (mounted) {
-        _showSnackBar('Errore durante il controllo dei bot scaricati: $e');
+        _showSnackBar('Errore durante il controllo dei bot scaricati: $e',
+            isError: true);
       }
     }
 
@@ -161,7 +164,8 @@ class _BotDetailViewState extends State<BotDetailView> {
         remote = await _fetchRemoteBot();
       } catch (e) {
         if (mounted) {
-          _showSnackBar('Errore durante il recupero dei metadati remoti: $e');
+          _showSnackBar('Errore durante il recupero dei metadati remoti: $e',
+              isError: true);
         }
       }
     }
@@ -261,7 +265,7 @@ class _BotDetailViewState extends State<BotDetailView> {
       _showSnackBar('Bot scaricato correttamente.');
     } catch (e) {
       if (mounted) {
-        _showSnackBar('Errore durante il download: $e');
+        _showSnackBar('Errore durante il download: $e', isError: true);
       }
     } finally {
       if (mounted) {
@@ -328,7 +332,8 @@ class _BotDetailViewState extends State<BotDetailView> {
       deleted = true;
     } catch (e) {
       if (mounted) {
-        _showSnackBar('Errore durante l\'eliminazione: $e');
+        _showSnackBar('Errore durante l\'eliminazione: $e',
+            isError: true);
       }
     } finally {
       if (mounted) {
@@ -366,7 +371,8 @@ class _BotDetailViewState extends State<BotDetailView> {
 
     final sourcePath = bot.sourcePath;
     if (sourcePath.isEmpty) {
-      _showSnackBar('Percorso della cartella non disponibile.');
+      _showSnackBar('Percorso della cartella non disponibile.',
+          isError: true);
       return;
     }
 
@@ -379,7 +385,8 @@ class _BotDetailViewState extends State<BotDetailView> {
     }
 
     if (!await directory.exists()) {
-      _showSnackBar('Cartella non trovata: ${directory.path}');
+      _showSnackBar('Cartella non trovata: ${directory.path}',
+          isError: true);
       return;
     }
 
@@ -397,7 +404,9 @@ class _BotDetailViewState extends State<BotDetailView> {
         command = 'xdg-open';
         args = [directory.path];
       } else {
-        _showSnackBar('Sistema operativo non supportato per questa operazione.');
+        _showSnackBar(
+            'Sistema operativo non supportato per questa operazione.',
+            isError: true);
         return;
       }
 
@@ -411,7 +420,8 @@ class _BotDetailViewState extends State<BotDetailView> {
         throw Exception(errorMessage);
       }
     } catch (e) {
-      _showSnackBar('Errore durante l\'apertura della cartella: $e');
+      _showSnackBar('Errore durante l\'apertura della cartella: $e',
+          isError: true);
       return;
     }
 
@@ -451,10 +461,13 @@ class _BotDetailViewState extends State<BotDetailView> {
         });
       } else {
         _showSnackBar(
-            'Impossibile recuperare i log (codice ${response.statusCode}).');
+          'Impossibile recuperare i log (codice ${response.statusCode}).',
+          isError: true,
+        );
       }
     } catch (e) {
-      _showSnackBar('Errore durante il caricamento dei log: $e');
+      _showSnackBar('Errore durante il caricamento dei log: $e',
+          isError: true);
     } finally {
       if (mounted) {
         setState(() {
@@ -790,7 +803,7 @@ class _BotDetailViewState extends State<BotDetailView> {
             }
           } catch (_) {}
         }
-        _showSnackBar(message);
+        _showSnackBar(message, isError: true);
         return;
       }
 
@@ -823,7 +836,8 @@ class _BotDetailViewState extends State<BotDetailView> {
         _showSnackBar('Segnale "$action" inviato al processo.');
       }
     } catch (e) {
-      _showSnackBar('Errore durante l\'invio del segnale: $e');
+      _showSnackBar('Errore durante l\'invio del segnale: $e',
+          isError: true);
     } finally {
       if (mounted) {
         setState(() {
@@ -1123,10 +1137,12 @@ class _BotDetailViewState extends State<BotDetailView> {
         );
       } else {
         _showSnackBar(
-            'Impossibile aprire il log (codice ${response.statusCode}).');
+          'Impossibile aprire il log (codice ${response.statusCode}).',
+          isError: true,
+        );
       }
     } catch (e) {
-      _showSnackBar('Errore durante l\'apertura del log: $e');
+      _showSnackBar('Errore durante l\'apertura del log: $e', isError: true);
     }
   }
 
@@ -1139,10 +1155,15 @@ class _BotDetailViewState extends State<BotDetailView> {
     final uri = Uri.parse(
         '${_baseUrl!}/bots/${Uri.encodeComponent(widget.bot.language)}/${Uri.encodeComponent(widget.bot.botName)}/logs/${Uri.encodeComponent(log.runId)}');
     try {
+      await _requireStoragePermission(
+        'Per esportare il log è necessario consentire l\'accesso all\'archiviazione.',
+      );
       final response = await http.get(uri);
       if (response.statusCode != 200) {
         _showSnackBar(
-            'Impossibile esportare il log (codice ${response.statusCode}).');
+          'Impossibile esportare il log (codice ${response.statusCode}).',
+          isError: true,
+        );
         return;
       }
 
@@ -1150,15 +1171,46 @@ class _BotDetailViewState extends State<BotDetailView> {
       final file = File('${directory.path}/${log.logFileName}');
       await file.writeAsBytes(response.bodyBytes);
       _showSnackBar('Log salvato in ${file.path}');
+    } on _StoragePermissionDeniedException {
+      // Feedback già fornito.
     } catch (e) {
-      _showSnackBar('Errore durante l\'esportazione del log: $e');
+      _showSnackBar('Errore durante l\'esportazione del log: $e',
+          isError: true);
     }
   }
 
-  void _showSnackBar(String message) {
+  Future<void> _requireStoragePermission(String failureMessage) async {
+    if (!mounted) {
+      throw const _StoragePermissionDeniedException();
+    }
+
+    if (!Platform.isAndroid) {
+      return;
+    }
+
+    var status = await Permission.storage.status;
+    if (status.isGranted || status.isLimited) {
+      return;
+    }
+
+    status = await Permission.storage.request();
+    if (status.isGranted || status.isLimited) {
+      return;
+    }
+
+    final message = status.isPermanentlyDenied
+        ? '$failureMessage Abilita l\'autorizzazione dalle impostazioni di sistema.'
+        : failureMessage;
+    _showSnackBar(message, isError: true);
+    throw const _StoragePermissionDeniedException();
+  }
+
+  void _showSnackBar(String message, {bool isError = false}) {
     if (!mounted) return;
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(content: Text(message)),
+    FeedbackBanner.show(
+      context,
+      message: message,
+      isError: isError,
     );
   }
 
@@ -1885,6 +1937,10 @@ class _BotDetailViewState extends State<BotDetailView> {
       },
     );
   }
+}
+
+class _StoragePermissionDeniedException implements Exception {
+  const _StoragePermissionDeniedException();
 }
 
 class _ConsoleEntry {
