@@ -1,0 +1,97 @@
+{
+  "generated_at": "2025-10-21T14:48:18Z",
+  "installers": [
+    {
+      "name": "Scriptagher for Android (ARM64-v8a · Debug Build)",
+      "platform": "Android",
+      "version": "1.0.0+1",
+      "file_name": "scriptagher-arm64-v8a-debug.apk",
+      "file_size": 82088280,
+      "sha256": "747d34abf1203dac7fd1bd961fb258bd2d1b66bc2c0ef34d1236dcc2fef30ac4",
+      "download_url": "https://DiegoFCJ.github.io/scriptagher/installers/android/scriptagher-arm64-v8a-debug.apk",
+      "format": "APK",
+      "last_updated": "2025-10-21T14:48:18Z",
+      "architecture": "ARM64-v8a",
+      "build_variant": "Debug"
+    },
+    {
+      "name": "Scriptagher for Android (ARMv7 · Debug Build)",
+      "platform": "Android",
+      "version": "1.0.0+1",
+      "file_name": "scriptagher-armeabi-v7a-debug.apk",
+      "file_size": 61824328,
+      "sha256": "f7965149efa24ec97d1a2efe150b92f3d0bc6ea0ac1e808340c36954a2c2e95e",
+      "download_url": "https://DiegoFCJ.github.io/scriptagher/installers/android/scriptagher-armeabi-v7a-debug.apk",
+      "format": "APK",
+      "last_updated": "2025-10-21T14:48:18Z",
+      "architecture": "ARMv7",
+      "build_variant": "Debug"
+    },
+    {
+      "name": "Scriptagher for Android (x86_64 · Debug Build)",
+      "platform": "Android",
+      "version": "1.0.0+1",
+      "file_name": "scriptagher-x86_64-debug.apk",
+      "file_size": 68376686,
+      "sha256": "8ce910780d0f29f9ad32f161f2c4a2fa2cebe5853dd9535c5c40ce6495f19378",
+      "download_url": "https://DiegoFCJ.github.io/scriptagher/installers/android/scriptagher-x86_64-debug.apk",
+      "format": "APK",
+      "last_updated": "2025-10-21T14:48:18Z",
+      "architecture": "x86_64",
+      "build_variant": "Debug"
+    },
+    {
+      "name": "Scriptagher for iOS (Release Build)",
+      "platform": "iOS",
+      "version": "1.0.0+1",
+      "file_name": "Scriptagher-ios.ipa",
+      "file_size": 8376730,
+      "sha256": "76de18da6a70a3759f0471e5eccb8935afa87da713b2ad8cb794dfcc53ee9869",
+      "download_url": "https://DiegoFCJ.github.io/scriptagher/installers/ios/Scriptagher-ios.ipa",
+      "format": "IPA",
+      "last_updated": "2025-10-21T14:48:18Z",
+      "build_variant": "Release",
+      "distribution": "IPA Package"
+    },
+    {
+      "name": "Scriptagher for Linux (x86_64 · Release Build)",
+      "platform": "Linux",
+      "version": "1.0.0+1",
+      "file_name": "scriptagher-linux-x64.tar.gz",
+      "file_size": 19269995,
+      "sha256": "1556727488864419bceb06eacafe756f9156babade2bf83f9c291a31727f1554",
+      "download_url": "https://DiegoFCJ.github.io/scriptagher/installers/linux/scriptagher-linux-x64.tar.gz",
+      "format": "TAR.GZ",
+      "last_updated": "2025-10-21T14:48:18Z",
+      "architecture": "x86_64",
+      "build_variant": "Release"
+    },
+    {
+      "name": "Scriptagher for macOS (Release Build)",
+      "platform": "macOS",
+      "version": "1.0.0+1",
+      "file_name": "Scriptagher-macos.dmg",
+      "file_size": 21536359,
+      "sha256": "dd2c05cf2cc9e7ee9a1f4319457e5c455760275eba8efb019ca7b0ea97c329e0",
+      "download_url": "https://DiegoFCJ.github.io/scriptagher/installers/macos/Scriptagher-macos.dmg",
+      "format": "DMG",
+      "last_updated": "2025-10-21T14:48:18Z",
+      "build_variant": "Release",
+      "distribution": "Disk Image"
+    },
+    {
+      "name": "Scriptagher for Windows (64-bit Installer)",
+      "platform": "Windows",
+      "version": "1.0.0+1",
+      "file_name": "ScriptagherSetup.exe",
+      "file_size": 10874342,
+      "sha256": "b8842b5b5bbd0c97c33e70b080b3f99ecd9ea54d2d45f7758aa2236d6c9137da",
+      "download_url": "https://DiegoFCJ.github.io/scriptagher/installers/windows/ScriptagherSetup.exe",
+      "format": "EXE",
+      "last_updated": "2025-10-21T14:48:18Z",
+      "architecture": "x86_64",
+      "build_variant": "Release",
+      "distribution": "Installer"
+    }
+  ]
+}
