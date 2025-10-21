@@ -1,27 +1,34 @@
 <header [class.pdf-page]="isPdfToTxtPage">
   <div class="header-content">
     <div class="header-toolbar">
-      <nav class="header-nav" aria-label="Primary navigation">
-        <a
-          routerLink="/"
-          routerLinkActive="is-active"
-          [routerLinkActiveOptions]="{ exact: true }"
-        >
-          {{ 'navigation.home' | translate }}
-        </a>
-        <a routerLink="/bots" routerLinkActive="is-active">
-          {{ 'navigation.bots' | translate }}
-        </a>
-        <a routerLink="/installers" routerLinkActive="is-active">
-          {{ 'navigation.installers' | translate }}
-        </a>
-      </nav>
-      <app-language-switcher></app-language-switcher>
+      <a class="header-logo" routerLink="/">
+        <img src="assets/branding/logo.svg" alt="{{ 'app.name' | translate }}" />
+      </a>
+      <div class="header-controls">
+        <nav class="header-nav" aria-label="Primary navigation">
+          <a
+            routerLink="/"
+            routerLinkActive="is-active"
+            [routerLinkActiveOptions]="{ exact: true }"
+          >
+            {{ 'navigation.home' | translate }}
+          </a>
+          <a routerLink="/bots" routerLinkActive="is-active">
+            {{ 'navigation.bots' | translate }}
+          </a>
+          <a routerLink="/installers" routerLinkActive="is-active">
+            {{ 'navigation.installers' | translate }}
+          </a>
+        </nav>
+        <app-language-switcher></app-language-switcher>
+      </div>
     </div>
 
     <div *ngIf="isPdfToTxtPage; else normalHeader" class="pdf-header">
       <div class="pdf-copy">
-        <span class="app-name">{{ 'app.name' | translate }}</span>
+        <span class="pdf-logo">
+          <img src="assets/branding/logo.svg" alt="{{ 'app.name' | translate }}" />
+        </span>
         <span class="current-page">{{ 'header.pdf.currentPage' | translate }}</span>
       </div>
       <button class="btn btn-secondary" (click)="navigateHome()">
