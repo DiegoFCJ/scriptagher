@@ -3,14 +3,15 @@ import 'package:flutter/material.dart';
 
 @immutable
 class AppNavigationEntry {
-  const AppNavigationEntry({
+  AppNavigationEntry({
     required this.label,
     this.route,
     this.icon,
     this.selectedIcon,
-    this.children = const <AppNavigationEntry>[],
+    List<AppNavigationEntry> children = const <AppNavigationEntry>[],
     this.includeInPrimaryNavigation = false,
-  }) : assert(
+  }) : children = List<AppNavigationEntry>.unmodifiable(children),
+        assert(
           route != null || children.isNotEmpty,
           'A navigation entry must define a route or children.',
         );

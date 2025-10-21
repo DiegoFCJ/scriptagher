@@ -189,7 +189,7 @@ class _NavigationOverflowButton extends StatelessWidget {
               },
               menuChildren: [
                 ...buildNavigationMenuChildren(context),
-                const MenuDivider(),
+                MenuDivider(),
                 ..._buildThemeMenuItems(context, themeController),
               ],
             ),
