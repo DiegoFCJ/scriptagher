@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:scriptagher/shared/theme/theme_controller.dart';
 
-import 'navigation_menu.dart';
+import '../../navigation/app_navigation.dart';
 
 class NavigationSidebar extends StatelessWidget {
   const NavigationSidebar({super.key});
@@ -140,7 +140,7 @@ class _NavigationTile extends StatelessWidget {
     this.depth = 0,
   });
 
-  final NavigationMenuEntry entry;
+  final AppNavigationEntry entry;
   final String? currentRoute;
   final int depth;
 
@@ -169,7 +169,7 @@ class _NavigationLeafTile extends StatelessWidget {
     required this.depth,
   });
 
-  final NavigationMenuEntry entry;
+  final AppNavigationEntry entry;
   final bool isSelected;
   final int depth;
 
@@ -218,7 +218,7 @@ class _NavigationBranchTile extends StatelessWidget {
     required this.depth,
   });
 
-  final NavigationMenuEntry entry;
+  final AppNavigationEntry entry;
   final String? currentRoute;
   final int depth;
 
@@ -340,7 +340,7 @@ String _labelForTheme(AppTheme theme) {
   }
 }
 
-bool _entryContainsRoute(NavigationMenuEntry entry, String route) {
+bool _entryContainsRoute(AppNavigationEntry entry, String route) {
   if (entry.route == route) {
     return true;
   }

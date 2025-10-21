@@ -211,7 +211,11 @@ class _BotListState extends State<BotList>
     );
   }
 
-  Widget _buildCategoryView(BotCategory category) {
+  Widget _buildCategoryView(
+    BotCategory category,
+    EdgeInsets listPadding,
+    EdgeInsetsGeometry cardMargin,
+  ) {
     return FutureBuilder<Map<String, List<Bot>>>(
       future: _categoryFutures[category],
       builder: (context, snapshot) {
@@ -237,17 +241,19 @@ class _BotListState extends State<BotList>
         }
 
         return ListView(
-          padding: const EdgeInsets.symmetric(horizontal: 16.0, vertical: 8.0),
+          padding: listPadding,
           children: filteredData.entries.map((entry) {
             final language = entry.key;
             final bots = entry.value;
 
             return ExpansionTile(
               title: Text(language),
+              childrenPadding: const EdgeInsets.only(bottom: 4),
               children: bots
                   .map(
                     (bot) => BotCard(
                       bot: bot,
+                      margin: cardMargin,
                       onTap: () {
                         Navigator.push(
                           context,
@@ -268,30 +274,60 @@ class _BotListState extends State<BotList>
 
   @override
   Widget build(BuildContext context) {
+    final mediaQuery = MediaQuery.of(context);
+    final double width = mediaQuery.size.width;
+    final bool isTablet = width < 900;
+    final bool isPhone = width < 600;
+
+    final EdgeInsets listPadding = EdgeInsets.symmetric(
+      horizontal: isPhone ? 4 : (isTablet ? 8 : 16),
+      vertical: isPhone ? 4 : 8,
+    );
+    final EdgeInsetsGeometry cardMargin = EdgeInsets.fromLTRB(
+      isPhone ? 4 : (isTablet ? 8 : 16),
+      0,
+      isPhone ? 4 : (isTablet ? 8 : 16),
+      isPhone ? 10 : (isTablet ? 12 : 16),
+    );
+    final EdgeInsets contentCardMargin = EdgeInsets.fromLTRB(
+      isPhone ? 8 : (isTablet ? 12 : 16),
+      0,
+      isPhone ? 8 : (isTablet ? 12 : 16),
+      isPhone ? 12 : (isTablet ? 18 : 24),
+    );
+    final EdgeInsets filterPadding = EdgeInsets.fromLTRB(
+      isPhone ? 12 : (isTablet ? 16 : 24),
+      isPhone ? 12 : 16,
+      isPhone ? 12 : (isTablet ? 16 : 24),
+      isPhone ? 12 : 16,
+    );
+    final EdgeInsets backendPadding = EdgeInsets.fromLTRB(
+      isPhone ? 12 : (isTablet ? 16 : 24),
+      16,
+      isPhone ? 12 : (isTablet ? 16 : 24),
+      isPhone ? 8 : 12,
+    );
+    final BorderRadius searchRadius = BorderRadius.circular(isPhone ? 16 : 20);
+    final EdgeInsets searchInnerPadding = EdgeInsets.symmetric(
+      horizontal: isPhone ? 10 : 12,
+      vertical: isPhone ? 6 : 8,
+    );
+    final bool compactTabs = width < 720;
+
     return Scaffold(
       appBar: AppBar(
         title: const Text('Gestione Bot'),
+        centerTitle: isPhone,
         actions: [
           if (_selectedCategory == BotCategory.online)
             Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 8.0),
-              child: FilledButton.tonalIcon(
-                onPressed:
-                    _isRefreshingOnline ? null : () => _refreshOnlineBots(),
-                icon: _isRefreshingOnline
-                    ? const SizedBox(
-                        width: 16,
-                        height: 16,
-                        child: CircularProgressIndicator(strokeWidth: 2),
-                      )
-                    : const Icon(Icons.refresh_rounded),
-                label: Text(
-                    _isRefreshingOnline ? 'Aggiornamento...' : 'Aggiorna'),
-              ),
+              padding: EdgeInsets.symmetric(horizontal: isPhone ? 4 : 8),
+              child: _buildRefreshAction(compact: isPhone),
             ),
         ],
         bottom: TabBar(
           controller: _tabController,
+          isScrollable: compactTabs,
           tabs: BotCategory.values
               .map((category) => Tab(text: _labelForCategory(category)))
               .toList(),
@@ -304,25 +340,22 @@ class _BotListState extends State<BotList>
           children: [
             if (!_hasBackend) ...[
               Padding(
-                padding:
-                    const EdgeInsets.only(left: 16, right: 16, top: 16, bottom: 8),
+                padding: backendPadding,
                 child: _buildBackendBanner(context),
               ),
             ],
             Padding(
-              padding:
-                  const EdgeInsets.symmetric(horizontal: 16.0, vertical: 16.0),
+              padding: filterPadding,
               child: DecoratedBox(
                 decoration: BoxDecoration(
                   color: Theme.of(context)
                       .colorScheme
                       .surfaceVariant
                       .withOpacity(0.6),
-                  borderRadius: BorderRadius.circular(20),
+                  borderRadius: searchRadius,
                 ),
                 child: Padding(
-                  padding:
-                      const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+                  padding: searchInnerPadding,
                   child: SearchView(
                     onFilterChanged: _handleFilterChanged,
                     hintText:
@@ -333,15 +366,21 @@ class _BotListState extends State<BotList>
             ),
             Expanded(
               child: Card(
-                margin: const EdgeInsets.fromLTRB(16, 0, 16, 24),
+                margin: contentCardMargin,
                 shape: RoundedRectangleBorder(
-                  borderRadius: BorderRadius.circular(24),
+                  borderRadius: BorderRadius.circular(isPhone ? 20 : 24),
                 ),
                 clipBehavior: Clip.antiAlias,
                 child: TabBarView(
                   controller: _tabController,
                   children: BotCategory.values
-                      .map(_buildCategoryView)
+                      .map(
+                        (category) => _buildCategoryView(
+                          category,
+                          listPadding,
+                          cardMargin,
+                        ),
+                      )
                       .toList(growable: false),
                 ),
               ),
@@ -349,26 +388,85 @@ class _BotListState extends State<BotList>
           ],
         ),
       ),
-      floatingActionButton: _selectedCategory == BotCategory.local
-          ? FloatingActionButton.extended(
-              onPressed: (_isUploading || _botUploadService == null)
-                  ? null
-                  : _showUploadOptions,
-              icon: AnimatedSwitcher(
-                duration: const Duration(milliseconds: 200),
-                child: _isUploading
-                    ? const SizedBox(
-                        key: ValueKey('progress'),
-                        width: 20,
-                        height: 20,
-                        child: CircularProgressIndicator(strokeWidth: 2),
-                      )
-                    : const Icon(Icons.upload_file_rounded,
-                        key: ValueKey('icon')),
+      floatingActionButton: _buildUploadFab(compact: isPhone),
+    );
+  }
+
+  Widget _buildRefreshAction({required bool compact}) {
+    if (compact) {
+      return IconButton(
+        tooltip: _isRefreshingOnline ? 'Aggiornamento...' : 'Aggiorna catalogo',
+        onPressed: _isRefreshingOnline ? null : _refreshOnlineBots,
+        icon: AnimatedSwitcher(
+          duration: const Duration(milliseconds: 200),
+          child: _isRefreshingOnline
+              ? const SizedBox(
+                  key: ValueKey('progress'),
+                  width: 20,
+                  height: 20,
+                  child: CircularProgressIndicator(strokeWidth: 2),
+                )
+              : const Icon(
+                  Icons.refresh_rounded,
+                  key: ValueKey('icon'),
+                ),
+        ),
+      );
+    }
+
+    return FilledButton.tonalIcon(
+      onPressed: _isRefreshingOnline ? null : _refreshOnlineBots,
+      icon: AnimatedSwitcher(
+        duration: const Duration(milliseconds: 200),
+        child: _isRefreshingOnline
+            ? const SizedBox(
+                key: ValueKey('progress'),
+                width: 16,
+                height: 16,
+                child: CircularProgressIndicator(strokeWidth: 2),
+              )
+            : const Icon(
+                Icons.refresh_rounded,
+                key: ValueKey('icon'),
               ),
-              label: Text(_isUploading ? 'Caricamento...' : 'Importa bot'),
+      ),
+      label: Text(_isRefreshingOnline ? 'Aggiornamento...' : 'Aggiorna'),
+    );
+  }
+
+  Widget? _buildUploadFab({required bool compact}) {
+    if (_selectedCategory != BotCategory.local) {
+      return null;
+    }
+
+    final bool disabled = _isUploading || _botUploadService == null;
+    final Widget icon = AnimatedSwitcher(
+      duration: const Duration(milliseconds: 200),
+      child: _isUploading
+          ? const SizedBox(
+              key: ValueKey('progress'),
+              width: 20,
+              height: 20,
+              child: CircularProgressIndicator(strokeWidth: 2),
             )
-          : null,
+          : const Icon(
+              Icons.upload_file_rounded,
+              key: ValueKey('icon'),
+            ),
+    );
+
+    if (compact) {
+      return FloatingActionButton(
+        onPressed: disabled ? null : _showUploadOptions,
+        tooltip: _isUploading ? 'Caricamento...' : 'Importa bot',
+        child: icon,
+      );
+    }
+
+    return FloatingActionButton.extended(
+      onPressed: disabled ? null : _showUploadOptions,
+      icon: icon,
+      label: Text(_isUploading ? 'Caricamento...' : 'Importa bot'),
     );
   }
 
@@ -549,7 +647,7 @@ class _BotListState extends State<BotList>
   Future<void> _performUpload(
       Stream<List<int>> stream, int length, String filename) async {
     if (_botUploadService == null) {
-      _showSnackBar(
+      _showFeedback(
         'L\'importazione è disponibile solo con un backend configurato (--dart-define=API_BASE_URL=<url>).',
         isError: true,
       );
