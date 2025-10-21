@@ -1,0 +1,207 @@
+{
+  "app": {
+    "name": "Scriptagher"
+  },
+  "languages": {
+    "it": {
+      "label": "Italiano",
+      "short": "IT"
+    },
+    "en": {
+      "label": "Inglés",
+      "short": "EN"
+    },
+    "no": {
+      "label": "Noruego",
+      "short": "NO"
+    },
+    "de": {
+      "label": "Alemán",
+      "short": "DE"
+    },
+    "ru": {
+      "label": "Ruso",
+      "short": "RU"
+    },
+    "es": {
+      "label": "Español",
+      "short": "ES"
+    },
+    "python": {
+      "label": "Python",
+      "short": "PY"
+    }
+  },
+  "languageSwitcher": {
+    "label": "Idioma"
+  },
+  "header": {
+    "pdf": {
+      "currentPage": "PDF a Txt",
+      "home": "Inicio"
+    },
+    "hero": {
+      "eyebrow": "Un arsenal de automatizaciones creativas",
+      "title": "Biblioteca de Bots Scriptagher",
+      "description": "Explora una colección seleccionada de bots multilingües, diseñados para una experiencia inmersiva y atractiva.",
+      "cta": "Explorar bots"
+    }
+  },
+  "home": {
+    "intro": {
+      "title": "El centro de automatización de Scriptagher",
+      "lead": "Descubre bots listos para usar e instaladores seleccionados para la comunidad.",
+      "primaryCta": "Ver todos los bots",
+      "secondaryCta": "Descargar instaladores"
+    },
+    "features": {
+      "title": "Qué hace diferentes a nuestros bots",
+      "automation": {
+        "title": "Automatización que encaja con tu flujo",
+        "description": "Activa bots para soporte, comercio electrónico y más sin rehacer tu infraestructura."
+      },
+      "localization": {
+        "title": "Diseñados para equipos multilingües",
+        "description": "Cambia de idioma al instante con traducciones revisadas para que todos sigan alineados."
+      },
+      "trust": {
+        "title": "Transparencia y verificación",
+        "description": "Cada versión incluye sumas de verificación, licencias y enlaces al código para auditar."
+      }
+    },
+    "installers": {
+      "title": "Descarga un instalador y comienza",
+      "description": "Obtén paquetes firmados con todo lo necesario para el primer arranque.",
+      "viewAll": "Ver todos los instaladores"
+    }
+  },
+  "botSection": {
+    "languageBadge": "{{language}}",
+    "title": "Bots en {{language}}",
+    "downloadErrorAlert": "No se pudo descargar el bot. Inténtalo de nuevo.",
+    "downloadErrorLog": "Error al descargar el bot"
+  },
+  "botCard": {
+    "noDescription": "No hay descripción disponible",
+    "startCommand": "Comando de inicio",
+    "noStartCommand": "No se proporcionaron comandos de inicio",
+    "pdfCta": "Ir al convertidor PDF a Txt",
+    "viewSource": "Ver código",
+    "download": "Descargar",
+    "navigationError": "Error al navegar a la página PDF a Txt"
+  },
+  "botList": {
+    "pageTitle": "Todos los bots de automatización",
+    "pageDescription": "Recorre cada bot que mantenemos, organizado por idioma y listo para descargar.",
+    "errorTitle": "Ups, algo salió mal.",
+    "errorDefault": "No hay bots disponibles.",
+    "loadError": "No se pudo cargar la lista de bots.",
+    "cardLoadError": "Error al cargar los detalles",
+    "installersLoadError": "No se pudo cargar la lista de instaladores.",
+    "noBotsAvailable": "Todavía no hay bots disponibles en este idioma."
+  },
+  "installerSection": {
+    "title": "Instaladores",
+    "subtitle": "Paquetes listos para usar con sumas de verificación verificables, notas de lanzamiento y licencias siempre visibles.",
+    "download": "Descargar",
+    "sizeLabel": "Tamaño",
+    "licenseLabel": "Licencia",
+    "maintainerLabel": "Responsable",
+    "checksumLabel": "Suma de verificación",
+    "releaseNotesLabel": "Notas de lanzamiento",
+    "releaseNotesAction": "Abrir",
+    "sourceLabel": "Origen"
+  },
+  "pdfToTxt": {
+    "intro": {
+      "eyebrow": "Utilidad",
+      "title": "Convierte PDF en texto sin complicaciones",
+      "description": "Sube tu PDF y extrae el texto en segundos. Nada se envía a servidores remotos: todo ocurre directamente en tu navegador."
+    },
+    "highlights": {
+      "fast": "Conversión rápida",
+      "privacy": "Privacidad garantizada",
+      "ready": "Texto listo para copiar"
+    },
+    "dropzone": {
+      "badge": "PDF",
+      "title": "Suelta tu PDF aquí",
+      "subtitle": "O haz clic para elegirlo desde tu dispositivo",
+      "button": "Elegir archivo"
+    },
+    "status": {
+      "replaceFile": "Reemplazar archivo",
+      "progressComplete": "Conversión completada ({{total}} páginas)",
+      "progress": "Convirtiendo: página {{current}} de {{total}}",
+      "noText": "No se pudo extraer texto del documento.",
+      "error": "No fue posible leer el PDF. Verifica que el archivo no esté protegido e inténtalo más tarde."
+    },
+    "result": {
+      "title": "Texto extraído",
+      "copy": "Copiar todo"
+    },
+    "fallback": {
+      "title": "Ningún PDF seleccionado",
+      "description": "Sube un documento para comenzar. Si la herramienta deja de estar disponible, el botón en la barra superior se ocultará automáticamente para evitar confusiones."
+    },
+    "errors": {
+      "conversion": "Error durante la conversión de PDF",
+      "copy": "No se puede copiar el texto al portapapeles"
+    }
+  },
+  "notFound": {
+    "title": "404 - Página no encontrada",
+    "message": "La página que buscas no existe.",
+    "cta": "Volver al inicio"
+  },
+  "footer": {
+    "copy": "© 2024 Scriptagher · Automatización hecha con cariño",
+    "legal": "Somos makers como tú: revisa las notas de lanzamiento y las licencias antes de usar cualquier bot.",
+    "links": {
+      "portfolio": "Portafolio",
+      "github": "GitHub",
+      "license": "Licencia"
+    },
+    "sections": {
+      "navigation": "Navegación",
+      "resources": "Recursos",
+      "contact": "Contacto"
+    },
+    "brand": "Scriptagher",
+    "tagline": "Passion For Automation",
+    "contact": {
+      "email": "hello@scriptagher.dev",
+      "issues": "Abre una incidencia en GitHub",
+      "availability": "Normalmente respondemos en un par de días."
+    }
+  },
+  "license": {
+    "title": "Licencia del repositorio",
+    "loading": "Cargando la licencia…",
+    "error": "No se pudo cargar el archivo de licencia. Actualiza o inténtalo de nuevo más tarde.",
+    "backToHome": "Volver al inicio"
+  },
+  "navigation": {
+    "home": "Inicio",
+    "bots": "Bots",
+    "installers": "Instaladores"
+  },
+  "installers": {
+    "loading": "Cargando instaladores…",
+    "empty": "No hay instaladores disponibles todavía.",
+    "error": "No pudimos cargar la lista de instaladores."
+  },
+  "botDetail": {
+    "loading": "Cargando detalles del bot…",
+    "backToBots": "Volver a los bots",
+    "download": "Descargar",
+    "viewSource": "Ver código",
+    "noDescription": "Descripción no disponible",
+    "startCommand": "Comando de inicio",
+    "actionsTitle": "Acciones disponibles",
+    "notFound": "No encontramos ese bot.",
+    "loadError": "No pudimos cargar los detalles del bot.",
+    "loadErrorLog": "Error al cargar los detalles del bot",
+    "missingParams": "Faltan datos del bot."
+  }
+}

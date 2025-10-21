@@ -1,0 +1,36 @@
+{
+  "sections": {
+    "python": {
+      "translations": {
+        "it": {
+          "title": "Bot Python",
+          "summary": "Automazioni e utility sviluppate in Python per semplificare i flussi di lavoro."
+        },
+        "en": {
+          "title": "Python Bots",
+          "summary": "Automation and utility bots written in Python to streamline workflows."
+        }
+      },
+      "bots": [
+        {
+          "botName": "Zipper",
+          "path": "Zipper.zip"
+        },
+        {
+          "botName": "facebook-images-remover",
+          "path": "facebook-images-remover.zip"
+        }
+      ]
+    }
+  },
+  "python": [
+    {
+      "botName": "Zipper",
+      "path": "Zipper.zip"
+    },
+    {
+      "botName": "facebook-images-remover",
+      "path": "facebook-images-remover.zip"
+    }
+  ]
+}
