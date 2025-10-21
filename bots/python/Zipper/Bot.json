@@ -1,6 +1,29 @@
 {
-    "botName": "Zipper",
-    "startCommand": "python3 bots/python/Zipper/Zipper.py",
-    "description": "This bot zips a folder into a ZIP archive.",
-    "language": "python"
+  "botName": "Zipper",
+  "startCommand": "python3 bots/python/Zipper/Zipper.py",
+  "description": "This bot zips a folder into a ZIP archive.",
+  "language": "python",
+  "sourceUrl": "https://github.com/DiegoFCJ/scriptagher/tree/gh-pages/bots/python/Zipper",
+  "translations": {
+    "it": {
+      "displayName": "Zipper",
+      "shortDescription": "Comprimi cartelle e file in archivi ZIP con un singolo comando.",
+      "longDescription": "Zipper crea rapidamente archivi ZIP pronti da condividere o salvare, senza dover ricordare opzioni complesse da riga di comando.",
+      "startCommand": "python3 bots/python/Zipper/Zipper.py",
+      "actions": {
+        "download": "Scarica archivio",
+        "viewSource": "Apri sorgente"
+      }
+    },
+    "en": {
+      "displayName": "Zipper",
+      "shortDescription": "Compress folders and files into ZIP archives with a single command.",
+      "longDescription": "Zipper quickly creates shareable ZIP archives without needing to remember complex command-line flags.",
+      "startCommand": "python3 bots/python/Zipper/Zipper.py",
+      "actions": {
+        "download": "Download archive",
+        "viewSource": "View source"
+      }
+    }
+  }
 }
