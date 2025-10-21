@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:scriptagher/shared/theme/theme_controller.dart';
 
+import 'mini_droid_brand.dart';
 import 'navigation_menu.dart';
 
 class WindowTitleBar extends StatelessWidget {
@@ -10,12 +11,24 @@ class WindowTitleBar extends StatelessWidget {
   Widget build(BuildContext context) {
     final colorScheme = Theme.of(context).colorScheme;
     final themeController = ThemeController();
+    final textTheme = Theme.of(context).textTheme;
 
     return Container(
       color: colorScheme.surface,
       padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
       child: Row(
         children: [
+          MiniDroidBrandMark(size: 24),
+          const SizedBox(width: 12),
+          Text(
+            'Scriptagher',
+            style: textTheme.titleMedium?.copyWith(
+              color: colorScheme.onSurface,
+              fontWeight: FontWeight.w600,
+              letterSpacing: 0.2,
+            ),
+          ),
+          const SizedBox(width: 20),
           MenuAnchor(
             alignmentOffset: const Offset(0, 8),
             builder: (context, controller, child) {
