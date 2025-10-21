@@ -26,14 +26,56 @@
     padding: clamp(3rem, 5vw, 4.5rem) clamp(1.5rem, 5vw, 3rem);
   }
 
+  &__header {
+    display: flex;
+    flex-direction: column;
+    gap: clamp(0.75rem, 2vw, 1.25rem);
+    align-items: flex-start;
+    text-align: left;
+  }
+
+  &__headline {
+    margin: 0;
+    font-size: clamp(2rem, 6vw, 3rem);
+    line-height: 1.1;
+    font-weight: 700;
+    letter-spacing: -0.01em;
+    white-space: nowrap;
+    color: #f8fafc;
+  }
+
+  &__headline-link {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.65rem;
+    color: inherit;
+    text-decoration: none;
+    white-space: inherit;
+  }
+
+  &__accent {
+    width: clamp(3rem, 8vw, 3.75rem);
+    height: 0.2rem;
+    border-radius: 999px;
+    background: linear-gradient(90deg, #38bdf8 0%, rgba(56, 189, 248, 0) 100%);
+  }
+
+  &__subtitle {
+    margin: 0;
+    max-width: 45ch;
+    font-size: clamp(1rem, 3.2vw, 1.3rem);
+    line-height: 1.6;
+    color: rgba(226, 232, 240, 0.82);
+  }
+
   &__top {
     display: grid;
     gap: clamp(1.75rem, 4vw, 2.75rem);
     grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
     align-items: stretch;
+    margin-top: clamp(2.25rem, 5vw, 3.5rem);
   }
 
-  &__brand,
   &__group {
     position: relative;
     display: flex;
@@ -45,40 +87,6 @@
     background: rgba(15, 23, 42, 0.55);
     box-shadow: 0 24px 48px rgba(15, 23, 42, 0.35);
     backdrop-filter: blur(18px);
-  }
-
-  &__logo {
-    margin: 0;
-    font-size: clamp(1.6rem, 3vw, 2.3rem);
-    line-height: 1.15;
-    letter-spacing: 0.02em;
-    text-transform: none;
-    overflow-wrap: anywhere;
-  }
-
-  &__logo-link {
-    display: inline-flex;
-    flex-wrap: wrap;
-    align-items: center;
-    gap: 0.65rem;
-    color: #f8fafc;
-    text-decoration: none;
-    font-weight: 700;
-  }
-
-  &__accent {
-    width: 3.5rem;
-    height: 0.2rem;
-    border-radius: 999px;
-    background: linear-gradient(90deg, #38bdf8 0%, rgba(56, 189, 248, 0) 100%);
-  }
-
-  &__tagline {
-    margin: 0;
-    max-width: 32ch;
-    font-size: 0.95rem;
-    line-height: 1.6;
-    color: rgba(226, 232, 240, 0.8);
   }
 
   &__title {
@@ -182,7 +190,28 @@
 
 @media (max-width: 540px) {
   .site-footer {
-    &__brand,
+    &__header {
+      align-items: center;
+      text-align: center;
+    }
+
+    &__headline {
+      font-size: clamp(1.75rem, 9vw, 2.4rem);
+    }
+
+    &__headline-link {
+      justify-content: center;
+    }
+
+    &__accent {
+      margin-left: auto;
+      margin-right: auto;
+    }
+
+    &__subtitle {
+      font-size: clamp(0.95rem, 4vw, 1.1rem);
+    }
+
     &__group {
       padding: 1.5rem;
     }

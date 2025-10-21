@@ -1,16 +1,16 @@
 <footer class="site-footer">
   <div class="site-footer__inner">
-    <div class="site-footer__top">
-      <section class="site-footer__brand">
-        <h2 class="site-footer__logo">
-          <a routerLink="/" class="site-footer__logo-link">
-            {{ 'footer.brand' | translate }}
-          </a>
-        </h2>
-        <span class="site-footer__accent" aria-hidden="true"></span>
-        <p class="site-footer__tagline">{{ 'footer.tagline' | translate }}</p>
-      </section>
+    <header class="site-footer__header">
+      <h2 class="site-footer__headline">
+        <a routerLink="/" class="site-footer__headline-link">
+          {{ 'footer.brand' | translate }}
+        </a>
+      </h2>
+      <span class="site-footer__accent" aria-hidden="true"></span>
+      <p class="site-footer__subtitle">{{ 'footer.tagline' | translate }}</p>
+    </header>
 
+    <div class="site-footer__top">
       <nav class="site-footer__group" aria-labelledby="footer-navigation-heading">
         <h2 id="footer-navigation-heading" class="site-footer__title">
           {{ 'footer.sections.navigation' | translate }}
