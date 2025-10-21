@@ -1,0 +1,13 @@
+{
+  "name": "Scriptagher for Android (ARM64-v8a · Debug Build)",
+  "platform": "Android",
+  "version": "1.0.0+1",
+  "file_name": "scriptagher-arm64-v8a-debug.apk",
+  "file_size": 82088280,
+  "sha256": "747d34abf1203dac7fd1bd961fb258bd2d1b66bc2c0ef34d1236dcc2fef30ac4",
+  "download_url": "https://DiegoFCJ.github.io/scriptagher/installers/android/scriptagher-arm64-v8a-debug.apk",
+  "format": "APK",
+  "last_updated": "2025-10-21T14:48:18Z",
+  "architecture": "ARM64-v8a",
+  "build_variant": "Debug"
+}
