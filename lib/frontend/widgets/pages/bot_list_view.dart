@@ -3,6 +3,7 @@ import 'dart:io';
 import 'package:archive/archive.dart';
 import 'package:file_picker/file_picker.dart';
 import 'package:flutter/material.dart';
+import 'package:permission_handler/permission_handler.dart';
 import 'package:path/path.dart' as p;
 import 'package:path_provider/path_provider.dart';
 
@@ -14,6 +15,7 @@ import '../../services/bot_upload_service.dart';
 import '../components/app_gradient_background.dart';
 import '../components/bot_card_component.dart';
 import '../components/search_component.dart';
+import '../components/feedback_banner.dart';
 import 'bot_detail_view.dart';
 
 class BotList extends StatefulWidget {
@@ -277,9 +279,7 @@ class _BotListState extends State<BotList>
       await _categoryFutures[BotCategory.online];
     } catch (e) {
       if (!mounted) return;
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('Errore durante l\'aggiornamento: $e')),
-      );
+      _showFeedback('Errore durante l\'aggiornamento: $e', isError: true);
     } finally {
       if (!mounted) return;
       setState(() {
@@ -338,7 +338,7 @@ class _BotListState extends State<BotList>
         file.name,
       );
     } catch (e) {
-      _showSnackBar('Errore durante la selezione del file: $e', isError: true);
+      _showFeedback('Errore durante la selezione del file: $e', isError: true);
     }
   }
 
@@ -363,13 +363,18 @@ class _BotListState extends State<BotList>
           await zipFile.delete();
         }
       }
+    } on _StoragePermissionDeniedException {
+      // Il feedback è già stato comunicato all'utente.
     } catch (e) {
-      _showSnackBar('Errore durante la selezione della cartella: $e',
+      _showFeedback('Errore durante la selezione della cartella: $e',
           isError: true);
     }
   }
 
   Future<File> _zipDirectory(String directoryPath) async {
+    await _requireStoragePermission(
+      'Per comprimere la cartella è necessario consentire l\'accesso all\'archiviazione.',
+    );
     final directory = Directory(directoryPath);
     if (!await directory.exists()) {
       throw Exception('La cartella selezionata non esiste più.');
@@ -396,6 +401,32 @@ class _BotListState extends State<BotList>
     final zipFile = File(zipPath);
     await zipFile.writeAsBytes(encoded, flush: true);
     return zipFile;
+  }
+
+  Future<void> _requireStoragePermission(String failureMessage) async {
+    if (!mounted) {
+      throw const _StoragePermissionDeniedException();
+    }
+
+    if (!Platform.isAndroid) {
+      return;
+    }
+
+    var status = await Permission.storage.status;
+    if (status.isGranted || status.isLimited) {
+      return;
+    }
+
+    status = await Permission.storage.request();
+    if (status.isGranted || status.isLimited) {
+      return;
+    }
+
+    final message = status.isPermanentlyDenied
+        ? '$failureMessage Abilita l\'autorizzazione dalle impostazioni di sistema.'
+        : failureMessage;
+    _showFeedback(message, isError: true);
+    throw const _StoragePermissionDeniedException();
   }
 
   Stream<List<int>> _streamFromPlatformFile(PlatformFile file) {
@@ -426,10 +457,10 @@ class _BotListState extends State<BotList>
 
       if (!mounted) return;
 
-      _showSnackBar('Bot "${bot.botName}" importato con successo.');
+      _showFeedback('Bot "${bot.botName}" importato con successo.');
       _refreshCategory(BotCategory.local);
     } catch (e) {
-      _showSnackBar('Errore durante il caricamento: $e', isError: true);
+      _showFeedback('Errore durante il caricamento: $e', isError: true);
     } finally {
       if (mounted) {
         setState(() {
@@ -455,13 +486,16 @@ class _BotListState extends State<BotList>
     });
   }
 
-  void _showSnackBar(String message, {bool isError = false}) {
+  void _showFeedback(String message, {bool isError = false}) {
     if (!mounted) return;
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(
-        content: Text(message),
-        backgroundColor: isError ? Theme.of(context).colorScheme.error : null,
-      ),
+    FeedbackBanner.show(
+      context,
+      message: message,
+      isError: isError,
     );
   }
+}
+
+class _StoragePermissionDeniedException implements Exception {
+  const _StoragePermissionDeniedException();
 }
