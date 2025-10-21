@@ -6,12 +6,11 @@ class AppNavigationEntry {
     required this.label,
     required this.icon,
     this.route,
-    List<AppNavigationEntry> children = const <AppNavigationEntry>[],
-  })  : assert(
+    this.children = const <AppNavigationEntry>[],
+  }) : assert(
           route != null || children.isNotEmpty,
           'A navigation entry must have either a route or children.',
-        ),
-        children = List.unmodifiable(children);
+        );
 
   final String label;
   final IconData icon;
