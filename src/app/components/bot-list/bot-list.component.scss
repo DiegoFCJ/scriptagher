@@ -1,8 +1,11 @@
 :host {
-  display: block;
+  display: flex;
+  flex-direction: column;
+  min-height: 100vh;
 }
 
 main.bot-list {
+  flex: 1 0 auto;
   position: relative;
   padding-bottom: clamp(3rem, 8vw, 5rem);
   display: flex;
