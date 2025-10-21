@@ -68,7 +68,7 @@ Il server backend Shelf esposto su `http://localhost:8080` gestisce automaticame
 
 ### Configurare un endpoint API remoto
 
-Per le build non desktop (ad esempio Chrome o dispositivi mobili) l'app utilizza una variabile di compilazione `API_BASE_URL` per determinare l'endpoint dell'API. Se non viene fornita, viene usato automaticamente l'`origin` della pagina web oppure `http://localhost:8080` sulle piattaforme desktop. Per puntare a un backend remoto, passa il valore desiderato tramite `--dart-define` al momento dell'esecuzione:
+Per le build non desktop (ad esempio Chrome o dispositivi mobili) l'app utilizza una variabile di compilazione `API_BASE_URL` per determinare l'endpoint dell'API. Senza questo valore le azioni di download, upload ed esecuzione vengono disabilitate (sulle build web viene mostrata solo una modalità anteprima con i metadati pubblicati su GitHub Pages), mentre sulle piattaforme desktop viene usato automaticamente `http://localhost:8080`. Per puntare a un backend remoto, passa il valore desiderato tramite `--dart-define` al momento dell'esecuzione:
 
 ```sh
 flutter run -d chrome --dart-define=API_BASE_URL=https://your-host.example
