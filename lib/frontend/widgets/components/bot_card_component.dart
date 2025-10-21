@@ -4,8 +4,14 @@ import '../../models/bot.dart';
 class BotCard extends StatelessWidget {
   final Bot bot;
   final VoidCallback onTap;
+  final EdgeInsetsGeometry? margin;
 
-  const BotCard({super.key, required this.bot, required this.onTap});
+  const BotCard({
+    super.key,
+    required this.bot,
+    required this.onTap,
+    this.margin,
+  });
 
   List<Widget> _buildStatusChips(BuildContext context) {
     final compat = bot.compat;
@@ -89,7 +95,7 @@ class BotCard extends StatelessWidget {
         )));
 
     return Card(
-      margin: const EdgeInsets.symmetric(vertical: 8, horizontal: 16),
+      margin: margin ?? const EdgeInsets.symmetric(vertical: 8, horizontal: 16),
       child: ListTile(
         title: Text(bot.botName),
         subtitle: Column(

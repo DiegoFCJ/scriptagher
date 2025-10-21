@@ -7,7 +7,14 @@ import '../components/home_feature_grid.dart';
 import '../components/home_hero_section.dart';
 
 class HomePage extends StatelessWidget {
-  const HomePage({super.key});
+  const HomePage({
+    super.key,
+    this.appBar,
+    this.bottomNavigationBar,
+  });
+
+  final PreferredSizeWidget? appBar;
+  final Widget? bottomNavigationBar;
 
   void _openBots(BuildContext context, BotCategory category) {
     Navigator.pushNamed(
@@ -69,6 +76,7 @@ class HomePage extends StatelessWidget {
     ];
 
     return Scaffold(
+      appBar: appBar,
       body: AppGradientBackground(
         padding: EdgeInsets.zero,
         child: LayoutBuilder(
@@ -107,6 +115,7 @@ class HomePage extends StatelessWidget {
           },
         ),
       ),
+      bottomNavigationBar: bottomNavigationBar,
     );
   }
 }
