@@ -39,7 +39,8 @@ class AppNavigationEntry {
   }
 }
 
-const List<AppNavigationEntry> appNavigationEntries = <AppNavigationEntry>[
+final List<AppNavigationEntry> appNavigationEntries =
+    List<AppNavigationEntry>.unmodifiable(<AppNavigationEntry>[
   AppNavigationEntry(
     label: 'Home',
     route: '/home',
@@ -79,7 +80,7 @@ const List<AppNavigationEntry> appNavigationEntries = <AppNavigationEntry>[
     selectedIcon: Icons.settings,
     includeInPrimaryNavigation: true,
   ),
-];
+]);
 
 List<AppNavigationEntry> buildPrimaryNavigationEntries() {
   return appNavigationEntries
