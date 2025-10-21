@@ -56,6 +56,27 @@ header {
     justify-content: space-between;
     align-items: center;
     gap: 1.5rem;
+    flex-wrap: wrap;
+  }
+
+  .header-logo {
+    display: inline-flex;
+    align-items: center;
+    flex-shrink: 0;
+    margin-right: 1.5rem;
+
+    img {
+      display: block;
+      width: clamp(150px, 22vw, 220px);
+      max-width: 100%;
+      height: auto;
+    }
+  }
+
+  .header-controls {
+    display: inline-flex;
+    align-items: center;
+    gap: 1.5rem;
   }
 
   .header-nav {
@@ -105,9 +126,17 @@ header {
       flex-direction: column;
       gap: 0.35rem;
 
-      .app-name {
-        font-weight: 600;
-        font-size: 1.35rem;
+      .pdf-logo {
+        display: inline-flex;
+        align-items: center;
+        padding: 0.35rem 0;
+
+        img {
+          display: block;
+          width: clamp(140px, 24vw, 200px);
+          max-width: 100%;
+          height: auto;
+        }
       }
 
       .current-page {
@@ -190,10 +219,24 @@ header {
     .header-toolbar {
       flex-direction: column;
       align-items: stretch;
+      gap: 1.25rem;
+    }
+
+    .header-logo {
+      justify-content: center;
+      width: 100%;
+      margin-right: 0;
+    }
+
+    .header-controls {
+      flex-direction: column;
+      align-items: center;
       gap: 1rem;
+      width: 100%;
     }
 
     .header-nav {
+      width: 100%;
       justify-content: center;
     }
   }
