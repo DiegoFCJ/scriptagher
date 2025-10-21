@@ -1,0 +1,37 @@
+<svg width="180" height="48" viewBox="0 0 180 48" fill="none" xmlns="http://www.w3.org/2000/svg" role="img" aria-labelledby="miniDroidLogoTitle miniDroidLogoDescription">
+  <title id="miniDroidLogoTitle">Mini Droid mascot</title>
+  <desc id="miniDroidLogoDescription">The Scriptagher brand mark featuring a miniature droid robot with antennas and friendly eyes beside the Scriptagher wordmark.</desc>
+  <defs>
+    <linearGradient id="miniDroidBody" x1="12" y1="34" x2="36" y2="10" gradientUnits="userSpaceOnUse">
+      <stop offset="0" stop-color="#0EA5E9" />
+      <stop offset="1" stop-color="#6366F1" />
+    </linearGradient>
+    <linearGradient id="miniDroidHead" x1="14" y1="22" x2="34" y2="6" gradientUnits="userSpaceOnUse">
+      <stop offset="0" stop-color="#22D3EE" />
+      <stop offset="1" stop-color="#A855F7" />
+    </linearGradient>
+    <radialGradient id="miniDroidGlow" cx="0" cy="0" r="1" gradientUnits="userSpaceOnUse" gradientTransform="matrix(20 0 0 20 24 24)">
+      <stop offset="0" stop-color="#A5F3FC" stop-opacity="0.85" />
+      <stop offset="1" stop-color="#38BDF8" stop-opacity="0" />
+    </radialGradient>
+  </defs>
+  <circle cx="24" cy="24" r="20" fill="url(#miniDroidGlow)" opacity="0.45" />
+  <g transform="translate(8 6)">
+    <path d="M15.5 6.2l-2.4-3.8a1 1 0 0 1 1.7-1l2.6 4a1 1 0 0 1-1.9 0.8z" fill="#8B5CF6" opacity="0.7" />
+    <path d="M25.5 6.2l2.4-3.8a1 1 0 0 0-1.7-1l-2.6 4a1 1 0 1 0 1.9 0.8z" fill="#8B5CF6" opacity="0.7" />
+    <rect x="12" y="6" width="18" height="14" rx="7" fill="url(#miniDroidHead)" />
+    <rect x="10" y="17" width="22" height="18" rx="10" fill="url(#miniDroidBody)" />
+    <rect x="5" y="19" width="6" height="14" rx="3" fill="#38BDF8" opacity="0.8" />
+    <rect x="31" y="19" width="6" height="14" rx="3" fill="#6366F1" opacity="0.8" />
+    <circle cx="18" cy="13" r="2.1" fill="#0F172A" />
+    <circle cx="24" cy="13" r="2.1" fill="#0F172A" />
+    <path d="M17 23c0 2.8 2.3 5.1 5 5.1s5-2.3 5-5.1h-10z" fill="#E0F2FE" opacity="0.9" />
+    <path d="M17 24.2h10c-.2 2.2-2.3 3.9-5 3.9s-4.8-1.7-5-3.9z" fill="#0F172A" opacity="0.2" />
+  </g>
+  <text x="58" y="30" fill="#E2E8F0" font-family="'Poppins', 'Segoe UI', sans-serif" font-weight="600" font-size="21">
+    Scriptagher
+  </text>
+  <text x="58" y="46" fill="#94A3B8" font-family="'Poppins', 'Segoe UI', sans-serif" font-weight="400" font-size="10.5" letter-spacing="0.32em">
+    BOT LIBRARY
+  </text>
+</svg>
