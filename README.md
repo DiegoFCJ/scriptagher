@@ -3,6 +3,11 @@
 ## Descrizione
 Questo progetto è una semplice applicazione mobile/desktop/web sviluppata con Flutter. Flutter è un framework open-source che permette di creare app per dispositivi mobili, desktop e web da una singola base di codice. Questo README include informazioni su come eseguire, configurare, testare e distribuire l'app su diverse piattaforme (Android, iOS, Linux, Windows e altre).
 
+## Risorse grafiche
+
+- `assets/icons/scriptagher_mini_droid.svg`: icona monocromatica del mini droid utilizzata nei componenti `WindowTitleBar` desktop e web per mostrare il marchio dell'app.
+- `web/favicon.svg`: variante solo testa impiegata come favicon tramite `web/index.html` e dichiarata nel `web/manifest.json`.
+
 ## Bot per Scriptagher
 
 Scriptagher consente di scaricare, installare ed eseguire bot provenienti da marketplace, repository locali o filesystem.

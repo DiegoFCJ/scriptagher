@@ -73,36 +73,39 @@ class NavigationSidebar extends StatelessWidget {
                             color: colorScheme.outlineVariant.withOpacity(0.5),
                           ),
                         ),
-                        child: Padding(
-                          padding: const EdgeInsets.symmetric(horizontal: 12),
-                          child: DropdownButton<AppTheme>(
-                            value: currentTheme,
-                            isExpanded: true,
-                            borderRadius: BorderRadius.circular(14),
-                            icon: Icon(
-                              Icons.keyboard_arrow_down_rounded,
-                              color: colorScheme.onSurfaceVariant,
-                            ),
-                            underline: const SizedBox.shrink(),
-                            dropdownColor: colorScheme.surface,
-                            onChanged: (theme) {
-                              if (theme != null) {
-                                themeController.setTheme(theme);
-                              }
-                            },
-                            items: AppTheme.values
-                                .map(
-                                  (theme) => DropdownMenuItem<AppTheme>(
-                                    value: theme,
-                                    child: Text(
-                                      _labelForTheme(theme),
-                                      style: textTheme.bodyMedium?.copyWith(
-                                        color: colorScheme.onSurface,
+                        child: Material(
+                          type: MaterialType.transparency,
+                          child: Padding(
+                            padding: const EdgeInsets.symmetric(horizontal: 12),
+                            child: DropdownButton<AppTheme>(
+                              value: currentTheme,
+                              isExpanded: true,
+                              borderRadius: BorderRadius.circular(14),
+                              icon: Icon(
+                                Icons.keyboard_arrow_down_rounded,
+                                color: colorScheme.onSurfaceVariant,
+                              ),
+                              underline: const SizedBox.shrink(),
+                              dropdownColor: colorScheme.surface,
+                              onChanged: (theme) {
+                                if (theme != null) {
+                                  themeController.setTheme(theme);
+                                }
+                              },
+                              items: AppTheme.values
+                                  .map(
+                                    (theme) => DropdownMenuItem<AppTheme>(
+                                      value: theme,
+                                      child: Text(
+                                        _labelForTheme(theme),
+                                        style: textTheme.bodyMedium?.copyWith(
+                                          color: colorScheme.onSurface,
+                                        ),
                                       ),
                                     ),
-                                  ),
-                                )
-                                .toList(),
+                                  )
+                                  .toList(),
+                            ),
                           ),
                         ),
                       ),

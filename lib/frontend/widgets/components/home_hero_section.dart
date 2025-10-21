@@ -204,15 +204,18 @@ class _HeroShowcase extends StatelessWidget {
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Row(
+            crossAxisAlignment: CrossAxisAlignment.center,
             children: [
               Icon(Icons.auto_awesome_rounded, size: 28, color: textColor),
               const SizedBox(width: 12),
-              Text(
-                'Perché Scriptagher',
-                style: TextStyle(
-                  color: textColor,
-                  fontWeight: FontWeight.bold,
-                  fontSize: 18,
+              Expanded(
+                child: Text(
+                  'Perché Scriptagher',
+                  style: TextStyle(
+                    color: textColor,
+                    fontWeight: FontWeight.bold,
+                    fontSize: 18,
+                  ),
                 ),
               ),
             ],
