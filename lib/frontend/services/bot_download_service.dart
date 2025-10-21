@@ -7,7 +7,7 @@ import '../models/bot.dart';
 
 class BotDownloadService {
   BotDownloadService({String? baseUrl, http.Client? httpClient})
-      : baseUrl = baseUrl ?? ApiBaseUrl.resolve(),
+      : baseUrl = baseUrl ?? ApiBaseUrl.require(),
         _httpClient = httpClient ?? http.Client();
 
   final String baseUrl;

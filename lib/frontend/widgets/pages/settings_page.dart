@@ -3,6 +3,7 @@ import 'package:scriptagher/shared/services/telemetry_service.dart';
 import 'package:scriptagher/shared/theme/theme_controller.dart';
 
 import '../components/app_gradient_background.dart';
+import '../components/feedback_banner.dart';
 
 class SettingsPage extends StatelessWidget {
   final TelemetryService telemetryService;
@@ -69,22 +70,21 @@ class SettingsPage extends StatelessWidget {
                         ),
                         value: enabled,
                         onChanged: (value) async {
-                          final messenger = ScaffoldMessenger.of(context);
                           try {
                             await telemetryService.setTelemetryEnabled(value);
                             final message = value
                                 ? 'Telemetria attivata. Grazie per il supporto!'
                                 : 'Telemetria disattivata.';
-                            messenger.showSnackBar(
-                              SnackBar(content: Text(message)),
+                            FeedbackBanner.show(
+                              context,
+                              message: message,
                             );
                           } catch (e) {
-                            messenger.showSnackBar(
-                              const SnackBar(
-                                content: Text(
+                            FeedbackBanner.show(
+                              context,
+                              message:
                                   'Si è verificato un errore durante il salvataggio delle preferenze.',
-                                ),
-                              ),
+                              isError: true,
                             );
                           }
                         },
@@ -195,12 +195,10 @@ class _ThemeSelector extends StatelessWidget {
                           return;
                         }
                         themeController.setTheme(theme);
-                        ScaffoldMessenger.of(context).showSnackBar(
-                          SnackBar(
-                            content: Text(
+                        FeedbackBanner.show(
+                          context,
+                          message:
                               'Tema impostato su ${_labelFor(theme)}',
-                            ),
-                          ),
                         );
                       },
                       selectedColor: colorScheme.primary,

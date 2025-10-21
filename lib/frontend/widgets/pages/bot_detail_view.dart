@@ -6,6 +6,7 @@ import 'dart:math' as math;
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:http/http.dart' as http;
+import 'package:permission_handler/permission_handler.dart';
 import 'package:path_provider/path_provider.dart';
 import 'package:scriptagher/shared/config/api_base_url.dart';
 
@@ -15,6 +16,7 @@ import '../../services/bot_download_service.dart';
 import '../../services/bot_get_service.dart';
 import '../../services/browser_runner/browser_bot_runner.dart';
 import '../../services/browser_runner/browser_runner_models.dart';
+import '../components/feedback_banner.dart';
 
 class BotDetailView extends StatefulWidget {
   const BotDetailView(
@@ -39,9 +41,11 @@ class _BotDetailViewState extends State<BotDetailView> {
   final List<ExecutionLog> _logHistory = [];
   static const ValueKey<String> _runButtonKey =
       ValueKey<String>('bot-detail-run-button');
-  late final String _baseUrl;
+  String? _baseUrl;
   late final BotGetService _botGetService;
-  late final BotDownloadService _botDownloadService;
+  BotDownloadService? _botDownloadService;
+  Object? _backendError;
+  bool _hasBackend = false;
   Bot? _downloadedBot;
   Bot? _remoteBot;
   bool _isStatusLoading = false;
@@ -65,6 +69,23 @@ class _BotDetailViewState extends State<BotDetailView> {
   String? _activeProcessId;
   int? _lastExitCode;
 
+  String get _backendMissingMessage =>
+      'Configura un endpoint API con --dart-define=API_BASE_URL=<url> per abilitare questa funzionalità.';
+
+  String? get _backendErrorMessage {
+    final error = _backendError;
+    if (error == null) {
+      return null;
+    }
+    if (error is StateError) {
+      return error.message;
+    }
+    return error.toString();
+  }
+
+  bool get _canUseBackend =>
+      _hasBackend && _baseUrl != null && _baseUrl!.isNotEmpty;
+
   Bot get _primaryBot => _remoteBot ?? _downloadedBot ?? widget.bot;
   Bot? get _installedBot => _downloadedBot;
   bool get _isDesktopPlatform => !kIsWeb &&
@@ -72,9 +93,9 @@ class _BotDetailViewState extends State<BotDetailView> {
   bool get _isMobilePlatform =>
       !kIsWeb && (Platform.isAndroid || Platform.isIOS);
   bool get _canOpenFolderAction =>
-      _isDesktopPlatform && _isDownloaded && !_isDeletingBot;
-  bool get _hasRunnableArtifacts =>
-      _isDownloaded || _primaryBot.isLocal || _shouldUseBrowserRunner;
+      _canUseBackend && _isDesktopPlatform && _isDownloaded && !_isDeletingBot;
+  bool get _hasRunnableArtifacts => _canUseBackend &&
+      (_isDownloaded || _primaryBot.isLocal || _shouldUseBrowserRunner);
 
   void _openTutorial() {
     Navigator.pushNamed(context, '/tutorial');
@@ -83,15 +104,33 @@ class _BotDetailViewState extends State<BotDetailView> {
   @override
   void initState() {
     super.initState();
-    _baseUrl = widget.baseUrl ?? ApiBaseUrl.resolve();
-    _botGetService =
-        widget.botGetService ?? BotGetService(baseUrl: _baseUrl);
-    _botDownloadService =
-        widget.botDownloadService ?? BotDownloadService(baseUrl: _baseUrl);
+    final providedBase = widget.baseUrl ?? ApiBaseUrl.resolve();
+    _baseUrl = providedBase;
+    _hasBackend = providedBase != null && providedBase.isNotEmpty;
+
+    if (widget.botGetService != null) {
+      _botGetService = widget.botGetService!;
+    } else {
+      try {
+        _botGetService = BotGetService(baseUrl: providedBase);
+      } on StateError catch (error) {
+        _backendError = error;
+        _botGetService = BotGetService.unavailable();
+        _hasBackend = false;
+      }
+    }
+
+    _botDownloadService = widget.botDownloadService;
+    if (_botDownloadService == null && _hasBackend) {
+      _botDownloadService = BotDownloadService(baseUrl: providedBase);
+    }
+
     if (!widget.bot.isDownloaded && !widget.bot.isLocal) {
       _remoteBot = widget.bot;
     }
-    _loadLogs();
+    if (_canUseBackend) {
+      _loadLogs();
+    }
     unawaited(_refreshBotStatus());
   }
 
@@ -115,7 +154,8 @@ class _BotDetailViewState extends State<BotDetailView> {
       downloaded = await _fetchDownloadedBot();
     } catch (e) {
       if (mounted) {
-        _showSnackBar('Errore durante il controllo dei bot scaricati: $e');
+        _showSnackBar('Errore durante il controllo dei bot scaricati: $e',
+            isError: true);
       }
     }
 
@@ -124,7 +164,8 @@ class _BotDetailViewState extends State<BotDetailView> {
         remote = await _fetchRemoteBot();
       } catch (e) {
         if (mounted) {
-          _showSnackBar('Errore durante il recupero dei metadati remoti: $e');
+          _showSnackBar('Errore durante il recupero dei metadati remoti: $e',
+              isError: true);
         }
       }
     }
@@ -198,13 +239,19 @@ class _BotDetailViewState extends State<BotDetailView> {
       return;
     }
 
+    final downloadService = _botDownloadService;
+    if (!_canUseBackend || downloadService == null) {
+      _showSnackBar(_backendMissingMessage);
+      return;
+    }
+
     setState(() {
       _isDownloadingBot = true;
     });
 
     var completed = false;
     try {
-      final bot = await _botDownloadService.downloadBot(
+      final bot = await downloadService.downloadBot(
           widget.bot.language, widget.bot.botName);
       completed = true;
       if (!mounted) {
@@ -218,7 +265,7 @@ class _BotDetailViewState extends State<BotDetailView> {
       _showSnackBar('Bot scaricato correttamente.');
     } catch (e) {
       if (mounted) {
-        _showSnackBar('Errore durante il download: $e');
+        _showSnackBar('Errore durante il download: $e', isError: true);
       }
     } finally {
       if (mounted) {
@@ -235,6 +282,12 @@ class _BotDetailViewState extends State<BotDetailView> {
 
   Future<void> _confirmAndDeleteBot() async {
     if (!_isDownloaded || _isDeletingBot) {
+      return;
+    }
+
+    final downloadService = _botDownloadService;
+    if (!_canUseBackend || downloadService == null) {
+      _showSnackBar(_backendMissingMessage);
       return;
     }
 
@@ -274,12 +327,13 @@ class _BotDetailViewState extends State<BotDetailView> {
 
     var deleted = false;
     try {
-      await _botDownloadService.deleteBot(
+      await downloadService.deleteBot(
           widget.bot.language, widget.bot.botName);
       deleted = true;
     } catch (e) {
       if (mounted) {
-        _showSnackBar('Errore durante l\'eliminazione: $e');
+        _showSnackBar('Errore durante l\'eliminazione: $e',
+            isError: true);
       }
     } finally {
       if (mounted) {
@@ -317,7 +371,8 @@ class _BotDetailViewState extends State<BotDetailView> {
 
     final sourcePath = bot.sourcePath;
     if (sourcePath.isEmpty) {
-      _showSnackBar('Percorso della cartella non disponibile.');
+      _showSnackBar('Percorso della cartella non disponibile.',
+          isError: true);
       return;
     }
 
@@ -330,7 +385,8 @@ class _BotDetailViewState extends State<BotDetailView> {
     }
 
     if (!await directory.exists()) {
-      _showSnackBar('Cartella non trovata: ${directory.path}');
+      _showSnackBar('Cartella non trovata: ${directory.path}',
+          isError: true);
       return;
     }
 
@@ -348,7 +404,9 @@ class _BotDetailViewState extends State<BotDetailView> {
         command = 'xdg-open';
         args = [directory.path];
       } else {
-        _showSnackBar('Sistema operativo non supportato per questa operazione.');
+        _showSnackBar(
+            'Sistema operativo non supportato per questa operazione.',
+            isError: true);
         return;
       }
 
@@ -362,7 +420,8 @@ class _BotDetailViewState extends State<BotDetailView> {
         throw Exception(errorMessage);
       }
     } catch (e) {
-      _showSnackBar('Errore durante l\'apertura della cartella: $e');
+      _showSnackBar('Errore durante l\'apertura della cartella: $e',
+          isError: true);
       return;
     }
 
@@ -370,12 +429,21 @@ class _BotDetailViewState extends State<BotDetailView> {
   }
 
   Future<void> _loadLogs() async {
+    if (!_canUseBackend) {
+      setState(() {
+        _isLoadingLogs = false;
+        _logHistory.clear();
+        _lastExitCode = null;
+      });
+      return;
+    }
+
     setState(() {
       _isLoadingLogs = true;
     });
 
     final uri = Uri.parse(
-        '${_baseUrl}/bots/${Uri.encodeComponent(widget.bot.language)}/${Uri.encodeComponent(widget.bot.botName)}/logs');
+        '${_baseUrl!}/bots/${Uri.encodeComponent(widget.bot.language)}/${Uri.encodeComponent(widget.bot.botName)}/logs');
 
     try {
       final response = await http.get(uri);
@@ -393,10 +461,13 @@ class _BotDetailViewState extends State<BotDetailView> {
         });
       } else {
         _showSnackBar(
-            'Impossibile recuperare i log (codice ${response.statusCode}).');
+          'Impossibile recuperare i log (codice ${response.statusCode}).',
+          isError: true,
+        );
       }
     } catch (e) {
-      _showSnackBar('Errore durante il caricamento dei log: $e');
+      _showSnackBar('Errore durante il caricamento dei log: $e',
+          isError: true);
     } finally {
       if (mounted) {
         setState(() {
@@ -444,6 +515,11 @@ class _BotDetailViewState extends State<BotDetailView> {
   }
 
   Future<void> _startDesktopExecution({List<String>? grantedPermissions}) async {
+    if (!_canUseBackend) {
+      _showSnackBar(_backendMissingMessage);
+      return;
+    }
+
     _stopExecution();
     setState(() {
       _entries.clear();
@@ -455,7 +531,7 @@ class _BotDetailViewState extends State<BotDetailView> {
     });
 
     final baseUri = Uri.parse(
-        '${_baseUrl}/bots/${Uri.encodeComponent(widget.bot.language)}/${Uri.encodeComponent(widget.bot.botName)}/start');
+        '${_baseUrl!}/bots/${Uri.encodeComponent(widget.bot.language)}/${Uri.encodeComponent(widget.bot.botName)}/start');
     final uri = (grantedPermissions != null && grantedPermissions.isNotEmpty)
         ? baseUri.replace(queryParameters: {
             ...baseUri.queryParameters,
@@ -543,6 +619,11 @@ class _BotDetailViewState extends State<BotDetailView> {
   }
 
   Future<void> _startServerStream({List<String>? grantedPermissions}) async {
+    if (!_canUseBackend) {
+      _showSnackBar(_backendMissingMessage);
+      return;
+    }
+
     _stopExecution();
     setState(() {
       _entries.clear();
@@ -557,7 +638,7 @@ class _BotDetailViewState extends State<BotDetailView> {
     _client = client;
 
     final baseUri = Uri.parse(
-        '${_baseUrl}/bots/${Uri.encodeComponent(widget.bot.language)}/${Uri.encodeComponent(widget.bot.botName)}/stream');
+        '${_baseUrl!}/bots/${Uri.encodeComponent(widget.bot.language)}/${Uri.encodeComponent(widget.bot.botName)}/stream');
     final uri = (grantedPermissions != null && grantedPermissions.isNotEmpty)
         ? baseUri.replace(queryParameters: {
             ...baseUri.queryParameters,
@@ -689,6 +770,11 @@ class _BotDetailViewState extends State<BotDetailView> {
   }
 
   Future<void> _sendSignal(String action) async {
+    if (!_canUseBackend) {
+      _showSnackBar(_backendMissingMessage);
+      return;
+    }
+
     final processId = _activeProcessId;
     if (processId == null) {
       _showSnackBar('Nessun processo attivo da controllare.');
@@ -700,7 +786,7 @@ class _BotDetailViewState extends State<BotDetailView> {
     });
 
     final uri = Uri.parse(
-            '${_baseUrl}/bots/${Uri.encodeComponent(widget.bot.language)}/${Uri.encodeComponent(widget.bot.botName)}/$action')
+            '${_baseUrl!}/bots/${Uri.encodeComponent(widget.bot.language)}/${Uri.encodeComponent(widget.bot.botName)}/$action')
         .replace(queryParameters: {'processId': processId});
 
     try {
@@ -717,7 +803,7 @@ class _BotDetailViewState extends State<BotDetailView> {
             }
           } catch (_) {}
         }
-        _showSnackBar(message);
+        _showSnackBar(message, isError: true);
         return;
       }
 
@@ -750,7 +836,8 @@ class _BotDetailViewState extends State<BotDetailView> {
         _showSnackBar('Segnale "$action" inviato al processo.');
       }
     } catch (e) {
-      _showSnackBar('Errore durante l\'invio del segnale: $e');
+      _showSnackBar('Errore durante l\'invio del segnale: $e',
+          isError: true);
     } finally {
       if (mounted) {
         setState(() {
@@ -764,8 +851,10 @@ class _BotDetailViewState extends State<BotDetailView> {
 
   Future<void> _killBot() => _sendSignal('kill');
 
-  bool get _shouldUseBrowserRunner =>
-      kIsWeb && BrowserBotRunner.isSupported && _primaryBot.compat.canRunInBrowser;
+  bool get _shouldUseBrowserRunner => _canUseBackend &&
+      kIsWeb &&
+      BrowserBotRunner.isSupported &&
+      _primaryBot.compat.canRunInBrowser;
 
   bool get _canExecuteBot {
     final compat = _primaryBot.compat;
@@ -797,6 +886,10 @@ class _BotDetailViewState extends State<BotDetailView> {
   }
 
   String? get _executionDisabledReason {
+    if (!_canUseBackend) {
+      return _backendMissingMessage;
+    }
+
     if (!_hasRunnableArtifacts) {
       if (!_isDownloaded && !_primaryBot.isLocal) {
         return 'Scarica il bot per eseguirlo prima di avviare l\'esecuzione.';
@@ -842,6 +935,11 @@ class _BotDetailViewState extends State<BotDetailView> {
   }
 
   Future<void> _startBrowserExecution() async {
+    if (!_canUseBackend) {
+      _showSnackBar(_backendMissingMessage);
+      return;
+    }
+
     _stopExecution();
     setState(() {
       _entries.clear();
@@ -863,7 +961,7 @@ class _BotDetailViewState extends State<BotDetailView> {
     try {
       final session = await _browserRunner!.start(
         _primaryBot,
-        baseUrl: _baseUrl,
+        baseUrl: _baseUrl!,
       );
       _browserSession = session;
       _browserSubscription = session.stream.listen((event) {
@@ -1005,8 +1103,13 @@ class _BotDetailViewState extends State<BotDetailView> {
   }
 
   Future<void> _openLog(ExecutionLog log) async {
+    if (!_canUseBackend) {
+      _showSnackBar(_backendMissingMessage);
+      return;
+    }
+
     final uri = Uri.parse(
-        '${_baseUrl}/bots/${Uri.encodeComponent(widget.bot.language)}/${Uri.encodeComponent(widget.bot.botName)}/logs/${Uri.encodeComponent(log.runId)}');
+        '${_baseUrl!}/bots/${Uri.encodeComponent(widget.bot.language)}/${Uri.encodeComponent(widget.bot.botName)}/logs/${Uri.encodeComponent(log.runId)}');
     try {
       final response = await http.get(uri);
       if (response.statusCode == 200) {
@@ -1034,21 +1137,33 @@ class _BotDetailViewState extends State<BotDetailView> {
         );
       } else {
         _showSnackBar(
-            'Impossibile aprire il log (codice ${response.statusCode}).');
+          'Impossibile aprire il log (codice ${response.statusCode}).',
+          isError: true,
+        );
       }
     } catch (e) {
-      _showSnackBar('Errore durante l\'apertura del log: $e');
+      _showSnackBar('Errore durante l\'apertura del log: $e', isError: true);
     }
   }
 
   Future<void> _exportLog(ExecutionLog log) async {
+    if (!_canUseBackend) {
+      _showSnackBar(_backendMissingMessage);
+      return;
+    }
+
     final uri = Uri.parse(
-        '${_baseUrl}/bots/${Uri.encodeComponent(widget.bot.language)}/${Uri.encodeComponent(widget.bot.botName)}/logs/${Uri.encodeComponent(log.runId)}');
+        '${_baseUrl!}/bots/${Uri.encodeComponent(widget.bot.language)}/${Uri.encodeComponent(widget.bot.botName)}/logs/${Uri.encodeComponent(log.runId)}');
     try {
+      await _requireStoragePermission(
+        'Per esportare il log è necessario consentire l\'accesso all\'archiviazione.',
+      );
       final response = await http.get(uri);
       if (response.statusCode != 200) {
         _showSnackBar(
-            'Impossibile esportare il log (codice ${response.statusCode}).');
+          'Impossibile esportare il log (codice ${response.statusCode}).',
+          isError: true,
+        );
         return;
       }
 
@@ -1056,15 +1171,103 @@ class _BotDetailViewState extends State<BotDetailView> {
       final file = File('${directory.path}/${log.logFileName}');
       await file.writeAsBytes(response.bodyBytes);
       _showSnackBar('Log salvato in ${file.path}');
+    } on _StoragePermissionDeniedException {
+      // Feedback già fornito.
     } catch (e) {
-      _showSnackBar('Errore durante l\'esportazione del log: $e');
+      _showSnackBar('Errore durante l\'esportazione del log: $e',
+          isError: true);
     }
   }
 
-  void _showSnackBar(String message) {
+  Future<void> _requireStoragePermission(String failureMessage) async {
+    if (!mounted) {
+      throw const _StoragePermissionDeniedException();
+    }
+
+    if (!Platform.isAndroid) {
+      return;
+    }
+
+    var status = await Permission.storage.status;
+    if (status.isGranted || status.isLimited) {
+      return;
+    }
+
+    status = await Permission.storage.request();
+    if (status.isGranted || status.isLimited) {
+      return;
+    }
+
+    final message = status.isPermanentlyDenied
+        ? '$failureMessage Abilita l\'autorizzazione dalle impostazioni di sistema.'
+        : failureMessage;
+    _showSnackBar(message, isError: true);
+    throw const _StoragePermissionDeniedException();
+  }
+
+  void _showSnackBar(String message, {bool isError = false}) {
     if (!mounted) return;
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(content: Text(message)),
+    FeedbackBanner.show(
+      context,
+      message: message,
+      isError: isError,
+    );
+  }
+
+  Widget _buildBackendBanner(BuildContext context) {
+    final theme = Theme.of(context);
+    final color = theme.colorScheme.secondaryContainer;
+    final onColor = theme.colorScheme.onSecondaryContainer;
+    final textTheme = theme.textTheme;
+    final errorMessage = _backendErrorMessage;
+
+    return Container(
+      width: double.infinity,
+      padding: const EdgeInsets.all(12),
+      decoration: BoxDecoration(
+        color: color,
+        borderRadius: BorderRadius.circular(8),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Icon(Icons.cloud_off_outlined, color: onColor),
+              const SizedBox(width: 12),
+              Expanded(
+                child: Text(
+                  'Funzionalità limitate',
+                  style: textTheme.titleMedium?.copyWith(
+                    color: onColor,
+                    fontWeight: FontWeight.w600,
+                  ),
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 8),
+          Text(
+            _backendMissingMessage,
+            style: textTheme.bodyMedium?.copyWith(color: onColor),
+          ),
+          if (kIsWeb) ...[
+            const SizedBox(height: 6),
+            Text(
+              'Nel browser è disponibile solo una modalità anteprima con i metadati pubblicati tramite GitHub Pages.',
+              style: textTheme.bodySmall?.copyWith(color: onColor),
+            ),
+          ],
+          if (errorMessage != null && errorMessage.isNotEmpty) ...[
+            const SizedBox(height: 6),
+            Text(
+              errorMessage,
+              style: textTheme.bodySmall?.copyWith(color: onColor),
+            ),
+          ],
+        ],
+      ),
     );
   }
 
@@ -1116,6 +1319,10 @@ class _BotDetailViewState extends State<BotDetailView> {
                       style: theme.textTheme.bodyLarge,
                     ),
                     const SizedBox(height: 12),
+                    if (!_canUseBackend) ...[
+                      _buildBackendBanner(context),
+                      const SizedBox(height: 12),
+                    ],
                     if (metadataChips != null) ...[
                       metadataChips,
                       const SizedBox(height: 12),
@@ -1381,7 +1588,8 @@ class _BotDetailViewState extends State<BotDetailView> {
                     const Spacer(),
                     IconButton(
                       tooltip: 'Aggiorna',
-                      onPressed: _isLoadingLogs ? null : _loadLogs,
+                      onPressed:
+                          (!_canUseBackend || _isLoadingLogs) ? null : _loadLogs,
                       icon: _isLoadingLogs
                           ? const SizedBox(
                               width: 16,
@@ -1446,7 +1654,10 @@ class _BotDetailViewState extends State<BotDetailView> {
   }
 
   Widget _buildPrimaryActions(BuildContext context) {
-    final bool enableDownload = !_isDownloadingBot &&
+    final bool hasDownloadService =
+        _canUseBackend && _botDownloadService != null;
+    final bool enableDownload = hasDownloadService &&
+        !_isDownloadingBot &&
         !_isDeletingBot &&
         (!_isDownloaded || _hasUpdateAvailable);
     final bool showSpinner = _isDownloadingBot;
@@ -1464,7 +1675,7 @@ class _BotDetailViewState extends State<BotDetailView> {
             : _isDownloaded
                 ? 'Scaricato'
                 : 'Scarica';
-    final bool showDelete = _isDownloaded;
+    final bool showDelete = _isDownloaded && hasDownloadService;
     final bool deleteSpinner = _isDeletingBot;
     final Widget deleteIcon = deleteSpinner
         ? const SizedBox(
@@ -1679,6 +1890,14 @@ class _BotDetailViewState extends State<BotDetailView> {
   }
 
   Widget _buildLogList() {
+    if (!_canUseBackend) {
+      return Center(
+        child: Text(
+          'Storico disponibile solo con un backend configurato (--dart-define=API_BASE_URL=<url>).',
+        ),
+      );
+    }
+
     if (_isLoadingLogs && _logHistory.isEmpty) {
       return const Center(child: CircularProgressIndicator());
     }
@@ -1718,6 +1937,10 @@ class _BotDetailViewState extends State<BotDetailView> {
       },
     );
   }
+}
+
+class _StoragePermissionDeniedException implements Exception {
+  const _StoragePermissionDeniedException();
 }
 
 class _ConsoleEntry {

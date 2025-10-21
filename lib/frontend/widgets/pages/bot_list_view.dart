@@ -2,9 +2,12 @@ import 'dart:io';
 
 import 'package:archive/archive.dart';
 import 'package:file_picker/file_picker.dart';
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
+import 'package:permission_handler/permission_handler.dart';
 import 'package:path/path.dart' as p;
 import 'package:path_provider/path_provider.dart';
+import 'package:scriptagher/shared/config/api_base_url.dart';
 
 import '../../models/bot.dart';
 import '../../models/bot_filter.dart';
@@ -14,6 +17,7 @@ import '../../services/bot_upload_service.dart';
 import '../components/app_gradient_background.dart';
 import '../components/bot_card_component.dart';
 import '../components/search_component.dart';
+import '../components/feedback_banner.dart';
 import 'bot_detail_view.dart';
 
 class BotList extends StatefulWidget {
@@ -25,21 +29,51 @@ class BotList extends StatefulWidget {
 
 class _BotListState extends State<BotList>
     with SingleTickerProviderStateMixin {
-  final BotGetService _botGetService = BotGetService();
-  final BotUploadService _botUploadService = BotUploadService();
+  late final BotGetService _botGetService;
+  BotUploadService? _botUploadService;
 
   late Map<BotCategory, Future<Map<String, List<Bot>>>> _categoryFutures;
   late final TabController _tabController;
 
+  String? _baseUrl;
+  bool _hasBackend = false;
+  Object? _backendError;
   BotCategory _selectedCategory = BotCategory.online;
   bool _argumentsHandled = false;
   bool _isUploading = false;
   bool _isRefreshingOnline = false;
   BotFilter _activeFilter = const BotFilter();
 
+  String? get _backendErrorMessage {
+    final error = _backendError;
+    if (error == null) {
+      return null;
+    }
+    if (error is StateError) {
+      return error.message;
+    }
+    return error.toString();
+  }
+
   @override
   void initState() {
     super.initState();
+    final resolvedBase = ApiBaseUrl.resolve();
+    _baseUrl = resolvedBase;
+    _hasBackend = resolvedBase != null && resolvedBase.isNotEmpty;
+
+    try {
+      _botGetService = BotGetService(baseUrl: resolvedBase);
+    } on StateError catch (error) {
+      _backendError = error;
+      _botGetService = BotGetService.unavailable();
+      _hasBackend = false;
+    }
+
+    if (_hasBackend) {
+      _botUploadService = BotUploadService(baseUrl: resolvedBase);
+    }
+
     _categoryFutures = {
       BotCategory.downloaded: _botGetService.fetchDownloadedBots(),
       BotCategory.online: _botGetService.fetchOnlineBots(),
@@ -94,10 +128,17 @@ class _BotListState extends State<BotList>
   }
 
   String _emptyMessageForCategory(BotCategory category) {
+    if (!_hasBackend && category != BotCategory.online) {
+      return 'Disponibile solo con un backend configurato (--dart-define=API_BASE_URL=<url>).';
+    }
+
     switch (category) {
       case BotCategory.downloaded:
         return 'Nessun bot scaricato trovato.';
       case BotCategory.online:
+        if (!_hasBackend && kIsWeb) {
+          return 'Nessun bot pubblicato sul catalogo GitHub Pages.';
+        }
         return 'Nessun bot disponibile online al momento.';
       case BotCategory.local:
         return 'Nessun bot locale trovato.';
@@ -112,6 +153,62 @@ class _BotListState extends State<BotList>
 
   Map<String, List<Bot>> _filterBots(Map<String, List<Bot>> data) {
     return _botGetService.applyFilter(data, _activeFilter);
+  }
+
+  Widget _buildBackendBanner(BuildContext context) {
+    final theme = Theme.of(context);
+    final color = theme.colorScheme.secondaryContainer;
+    final onColor = theme.colorScheme.onSecondaryContainer;
+    final textTheme = theme.textTheme;
+    final errorMessage = _backendErrorMessage;
+
+    return Card(
+      margin: EdgeInsets.zero,
+      color: color,
+      child: Padding(
+        padding: const EdgeInsets.all(12.0),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Row(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Icon(Icons.cloud_off_outlined, color: onColor),
+                const SizedBox(width: 12),
+                Expanded(
+                  child: Text(
+                    'Funzionalità limitate',
+                    style: textTheme.titleMedium?.copyWith(
+                      color: onColor,
+                      fontWeight: FontWeight.w600,
+                    ),
+                  ),
+                ),
+              ],
+            ),
+            const SizedBox(height: 8),
+            Text(
+              'Esegui l\'app con --dart-define=API_BASE_URL=<url> per abilitare download, upload e avvio dei bot.',
+              style: textTheme.bodyMedium?.copyWith(color: onColor),
+            ),
+            if (kIsWeb) ...[
+              const SizedBox(height: 6),
+              Text(
+                'In questa anteprima web vengono mostrati solo i metadati pubblicati tramite GitHub Pages.',
+                style: textTheme.bodySmall?.copyWith(color: onColor),
+              ),
+            ],
+            if (errorMessage != null && errorMessage.isNotEmpty) ...[
+              const SizedBox(height: 6),
+              Text(
+                errorMessage,
+                style: textTheme.bodySmall?.copyWith(color: onColor),
+              ),
+            ],
+          ],
+        ),
+      ),
+    );
   }
 
   Widget _buildCategoryView(BotCategory category) {
@@ -205,6 +302,13 @@ class _BotListState extends State<BotList>
         padding: EdgeInsets.zero,
         child: Column(
           children: [
+            if (!_hasBackend) ...[
+              Padding(
+                padding:
+                    const EdgeInsets.only(left: 16, right: 16, top: 16, bottom: 8),
+                child: _buildBackendBanner(context),
+              ),
+            ],
             Padding(
               padding:
                   const EdgeInsets.symmetric(horizontal: 16.0, vertical: 16.0),
@@ -247,7 +351,9 @@ class _BotListState extends State<BotList>
       ),
       floatingActionButton: _selectedCategory == BotCategory.local
           ? FloatingActionButton.extended(
-              onPressed: _isUploading ? null : _showUploadOptions,
+              onPressed: (_isUploading || _botUploadService == null)
+                  ? null
+                  : _showUploadOptions,
               icon: AnimatedSwitcher(
                 duration: const Duration(milliseconds: 200),
                 child: _isUploading
@@ -277,9 +383,7 @@ class _BotListState extends State<BotList>
       await _categoryFutures[BotCategory.online];
     } catch (e) {
       if (!mounted) return;
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('Errore durante l\'aggiornamento: $e')),
-      );
+      _showFeedback('Errore durante l\'aggiornamento: $e', isError: true);
     } finally {
       if (!mounted) return;
       setState(() {
@@ -338,9 +442,7 @@ class _BotListState extends State<BotList>
         file.name,
       );
     } catch (e) {
-      if (!mounted) return;
-      _showSnackBar(context, 'Errore durante la selezione del file: $e',
-          isError: true);
+      _showFeedback('Errore durante la selezione del file: $e', isError: true);
     }
   }
 
@@ -365,14 +467,18 @@ class _BotListState extends State<BotList>
           await zipFile.delete();
         }
       }
+    } on _StoragePermissionDeniedException {
+      // Il feedback è già stato comunicato all'utente.
     } catch (e) {
-      if (!mounted) return;
-      _showSnackBar(context, 'Errore durante la selezione della cartella: $e',
+      _showFeedback('Errore durante la selezione della cartella: $e',
           isError: true);
     }
   }
 
   Future<File> _zipDirectory(String directoryPath) async {
+    await _requireStoragePermission(
+      'Per comprimere la cartella è necessario consentire l\'accesso all\'archiviazione.',
+    );
     final directory = Directory(directoryPath);
     if (!await directory.exists()) {
       throw Exception('La cartella selezionata non esiste più.');
@@ -401,6 +507,32 @@ class _BotListState extends State<BotList>
     return zipFile;
   }
 
+  Future<void> _requireStoragePermission(String failureMessage) async {
+    if (!mounted) {
+      throw const _StoragePermissionDeniedException();
+    }
+
+    if (!Platform.isAndroid) {
+      return;
+    }
+
+    var status = await Permission.storage.status;
+    if (status.isGranted || status.isLimited) {
+      return;
+    }
+
+    status = await Permission.storage.request();
+    if (status.isGranted || status.isLimited) {
+      return;
+    }
+
+    final message = status.isPermanentlyDenied
+        ? '$failureMessage Abilita l\'autorizzazione dalle impostazioni di sistema.'
+        : failureMessage;
+    _showFeedback(message, isError: true);
+    throw const _StoragePermissionDeniedException();
+  }
+
   Stream<List<int>> _streamFromPlatformFile(PlatformFile file) {
     if (file.readStream != null) {
       return file.readStream!;
@@ -416,12 +548,20 @@ class _BotListState extends State<BotList>
 
   Future<void> _performUpload(
       Stream<List<int>> stream, int length, String filename) async {
+    if (_botUploadService == null) {
+      _showSnackBar(
+        'L\'importazione è disponibile solo con un backend configurato (--dart-define=API_BASE_URL=<url>).',
+        isError: true,
+      );
+      return;
+    }
+
     setState(() {
       _isUploading = true;
     });
 
     try {
-      final bot = await _botUploadService.uploadBotFile(
+      final bot = await _botUploadService!.uploadBotFile(
         stream: stream,
         length: length,
         filename: filename,
@@ -429,15 +569,10 @@ class _BotListState extends State<BotList>
 
       if (!mounted) return;
 
-      _showSnackBar(
-        context,
-        'Bot "${bot.botName}" importato con successo.',
-      );
+      _showFeedback('Bot "${bot.botName}" importato con successo.');
       _refreshCategory(BotCategory.local);
     } catch (e) {
-      if (!mounted) return;
-      _showSnackBar(context, 'Errore durante il caricamento: $e',
-          isError: true);
+      _showFeedback('Errore durante il caricamento: $e', isError: true);
     } finally {
       if (mounted) {
         setState(() {
@@ -463,17 +598,16 @@ class _BotListState extends State<BotList>
     });
   }
 
+  void _showFeedback(String message, {bool isError = false}) {
+    if (!mounted) return;
+    FeedbackBanner.show(
+      context,
+      message: message,
+      isError: isError,
+    );
+  }
 }
 
-void _showSnackBar(
-  BuildContext context,
-  String message, {
-  bool isError = false,
-}) {
-  ScaffoldMessenger.of(context).showSnackBar(
-    SnackBar(
-      content: Text(message),
-      backgroundColor: isError ? Theme.of(context).colorScheme.error : null,
-    ),
-  );
+class _StoragePermissionDeniedException implements Exception {
+  const _StoragePermissionDeniedException();
 }
