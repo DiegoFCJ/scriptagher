@@ -7,6 +7,7 @@ import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:http/http.dart' as http;
 import 'package:path_provider/path_provider.dart';
+import 'package:scriptagher/shared/config/api_base_url.dart';
 
 import '../../models/bot.dart';
 import '../../models/execution_log.dart';
@@ -19,12 +20,12 @@ class BotDetailView extends StatefulWidget {
   const BotDetailView(
       {super.key,
       required this.bot,
-      this.baseUrl = 'http://localhost:8080',
+      this.baseUrl,
       this.botGetService,
       this.botDownloadService});
 
   final Bot bot;
-  final String baseUrl;
+  final String? baseUrl;
   final BotGetService? botGetService;
   final BotDownloadService? botDownloadService;
 
@@ -38,6 +39,7 @@ class _BotDetailViewState extends State<BotDetailView> {
   final List<ExecutionLog> _logHistory = [];
   static const ValueKey<String> _runButtonKey =
       ValueKey<String>('bot-detail-run-button');
+  late final String _baseUrl;
   late final BotGetService _botGetService;
   late final BotDownloadService _botDownloadService;
   Bot? _downloadedBot;
@@ -81,10 +83,11 @@ class _BotDetailViewState extends State<BotDetailView> {
   @override
   void initState() {
     super.initState();
+    _baseUrl = widget.baseUrl ?? ApiBaseUrl.resolve();
     _botGetService =
-        widget.botGetService ?? BotGetService(baseUrl: widget.baseUrl);
-    _botDownloadService = widget.botDownloadService ??
-        BotDownloadService(baseUrl: widget.baseUrl);
+        widget.botGetService ?? BotGetService(baseUrl: _baseUrl);
+    _botDownloadService =
+        widget.botDownloadService ?? BotDownloadService(baseUrl: _baseUrl);
     if (!widget.bot.isDownloaded && !widget.bot.isLocal) {
       _remoteBot = widget.bot;
     }
@@ -372,7 +375,7 @@ class _BotDetailViewState extends State<BotDetailView> {
     });
 
     final uri = Uri.parse(
-        '${widget.baseUrl}/bots/${Uri.encodeComponent(widget.bot.language)}/${Uri.encodeComponent(widget.bot.botName)}/logs');
+        '${_baseUrl}/bots/${Uri.encodeComponent(widget.bot.language)}/${Uri.encodeComponent(widget.bot.botName)}/logs');
 
     try {
       final response = await http.get(uri);
@@ -452,7 +455,7 @@ class _BotDetailViewState extends State<BotDetailView> {
     });
 
     final baseUri = Uri.parse(
-        '${widget.baseUrl}/bots/${Uri.encodeComponent(widget.bot.language)}/${Uri.encodeComponent(widget.bot.botName)}/start');
+        '${_baseUrl}/bots/${Uri.encodeComponent(widget.bot.language)}/${Uri.encodeComponent(widget.bot.botName)}/start');
     final uri = (grantedPermissions != null && grantedPermissions.isNotEmpty)
         ? baseUri.replace(queryParameters: {
             ...baseUri.queryParameters,
@@ -554,7 +557,7 @@ class _BotDetailViewState extends State<BotDetailView> {
     _client = client;
 
     final baseUri = Uri.parse(
-        '${widget.baseUrl}/bots/${Uri.encodeComponent(widget.bot.language)}/${Uri.encodeComponent(widget.bot.botName)}/stream');
+        '${_baseUrl}/bots/${Uri.encodeComponent(widget.bot.language)}/${Uri.encodeComponent(widget.bot.botName)}/stream');
     final uri = (grantedPermissions != null && grantedPermissions.isNotEmpty)
         ? baseUri.replace(queryParameters: {
             ...baseUri.queryParameters,
@@ -697,7 +700,7 @@ class _BotDetailViewState extends State<BotDetailView> {
     });
 
     final uri = Uri.parse(
-            '${widget.baseUrl}/bots/${Uri.encodeComponent(widget.bot.language)}/${Uri.encodeComponent(widget.bot.botName)}/$action')
+            '${_baseUrl}/bots/${Uri.encodeComponent(widget.bot.language)}/${Uri.encodeComponent(widget.bot.botName)}/$action')
         .replace(queryParameters: {'processId': processId});
 
     try {
@@ -860,7 +863,7 @@ class _BotDetailViewState extends State<BotDetailView> {
     try {
       final session = await _browserRunner!.start(
         _primaryBot,
-        baseUrl: widget.baseUrl,
+        baseUrl: _baseUrl,
       );
       _browserSession = session;
       _browserSubscription = session.stream.listen((event) {
@@ -1003,7 +1006,7 @@ class _BotDetailViewState extends State<BotDetailView> {
 
   Future<void> _openLog(ExecutionLog log) async {
     final uri = Uri.parse(
-        '${widget.baseUrl}/bots/${Uri.encodeComponent(widget.bot.language)}/${Uri.encodeComponent(widget.bot.botName)}/logs/${Uri.encodeComponent(log.runId)}');
+        '${_baseUrl}/bots/${Uri.encodeComponent(widget.bot.language)}/${Uri.encodeComponent(widget.bot.botName)}/logs/${Uri.encodeComponent(log.runId)}');
     try {
       final response = await http.get(uri);
       if (response.statusCode == 200) {
@@ -1040,7 +1043,7 @@ class _BotDetailViewState extends State<BotDetailView> {
 
   Future<void> _exportLog(ExecutionLog log) async {
     final uri = Uri.parse(
-        '${widget.baseUrl}/bots/${Uri.encodeComponent(widget.bot.language)}/${Uri.encodeComponent(widget.bot.botName)}/logs/${Uri.encodeComponent(log.runId)}');
+        '${_baseUrl}/bots/${Uri.encodeComponent(widget.bot.language)}/${Uri.encodeComponent(widget.bot.botName)}/logs/${Uri.encodeComponent(log.runId)}');
     try {
       final response = await http.get(uri);
       if (response.statusCode != 200) {

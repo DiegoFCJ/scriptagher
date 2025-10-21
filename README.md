@@ -66,6 +66,16 @@ Il server backend Shelf esposto su `http://localhost:8080` gestisce automaticame
 | `POST` | `/bots/{language}/{botName}/kill` | Termina forzatamente il processo del bot. |
 | `POST` | `/bots/upload` | Carica un archivio ZIP contenente un bot locale. |
 
+### Configurare un endpoint API remoto
+
+Per le build non desktop (ad esempio Chrome o dispositivi mobili) l'app utilizza una variabile di compilazione `API_BASE_URL` per determinare l'endpoint dell'API. Se non viene fornita, viene usato automaticamente l'`origin` della pagina web oppure `http://localhost:8080` sulle piattaforme desktop. Per puntare a un backend remoto, passa il valore desiderato tramite `--dart-define` al momento dell'esecuzione:
+
+```sh
+flutter run -d chrome --dart-define=API_BASE_URL=https://your-host.example
+```
+
+Il valore viene letto all'avvio dall'helper condiviso `ApiBaseUrl.resolve()`, garantendo URL coerenti per download, log e upload.
+
 ## Struttura del Progetto
 La struttura di base di un'app Flutter è la seguente:
 

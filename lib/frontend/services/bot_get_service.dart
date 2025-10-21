@@ -1,12 +1,15 @@
-import 'package:http/http.dart' as http;
 import 'dart:convert';
+
+import 'package:http/http.dart' as http;
+import 'package:scriptagher/shared/config/api_base_url.dart';
+
 import '../models/bot.dart';
 import '../models/bot_filter.dart';
 
 class BotGetService {
   final String baseUrl;
 
-  BotGetService({this.baseUrl = 'http://localhost:8080'});
+  BotGetService({String? baseUrl}) : baseUrl = baseUrl ?? ApiBaseUrl.resolve();
 
   Future<Map<String, List<Bot>>> fetchBots(
           {bool forceRefresh = false, BotFilter? filter}) =>

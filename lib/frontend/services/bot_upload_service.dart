@@ -1,10 +1,13 @@
 import 'dart:convert';
+
 import 'package:http/http.dart' as http;
 import 'package:path/path.dart' as p;
+import 'package:scriptagher/shared/config/api_base_url.dart';
 import '../models/bot.dart';
 
 class BotUploadService {
-  BotUploadService({this.baseUrl = 'http://localhost:8080'});
+  BotUploadService({String? baseUrl})
+      : baseUrl = baseUrl ?? ApiBaseUrl.resolve();
 
   final String baseUrl;
 

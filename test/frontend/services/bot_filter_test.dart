@@ -54,7 +54,7 @@ void main() {
 
   group('BotGetService.applyFilter', () {
     test('returns filtered groups respecting metadata filters', () {
-      final service = BotGetService();
+      final service = BotGetService(baseUrl: 'http://localhost:8080');
       final botPython = Bot(
         botName: 'UtilityBot',
         description: 'A helpful utility bot for files',
@@ -91,7 +91,7 @@ void main() {
     });
 
     test('returns original map when filter is empty', () {
-      final service = BotGetService();
+      final service = BotGetService(baseUrl: 'http://localhost:8080');
       final bot = Bot(
         botName: 'UtilityBot',
         description: 'A helpful utility bot for files',
