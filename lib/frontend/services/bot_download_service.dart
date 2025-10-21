@@ -1,13 +1,14 @@
 import 'dart:convert';
 
 import 'package:http/http.dart' as http;
+import 'package:scriptagher/shared/config/api_base_url.dart';
 
 import '../models/bot.dart';
 
 class BotDownloadService {
-  BotDownloadService(
-      {this.baseUrl = 'http://localhost:8080', http.Client? httpClient})
-      : _httpClient = httpClient ?? http.Client();
+  BotDownloadService({String? baseUrl, http.Client? httpClient})
+      : baseUrl = baseUrl ?? ApiBaseUrl.resolve(),
+        _httpClient = httpClient ?? http.Client();
 
   final String baseUrl;
   final http.Client _httpClient;
