@@ -6,13 +6,12 @@ class AppNavigationEntry {
     required this.label,
     required this.icon,
     this.route,
-    this.children = const <AppNavigationEntry>[],
-  }) : children = List.unmodifiable(children) {
-    assert(
-      route != null || this.children.isNotEmpty,
-      'A navigation entry must have either a route or children.',
-    );
-  }
+    List<AppNavigationEntry> children = const <AppNavigationEntry>[],
+  })  : assert(
+          route != null || children.isNotEmpty,
+          'A navigation entry must have either a route or children.',
+        ),
+        children = List.unmodifiable(children);
 
   final String label;
   final IconData icon;
@@ -23,43 +22,43 @@ class AppNavigationEntry {
 }
 
 const List<AppNavigationEntry> appNavigationEntries = <AppNavigationEntry>[
-  AppNavigationEntry(
+  const AppNavigationEntry(
     label: 'Home',
     icon: Icons.home_rounded,
     route: '/home',
   ),
-  AppNavigationEntry(
+  const AppNavigationEntry(
     label: 'Bots',
     icon: Icons.smart_toy_rounded,
     route: '/bots',
   ),
-  AppNavigationEntry(
+  const AppNavigationEntry(
     label: 'Tutorial',
     icon: Icons.school_rounded,
     route: '/tutorial',
   ),
-  AppNavigationEntry(
+  const AppNavigationEntry(
     label: 'Test',
     icon: Icons.science_rounded,
-    children: <AppNavigationEntry>[
-      AppNavigationEntry(
+    children: const <AppNavigationEntry>[
+      const AppNavigationEntry(
         label: 'Test 1',
         icon: Icons.filter_1_rounded,
         route: '/test1',
       ),
-      AppNavigationEntry(
+      const AppNavigationEntry(
         label: 'Test 2',
         icon: Icons.filter_2_rounded,
         route: '/test2',
       ),
-      AppNavigationEntry(
+      const AppNavigationEntry(
         label: 'Test 3',
         icon: Icons.filter_3_rounded,
         route: '/test3',
       ),
     ],
   ),
-  AppNavigationEntry(
+  const AppNavigationEntry(
     label: 'Settings',
     icon: Icons.settings_rounded,
     route: '/settings',

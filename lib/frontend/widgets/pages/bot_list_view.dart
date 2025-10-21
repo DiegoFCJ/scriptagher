@@ -647,7 +647,7 @@ class _BotListState extends State<BotList>
   Future<void> _performUpload(
       Stream<List<int>> stream, int length, String filename) async {
     if (_botUploadService == null) {
-      _showSnackBar(
+      _showFeedback(
         'L\'importazione è disponibile solo con un backend configurato (--dart-define=API_BASE_URL=<url>).',
         isError: true,
       );
