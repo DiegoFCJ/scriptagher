@@ -338,7 +338,9 @@ class _BotListState extends State<BotList>
         file.name,
       );
     } catch (e) {
-      _showSnackBar('Errore durante la selezione del file: $e', isError: true);
+      if (!mounted) return;
+      _showSnackBar(context, 'Errore durante la selezione del file: $e',
+          isError: true);
     }
   }
 
@@ -364,7 +366,8 @@ class _BotListState extends State<BotList>
         }
       }
     } catch (e) {
-      _showSnackBar('Errore durante la selezione della cartella: $e',
+      if (!mounted) return;
+      _showSnackBar(context, 'Errore durante la selezione della cartella: $e',
           isError: true);
     }
   }
@@ -426,10 +429,15 @@ class _BotListState extends State<BotList>
 
       if (!mounted) return;
 
-      _showSnackBar('Bot "${bot.botName}" importato con successo.');
+      _showSnackBar(
+        context,
+        'Bot "${bot.botName}" importato con successo.',
+      );
       _refreshCategory(BotCategory.local);
     } catch (e) {
-      _showSnackBar('Errore durante il caricamento: $e', isError: true);
+      if (!mounted) return;
+      _showSnackBar(context, 'Errore durante il caricamento: $e',
+          isError: true);
     } finally {
       if (mounted) {
         setState(() {
@@ -455,13 +463,17 @@ class _BotListState extends State<BotList>
     });
   }
 
-  void _showSnackBar(String message, {bool isError = false}) {
-    if (!mounted) return;
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(
-        content: Text(message),
-        backgroundColor: isError ? Theme.of(context).colorScheme.error : null,
-      ),
-    );
-  }
+}
+
+void _showSnackBar(
+  BuildContext context,
+  String message, {
+  bool isError = false,
+}) {
+  ScaffoldMessenger.of(context).showSnackBar(
+    SnackBar(
+      content: Text(message),
+      backgroundColor: isError ? Theme.of(context).colorScheme.error : null,
+    ),
+  );
 }
