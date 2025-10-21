@@ -3,11 +3,11 @@
   "platform": "Linux",
   "version": "1.0.0+1",
   "file_name": "scriptagher-linux-x64.tar.gz",
-  "file_size": 19061946,
-  "sha256": "edb6d20a93df5e0ef97f41cacf6915e8eb88cee86cf52f4cbf9935d0f2de616c",
+  "file_size": 19270681,
+  "sha256": "e5f4e6e67e6072c8fa85a8627f72b1adf0944b8e4c7fdc39b4d0b2682225aaef",
   "download_url": "https://DiegoFCJ.github.io/scriptagher/installers/linux/scriptagher-linux-x64.tar.gz",
   "format": "TAR.GZ",
-  "last_updated": "2025-10-20T11:44:44Z",
+  "last_updated": "2025-10-21T07:29:44Z",
   "architecture": "x86_64",
   "build_variant": "Release"
 }
