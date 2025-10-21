@@ -16,8 +16,8 @@ bool get _isTest => Platform.environment.containsKey('FLUTTER_TEST');
 const bool _useDesktopFrame =
     bool.fromEnvironment('USE_DESKTOP_FRAME', defaultValue: true);
 
-class HomeShell extends StatelessWidget {
-  const HomeShell({super.key});
+class DesktopHomeShell extends StatelessWidget {
+  const DesktopHomeShell({super.key});
 
   @override
   Widget build(BuildContext context) {

@@ -114,7 +114,10 @@ class _BotListState extends State<BotList>
     return _botGetService.applyFilter(data, _activeFilter);
   }
 
-  Widget _buildCategoryView(BotCategory category) {
+  Widget _buildCategoryView(
+    BotCategory category, {
+    required bool compact,
+  }) {
     return FutureBuilder<Map<String, List<Bot>>>(
       future: _categoryFutures[category],
       builder: (context, snapshot) {
@@ -140,7 +143,10 @@ class _BotListState extends State<BotList>
         }
 
         return ListView(
-          padding: const EdgeInsets.symmetric(horizontal: 16.0, vertical: 8.0),
+          padding: EdgeInsets.symmetric(
+            horizontal: compact ? 8.0 : 16.0,
+            vertical: compact ? 4.0 : 8.0,
+          ),
           children: filteredData.entries.map((entry) {
             final language = entry.key;
             final bots = entry.value;
@@ -171,98 +177,127 @@ class _BotListState extends State<BotList>
 
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
-      appBar: AppBar(
-        title: const Text('Gestione Bot'),
-        actions: [
-          if (_selectedCategory == BotCategory.online)
-            Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 8.0),
-              child: FilledButton.tonalIcon(
-                onPressed:
-                    _isRefreshingOnline ? null : () => _refreshOnlineBots(),
-                icon: _isRefreshingOnline
-                    ? const SizedBox(
-                        width: 16,
-                        height: 16,
-                        child: CircularProgressIndicator(strokeWidth: 2),
-                      )
-                    : const Icon(Icons.refresh_rounded),
-                label: Text(
-                    _isRefreshingOnline ? 'Aggiornamento...' : 'Aggiorna'),
-              ),
-            ),
-        ],
-        bottom: TabBar(
-          controller: _tabController,
-          tabs: BotCategory.values
-              .map((category) => Tab(text: _labelForCategory(category)))
-              .toList(),
-        ),
-      ),
-      body: AppGradientBackground(
-        applyTopSafeArea: false,
-        padding: EdgeInsets.zero,
-        child: Column(
-          children: [
-            Padding(
-              padding:
-                  const EdgeInsets.symmetric(horizontal: 16.0, vertical: 16.0),
-              child: DecoratedBox(
-                decoration: BoxDecoration(
-                  color: Theme.of(context)
-                      .colorScheme
-                      .surfaceVariant
-                      .withOpacity(0.6),
-                  borderRadius: BorderRadius.circular(20),
-                ),
-                child: Padding(
-                  padding:
-                      const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
-                  child: SearchView(
-                    onFilterChanged: _handleFilterChanged,
-                    hintText:
-                        'Cerca per nome, tag, lingua o usa filtri (es. lang:python #utility)',
+    return LayoutBuilder(
+      builder: (context, constraints) {
+        final isCompact = constraints.maxWidth < 600;
+        final filterPadding = EdgeInsets.symmetric(
+          horizontal: isCompact ? 12.0 : 16.0,
+          vertical: isCompact ? 12.0 : 16.0,
+        );
+        final searchPadding = EdgeInsets.symmetric(
+          horizontal: isCompact ? 10.0 : 12.0,
+          vertical: isCompact ? 4.0 : 6.0,
+        );
+        final cardMargin = EdgeInsets.fromLTRB(
+          isCompact ? 12.0 : 16.0,
+          0,
+          isCompact ? 12.0 : 16.0,
+          isCompact ? 16.0 : 24.0,
+        );
+        final borderRadius = BorderRadius.circular(isCompact ? 20 : 24);
+
+        return Scaffold(
+          appBar: AppBar(
+            title: const Text('Gestione Bot'),
+            actions: [
+              if (_selectedCategory == BotCategory.online)
+                Padding(
+                  padding: EdgeInsets.symmetric(
+                    horizontal: isCompact ? 4.0 : 8.0,
+                  ),
+                  child: FilledButton.tonalIcon(
+                    onPressed:
+                        _isRefreshingOnline ? null : () => _refreshOnlineBots(),
+                    icon: _isRefreshingOnline
+                        ? const SizedBox(
+                            width: 16,
+                            height: 16,
+                            child: CircularProgressIndicator(strokeWidth: 2),
+                          )
+                        : const Icon(Icons.refresh_rounded),
+                    label: Text(
+                        _isRefreshingOnline ? 'Aggiornamento...' : 'Aggiorna'),
                   ),
                 ),
-              ),
+            ],
+            bottom: TabBar(
+              controller: _tabController,
+              isScrollable: isCompact,
+              tabs: BotCategory.values
+                  .map((category) => Tab(text: _labelForCategory(category)))
+                  .toList(),
             ),
-            Expanded(
-              child: Card(
-                margin: const EdgeInsets.fromLTRB(16, 0, 16, 24),
-                shape: RoundedRectangleBorder(
-                  borderRadius: BorderRadius.circular(24),
+          ),
+          body: AppGradientBackground(
+            applyTopSafeArea: false,
+            padding: EdgeInsets.zero,
+            child: Column(
+              children: [
+                Padding(
+                  padding: filterPadding,
+                  child: DecoratedBox(
+                    decoration: BoxDecoration(
+                      color: Theme.of(context)
+                          .colorScheme
+                          .surfaceVariant
+                          .withOpacity(0.6),
+                      borderRadius: borderRadius,
+                    ),
+                    child: Padding(
+                      padding: searchPadding,
+                      child: SearchView(
+                        onFilterChanged: _handleFilterChanged,
+                        hintText:
+                            'Cerca per nome, tag, lingua o usa filtri (es. lang:python #utility)',
+                      ),
+                    ),
+                  ),
                 ),
-                clipBehavior: Clip.antiAlias,
-                child: TabBarView(
-                  controller: _tabController,
-                  children: BotCategory.values
-                      .map(_buildCategoryView)
-                      .toList(growable: false),
+                Expanded(
+                  child: Card(
+                    margin: cardMargin,
+                    shape: RoundedRectangleBorder(
+                      borderRadius: borderRadius,
+                    ),
+                    clipBehavior: Clip.antiAlias,
+                    child: TabBarView(
+                      controller: _tabController,
+                      children: BotCategory.values
+                          .map(
+                            (category) =>
+                                _buildCategoryView(category, compact: isCompact),
+                          )
+                          .toList(growable: false),
+                    ),
+                  ),
                 ),
-              ),
+              ],
             ),
-          ],
-        ),
-      ),
-      floatingActionButton: _selectedCategory == BotCategory.local
-          ? FloatingActionButton.extended(
-              onPressed: _isUploading ? null : _showUploadOptions,
-              icon: AnimatedSwitcher(
-                duration: const Duration(milliseconds: 200),
-                child: _isUploading
-                    ? const SizedBox(
-                        key: ValueKey('progress'),
-                        width: 20,
-                        height: 20,
-                        child: CircularProgressIndicator(strokeWidth: 2),
-                      )
-                    : const Icon(Icons.upload_file_rounded,
-                        key: ValueKey('icon')),
-              ),
-              label: Text(_isUploading ? 'Caricamento...' : 'Importa bot'),
-            )
-          : null,
+          ),
+          floatingActionButton: _selectedCategory == BotCategory.local
+              ? FloatingActionButton.extended(
+                  isExtended: !isCompact,
+                  onPressed: _isUploading ? null : _showUploadOptions,
+                  icon: AnimatedSwitcher(
+                    duration: const Duration(milliseconds: 200),
+                    child: _isUploading
+                        ? const SizedBox(
+                            key: ValueKey('progress'),
+                            width: 20,
+                            height: 20,
+                            child: CircularProgressIndicator(strokeWidth: 2),
+                          )
+                        : const Icon(
+                            Icons.upload_file_rounded,
+                            key: ValueKey('icon'),
+                          ),
+                  ),
+                  label:
+                      Text(_isUploading ? 'Caricamento...' : 'Importa bot'),
+                )
+              : null,
+        );
+      },
     );
   }
 

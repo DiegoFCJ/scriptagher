@@ -1,7 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:scriptagher/shared/theme/theme_controller.dart';
 
-import 'navigation_menu.dart';
+import '../../navigation/app_navigation.dart';
+import '../../../shared/theme/theme_labels.dart';
 
 class NavigationSidebar extends StatelessWidget {
   const NavigationSidebar({super.key});
@@ -97,7 +98,7 @@ class NavigationSidebar extends StatelessWidget {
                                     (theme) => DropdownMenuItem<AppTheme>(
                                       value: theme,
                                       child: Text(
-                                        _labelForTheme(theme),
+                                        describeAppTheme(theme),
                                         style: textTheme.bodyMedium?.copyWith(
                                           color: colorScheme.onSurface,
                                         ),
@@ -140,13 +141,13 @@ class _NavigationTile extends StatelessWidget {
     this.depth = 0,
   });
 
-  final NavigationMenuEntry entry;
+  final AppNavigationEntry entry;
   final String? currentRoute;
   final int depth;
 
   @override
   Widget build(BuildContext context) {
-    if (entry.children.isEmpty) {
+    if (!entry.hasChildren) {
       return _NavigationLeafTile(
         entry: entry,
         isSelected: entry.route != null && entry.route == currentRoute,
@@ -169,7 +170,7 @@ class _NavigationLeafTile extends StatelessWidget {
     required this.depth,
   });
 
-  final NavigationMenuEntry entry;
+  final AppNavigationEntry entry;
   final bool isSelected;
   final int depth;
 
@@ -218,7 +219,7 @@ class _NavigationBranchTile extends StatelessWidget {
     required this.depth,
   });
 
-  final NavigationMenuEntry entry;
+  final AppNavigationEntry entry;
   final String? currentRoute;
   final int depth;
 
@@ -238,7 +239,7 @@ class _NavigationBranchTile extends StatelessWidget {
         .toList(growable: false);
 
     final hasActiveRoute =
-        currentRoute != null && _entryContainsRoute(entry, currentRoute!);
+        currentRoute != null && entry.containsRoute(currentRoute!);
     final initiallyExpanded = hasActiveRoute && entry.children.isNotEmpty;
 
     return _ExpandableSection(
@@ -327,29 +328,4 @@ class _ExpandableSectionState extends State<_ExpandableSection> {
       ),
     );
   }
-}
-
-String _labelForTheme(AppTheme theme) {
-  switch (theme) {
-    case AppTheme.light:
-      return 'Tema chiaro';
-    case AppTheme.dark:
-      return 'Tema scuro';
-    case AppTheme.highContrast:
-      return 'Alto contrasto';
-  }
-}
-
-bool _entryContainsRoute(NavigationMenuEntry entry, String route) {
-  if (entry.route == route) {
-    return true;
-  }
-
-  for (final child in entry.children) {
-    if (_entryContainsRoute(child, route)) {
-      return true;
-    }
-  }
-
-  return false;
 }
