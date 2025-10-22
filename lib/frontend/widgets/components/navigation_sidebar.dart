@@ -2,7 +2,6 @@ import 'package:flutter/material.dart';
 import 'package:scriptagher/shared/theme/theme_controller.dart';
 
 import '../../navigation/app_navigation.dart';
-import 'mini_droid_brand.dart';
 
 class NavigationSidebar extends StatelessWidget {
   const NavigationSidebar({super.key});
@@ -29,27 +28,9 @@ class NavigationSidebar extends StatelessWidget {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.stretch,
           children: [
-            Padding(
-              padding: const EdgeInsets.fromLTRB(24, 24, 24, 12),
-              child: Row(
-                children: [
-                  const MiniDroidBrandMark(size: 28),
-                  const SizedBox(width: 12),
-                  Text(
-                    'Scriptagher',
-                    style: textTheme.titleMedium?.copyWith(
-                      color: colorScheme.onSurface,
-                      fontWeight: FontWeight.w600,
-                      letterSpacing: 0.2,
-                    ),
-                  ),
-                ],
-              ),
-            ),
-            const Divider(height: 1),
             Expanded(
               child: ListView(
-                padding: const EdgeInsets.symmetric(vertical: 12),
+                padding: const EdgeInsets.fromLTRB(0, 24, 0, 12),
                 children: _buildNavigationItems(context),
               ),
             ),
