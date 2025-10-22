@@ -11,9 +11,11 @@ Questo progetto è una semplice applicazione mobile/desktop/web sviluppata con F
 
 Per produrre le varianti raster richieste dagli store (Android/iOS) e dai pacchetti desktop (Windows/Linux/macOS) esegui lo script
 [`tool/generate_app_icons.py`](tool/generate_app_icons.py). Il comando crea PNG multipiattaforma e un file ICO all'interno di
-`assets/icons/generated/` e copia automaticamente le icone PWA (`icon-192.png`, `icon-512.png`) in `web/icons/`. Questi asset generati non
-sono versionati nel repository: esegui lo script localmente (dopo aver installato `cairosvg` e `Pillow`) per prepararli prima di un
-packaging o di una release.
+`assets/icons/generated/`, copia automaticamente le icone PWA (`icon-192.png`, `icon-512.png`) in `web/icons/` e, quando sono presenti le
+directory di piattaforma generate da `flutter create`, sovrascrive le icone di lancio su Android (`android/app/src/main/res/**`), quelle del
+runner Windows (`windows/runner/resources/app_icon.ico`) e il catalogo AppIcon di macOS (`macos/Runner/Assets.xcassets/AppIcon.appiconset`).
+Questi asset generati non sono versionati nel repository: esegui lo script localmente (dopo aver installato `cairosvg` e `Pillow`) per
+prepararli prima di un packaging o di una release.
 
 ## Bot per Scriptagher
 
