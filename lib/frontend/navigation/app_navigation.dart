@@ -2,15 +2,17 @@ import 'package:flutter/material.dart';
 
 @immutable
 class AppNavigationEntry {
-  const AppNavigationEntry({
+  AppNavigationEntry({
     required this.label,
     required this.icon,
     this.route,
-    this.children = const <AppNavigationEntry>[],
-  }) : assert(
-          route != null || children.isNotEmpty,
-          'A navigation entry must have either a route or children.',
-        );
+    List<AppNavigationEntry> children = const <AppNavigationEntry>[],
+  }) : children = List<AppNavigationEntry>.unmodifiable(children) {
+    assert(
+      route != null || children.isNotEmpty,
+      'A navigation entry must have either a route or children.',
+    );
+  }
 
   final String label;
   final IconData icon;
@@ -20,49 +22,50 @@ class AppNavigationEntry {
   bool get isLeaf => children.isEmpty;
 }
 
-const List<AppNavigationEntry> appNavigationEntries = <AppNavigationEntry>[
-  const AppNavigationEntry(
+final List<AppNavigationEntry> appNavigationEntries =
+    List<AppNavigationEntry>.unmodifiable(<AppNavigationEntry>[
+  AppNavigationEntry(
     label: 'Home',
     icon: Icons.home_rounded,
     route: '/home',
   ),
-  const AppNavigationEntry(
+  AppNavigationEntry(
     label: 'Bots',
     icon: Icons.smart_toy_rounded,
     route: '/bots',
   ),
-  const AppNavigationEntry(
+  AppNavigationEntry(
     label: 'Tutorial',
     icon: Icons.school_rounded,
     route: '/tutorial',
   ),
-  const AppNavigationEntry(
+  AppNavigationEntry(
     label: 'Test',
     icon: Icons.science_rounded,
-    children: const <AppNavigationEntry>[
-      const AppNavigationEntry(
+    children: <AppNavigationEntry>[
+      AppNavigationEntry(
         label: 'Test 1',
         icon: Icons.filter_1_rounded,
         route: '/test1',
       ),
-      const AppNavigationEntry(
+      AppNavigationEntry(
         label: 'Test 2',
         icon: Icons.filter_2_rounded,
         route: '/test2',
       ),
-      const AppNavigationEntry(
+      AppNavigationEntry(
         label: 'Test 3',
         icon: Icons.filter_3_rounded,
         route: '/test3',
       ),
     ],
   ),
-  const AppNavigationEntry(
+  AppNavigationEntry(
     label: 'Settings',
     icon: Icons.settings_rounded,
     route: '/settings',
   ),
-];
+]);
 
 Iterable<AppNavigationEntry> flattenNavigationEntries(
   Iterable<AppNavigationEntry> entries,
