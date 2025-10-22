@@ -1,0 +1,13 @@
+{
+  "name": "Scriptagher for Linux (x86_64 · Release Build)",
+  "platform": "Linux",
+  "version": "1.0.0+1",
+  "file_name": "scriptagher-linux-x64.tar.gz",
+  "file_size": 19289038,
+  "sha256": "c72a4c091cde04ccb114ccc181d688619bd91d16eb01a3069f2205318a6a757e",
+  "download_url": "https://DiegoFCJ.github.io/scriptagher/installers/linux/scriptagher-linux-x64.tar.gz",
+  "format": "TAR.GZ",
+  "last_updated": "2025-10-22T13:03:28Z",
+  "architecture": "x86_64",
+  "build_variant": "Release"
+}
